@@ -1,0 +1,27 @@
+name: omr_data
+description: >-
+  Local database — drift/SQLite schema with tenant-leading tables, DAOs for
+  scans/results/review/analytics, and a no-op sync outbox (phase-2 seam).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dependencies:
+  drift: 2.34.3
+  meta: 1.19.0
+  omr_core: 0.1.0
+  omr_spec: 0.1.0
+  # Client UUID generated at capture time — the sync idempotency key.
+  uuid: 4.5.1
+
+dev_dependencies:
+  build_runner: 2.16.0
+  drift_dev: 2.34.5
+  # Host tests run against real SQLite via FFI (no Flutter boot needed).
+  # ^3.0.0 is what drift_dev 2.34.3 itself requires — stay on one major.
+  sqlite3: ^3.0.0
+  test: ^1.25.0

@@ -1,0 +1,22 @@
+name: omr_spec
+description: >-
+  OMR sheet specification — the single source of truth (authored in mm) that
+  compiles to BOTH the printable PDF and the detection template.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dependencies:
+  # specHash = sha256(canonicalJson(spec)) — stored with every layout row.
+  crypto: 3.0.6
+  # Vector PDF generation in pure Dart; mm-unit geometry via PdfPageFormat.
+  pdf: 3.13.0
+  # QR (ECC M) printed on the sheet carrying layoutId + layoutVersion.
+  qr: 3.0.2
+
+dev_dependencies:
+  test: ^1.25.0

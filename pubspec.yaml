@@ -1,0 +1,51 @@
+name: omr_workspace
+
+publish_to: none
+
+# Pub workspace root. Requires Dart >= 3.10 (also needed by opencv_dart's
+# Native Assets). Every member package declares `resolution: workspace`.
+environment:
+  sdk: ^3.10.0
+
+workspace:
+  - app
+  - packages/omr_spec
+  - packages/omr_core
+  - packages/omr_detect
+  - packages/omr_data
+  - packages/omr_reports
+  - tools/omr_cli
+
+dev_dependencies:
+  lints: ^6.0.0
+
+# dartcv4 (OpenCV bindings, via omr_detect) builds OpenCV from source in its
+# native-assets hook. Two knobs, set HERE because a pub workspace resolves
+# hook user-defines from the workspace root's pubspec:
+#  - include_modules trims the build to what the OMR pipeline calls (plan §1);
+#    excluded modules throw at runtime, and the omr_detect smoke test pins
+#    every call we ship.
+#  - macos.generator: dartcv4 defaults to CMake's Xcode generator on macOS,
+#    which needs a full Xcode install. Ninja builds the same sources with
+#    Command Line Tools' clang alone. The MVP targets Android (which already
+#    builds with Ninja + NDK); revisit for the iOS port, which needs Xcode
+#    regardless.
+hooks:
+  user_defines:
+    dartcv4:
+      include_modules: [imgcodecs, imgproc, calib3d]
+      # android_home is only honoured inside the android sub-map (the parser
+      # ignores it elsewhere), but it gates the SDK-cmake lookup for every
+      # target OS via the resolver's install-location paths.
+      android:
+        android_home: /opt/homebrew/share/android-commandlinetools
+      macos:
+        generator: Ninja
+        # Homebrew's CMake 4 removed the legacy 3-arg get_filename_component
+        # that native_toolchain_cmake's ios.toolchain.cmake still uses, which
+        # kills the generate step before compilation even starts. The Android
+        # SDK ships cmake 3.22.1 (+ninja) as a plain host binary — pin the
+        # hook to it for macOS targets too.
+        cmake_version: 3.22.1
+        prefer_android_cmake: true
+        prefer_android_ninja: true

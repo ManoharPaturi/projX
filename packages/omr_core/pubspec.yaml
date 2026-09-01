@@ -1,0 +1,19 @@
+name: omr_core
+description: >-
+  Grading engine — scoring strategies (data-driven marking schemes), versioned
+  answer keys, re-grade from raw reads, wrong-key detection. Pure Dart, zero IO.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dependencies:
+  # Intentionally empty: the grading core must stay IO-free and Flutter-free so
+  # it is unit-testable in milliseconds and portable to any future backend.
+  meta: 1.19.0
+
+dev_dependencies:
+  test: ^1.25.0

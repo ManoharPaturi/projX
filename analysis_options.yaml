@@ -1,0 +1,21 @@
+# Workspace-wide static analysis.
+# Members (e.g. app/) may extend this with flutter_lints.
+include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true
+  errors:
+    # Treat these as errors in a grading system where silent mistakes cost marks.
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_dynamic_calls
+    - prefer_final_locals
+    - prefer_single_quotes
+    - unawaited_futures
+    - discarded_futures
+    - sort_pub_dependencies

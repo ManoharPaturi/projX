@@ -1,0 +1,50 @@
+name: omr_app
+description: "OMR sheet evaluation for coaching institutes"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Workspace engines.
+  omr_core: 0.1.0
+  omr_data: 0.1.0
+  omr_detect: 0.1.0
+  omr_reports: 0.1.0
+  omr_spec: 0.1.0
+
+  # State + DB.
+  provider: ^6.1.2
+  drift: 2.34.3
+  sqlite3_flutter_libs: ^0.5.28
+
+  # Files + output delivery.
+  path: ^1.9.0
+  path_provider: ^2.1.5
+  pdf: 3.13.0
+  printing: 5.15.0
+  share_plus: 13.3.0
+
+  # Roster import parsing (BOM-tolerant CSV).
+  csv: 8.0.0
+
+  # Capture (auto-capture scanner shell; live CV lands with M2).
+  camera: ^0.12.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

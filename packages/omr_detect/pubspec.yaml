@@ -1,0 +1,37 @@
+name: omr_detect
+description: >-
+  On-device OMR detection pipeline (fiducial registration → warp → two-tier
+  adaptive bubble thresholding → confidence) plus capture-loop quad detection
+  and quality gates. The ONLY package that imports opencv_dart; every cv call
+  goes through OpencvService so a native implementation can replace it.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.38.1"
+
+resolution: workspace
+
+dependencies:
+  # Direct + exact so (a) the transitive can't drift past what opencv_dart
+  # 2.2.2 was tested against, and (b) the hook user-defines are honoured
+  # — native-assets reads them from a package that DIRECTLY depends on the
+  # hook's package (they live in the WORKSPACE ROOT pubspec; see
+  # docs/m0-gate.md for why).
+  dartcv4: 2.3.0
+  flutter:
+    sdk: flutter
+  meta: 1.19.0
+  omr_core: 0.1.0
+  omr_spec: 0.1.0
+  # Pinned EXACTLY (single-maintainer risk; plan §1). Pulls dartcv4, which
+  # compiles OpenCV from source via its native-assets build hook on first
+  # `flutter test`/`flutter run` — that is the M0 gate this package's smoke
+  # test exercises. opencv_dart is Flutter-only, which is why this package
+  # carries a flutter dependency despite having no widgets.
+  opencv_dart: 2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

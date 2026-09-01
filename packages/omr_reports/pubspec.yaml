@@ -1,0 +1,26 @@
+name: omr_reports
+description: >-
+  Report renderers — per-student/consolidated PDF marksheets, XLSX, CSV, and
+  annotated overlays, all consuming one canonical ResultsQuery(ReportRow).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dependencies:
+  csv: 8.0.0
+  excel_plus: 2.16.0
+  omr_core: 0.1.0
+  omr_data: 0.1.0
+  pdf: 3.13.0
+
+dev_dependencies:
+  # Value()/companions in the test fixture's seed rows.
+  drift: 2.34.3
+  # Fixture sheets come from the validated Standard-90 preset, same as the
+  # omr_data tests.
+  omr_spec: 0.1.0
+  test: ^1.25.0

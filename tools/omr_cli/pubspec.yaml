@@ -1,0 +1,23 @@
+name: omr_cli
+description: >-
+  Headless tooling — render sheet PDFs, emit detection template JSON, build the
+  synthetic golden corpus, and run the accuracy harness with per-stage error
+  attribution. Runs on the dev machine, never on the phone.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dependencies:
+  args: 2.7.0
+  omr_core: 0.1.0
+  omr_data: 0.1.0
+  omr_detect: 0.1.0
+  omr_reports: 0.1.0
+  omr_spec: 0.1.0
+
+dev_dependencies:
+  test: ^1.25.0
