@@ -212,10 +212,11 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 leading: const Icon(Icons.straighten),
                 title: Text('Band ${region.band.toUpperCase()} · '
                     '${region.samples} samples'),
-                subtitle: Text('separation ${region.separation.toStringAsFixed(0)} '
-                    '· split at ${region.threshold.toStringAsFixed(0)} '
-                    '· faint at ${region.faintMean.toStringAsFixed(0)}'),
-                dense: true,
+                subtitle: Text(
+                  'separation ${region.separation.toStringAsFixed(0)} '
+                  '· split at ${region.threshold.toStringAsFixed(0)} '
+                  '· faint at ${region.faintMean.toStringAsFixed(0)}',
+                ),
               ),
           ],
         ],
@@ -231,13 +232,25 @@ class _VerdictCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, label) = switch (report.overall) {
+    // Dark-filled verdict chip with white bold text (WCAG AA — the 500
+    // green and amber shades were under 3:1), and a semantics label so the
+    // verdict is announced, not just colored.
+    final (color, label, spoken) = switch (report.overall) {
       CalibrationVerdict.comfortable => (
-        Colors.green,
+        const Color(0xFF1B5E20),
         'PASS',
+        'Calibration passed',
       ),
-      CalibrationVerdict.tight => (Colors.amber.shade800, 'TIGHT'),
-      CalibrationVerdict.failed => (Theme.of(context).colorScheme.error, 'FAIL'),
+      CalibrationVerdict.tight => (
+        const Color(0xFF8B4000),
+        'TIGHT',
+        'Calibration tight',
+      ),
+      CalibrationVerdict.failed => (
+        Theme.of(context).colorScheme.error,
+        'FAIL',
+        'Calibration failed',
+      ),
     };
     final state = context.read<AppState>();
     return Card(
@@ -248,20 +261,23 @@ class _VerdictCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                Semantics(
+                  label: spoken,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

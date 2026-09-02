@@ -114,11 +114,25 @@ class _ScannerViewState extends State<ScannerView> {
         ),
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(
-            key: const ValueKey('scan_hint'),
-            hint,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
+          // The hint sits over the live camera feed — a dark scrim keeps it
+          // legible whatever the scene behind it (bright hall, dark room).
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Text(
+                key: const ValueKey('scan_hint'),
+                hint,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
           ),
         ),
         Padding(

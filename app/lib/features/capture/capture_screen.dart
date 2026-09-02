@@ -465,16 +465,20 @@ class _CapturedCard extends StatelessWidget {
 
   Widget _confidenceChip(BuildContext context) {
     final review = captured.needsReview;
-    final color = review ? Colors.orange : Colors.green;
+    // Dark ink on a light tint of itself — the 500-shades (Colors.green /
+    // Colors.orange) fall under 3:1 on a light card; these clear WCAG AA.
+    final color = review
+        ? const Color(0xFF8B4000) // deep-orange-900 territory
+        : const Color(0xFF1B5E20); // green-900
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         review ? 'needs review' : 'auto-graded',
-        style: TextStyle(color: color, fontWeight: FontWeight.w600),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }

@@ -72,9 +72,13 @@ class _PendingReviewCard extends StatelessWidget {
         final count = snapshot.data?.length ?? 0;
         return Card(
           child: ListTile(
+            // 700/800-shade icons: the state color must stay visible on a
+            // white card (graphics need 3:1 — the 500 shades miss it).
             leading: Icon(
               Icons.fact_check_outlined,
-              color: count > 0 ? Colors.orange : Colors.green,
+              color: count > 0
+                  ? const Color(0xFF8B4000) // deep-orange ink
+                  : const Color(0xFF1B5E20), // green-900
             ),
             title: Text('$count'),
             subtitle: const Text('pending review'),

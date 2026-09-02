@@ -45,11 +45,14 @@ class OmrApp extends StatelessWidget {
   }
 
   /// M3 with the sheet's drop-out orange as the brand seed — the same ink
-  /// the operator sees printed on every sheet.
+  /// the operator sees printed on every sheet. Comfortable density + padded
+  /// tap targets: this app is used standing, all day, often one-handed.
   ThemeData _theme() {
     final scheme = ColorScheme.fromSeed(seedColor: const Color(0xFFD64000));
     return ThemeData(
       colorScheme: scheme,
+      visualDensity: VisualDensity.comfortable,
+      materialTapTargetSize: MaterialTapTargetSize.padded,
       inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
       ),

@@ -89,7 +89,9 @@ void main() {
       wrapForTest(const ReviewQueueScreen(), state),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('MULTI_BUBBLE_WARN'), findsOneWidget);
+    // The queue speaks operator language; MULTI_BUBBLE_WARN is the stored
+    // reason code, the tile says what it means.
+    expect(find.textContaining('a question has two marks'), findsOneWidget);
 
     await tester.tap(find.byType(ListTile));
     await tester.pumpAndSettle();
