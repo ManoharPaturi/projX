@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../app_db.dart';
 import '../converters.dart';
 import '../enums.dart';
+import '../services/audit_log_service.dart';
 import '../tables/answer_key_entries.dart';
 import '../tables/answer_key_versions.dart';
 
@@ -131,18 +132,29 @@ class KeysDao extends DatabaseAccessor<AppDb> with _$KeysDaoMixin {
 
   /// The provisional→finalized transition — the ONLY mutation this DAO ever
   /// performs on a key version. Finalizing an already-final version throws.
+  /// The transition lands in the audit trail atomically with the write.
   Future<void> finalizeVersion(String keyVersionId) async {
     final version = await _versionOrThrow(keyVersionId);
     if (version.status == KeyVersionStatus.finalized) {
       throw StateError('answer key version $keyVersionId is already final');
     }
-    await (update(
-      answerKeyVersions,
-    )..where((AnswerKeyVersions k) => k.id.equals(keyVersionId))).write(
-      const AnswerKeyVersionsCompanion(
-        status: Value(KeyVersionStatus.finalized),
-      ),
-    );
+    await transaction(() async {
+      await (update(
+        answerKeyVersions,
+      )..where((AnswerKeyVersions k) => k.id.equals(keyVersionId))).write(
+        const AnswerKeyVersionsCompanion(
+          status: Value(KeyVersionStatus.finalized),
+        ),
+      );
+      await AuditLogService(attachedDatabase).record(
+        tenantId: version.tenantId,
+        entity: 'answer_key_versions',
+        entityId: keyVersionId,
+        action: 'finalize',
+        before: {'status': version.status.name},
+        after: {'status': KeyVersionStatus.finalized.name},
+      );
+    });
   }
 
   /// The version results should grade against: the newest FINALIZED version

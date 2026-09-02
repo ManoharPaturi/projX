@@ -42,6 +42,12 @@ export 'src/pipeline/pipeline.dart'
         StageStatus,
         StageTraceEntry,
         StillEvaluation;
+export 'src/calibration/calibration_analyzer.dart'
+    show
+        CalibrationAnalyzer,
+        CalibrationRegionReport,
+        CalibrationReport,
+        CalibrationVerdict;
 export 'src/registration/curvature_gate.dart'
     show CurvatureGate, CurvatureReport;
 export 'src/registration/fiducial_registrar.dart'

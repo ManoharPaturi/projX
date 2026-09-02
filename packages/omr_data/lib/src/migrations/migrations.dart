@@ -191,12 +191,26 @@ MigrationStrategy buildMigrations(GeneratedDatabase db) => MigrationStrategy(
     // v2+ steps land here, oldest first. Keep every step idempotent
     // (IF NOT EXISTS / addColumn) so interrupted upgrades recover, and
     // mirror any new index in v1Indexes into the step that introduced it.
-    //
-    // if (from < 2) {
-    //   await m.addColumn(scans, scans.someNewColumn);
-    //   await m.createIndex(Index('ix_...', 'CREATE INDEX IF NOT EXISTS ...'));
-    // }
     // ------------------------------------------------------------------
+    if (from < 2) {
+      // v2: app_settings — per-tenant strictness preset + retention grace
+      // window (the settings surfaces the M4 calibration flow writes).
+      // Raw SQL rather than m.createTable because this library only sees
+      // `GeneratedDatabase`; the DDL mirrors drift's own naming exactly
+      // (snake_case columns, clientDefault columns need no SQL default —
+      // drift supplies them on insert).
+      await db.customStatement(
+        'CREATE TABLE IF NOT EXISTS app_settings ('
+        'tenant_id TEXT NOT NULL PRIMARY KEY, '
+        'strictness TEXT NOT NULL DEFAULT \'normal\', '
+        'retention_grace_days INTEGER NOT NULL DEFAULT 7, '
+        'updated_at TEXT NOT NULL)',
+      );
+      await db.customStatement(
+        'CREATE INDEX IF NOT EXISTS ix_app_settings_tenant ON app_settings '
+        '(tenant_id)',
+      );
+    }
     assert(from >= 1 && to >= from, 'unsupported schema step $from -> $to');
   },
   beforeOpen: (OpeningDetails details) async {

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import '../cv/opencv_service.dart'
-    show CvMat, CvPointI, CvRectI, OpencvService;
+    show CvPointI, CvRectI, OpencvService;
 import 'quality_gates.dart' show CaptureQualityGates, GateInput, GateResult;
 import 'hysteresis.dart' show HysteresisState, QuadHysteresis;
 

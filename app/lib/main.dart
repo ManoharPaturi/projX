@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'features/calibration/calibration_screen.dart';
 import 'features/capture/capture_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/exams/exam_create_screen.dart';
@@ -37,6 +38,7 @@ class OmrApp extends StatelessWidget {
           ReviewQueueScreen.routeName: (_) => const ReviewQueueScreen(),
           CaptureScreen.routeName: (_) => const CaptureScreen(),
           SettingsScreen.routeName: (_) => const SettingsScreen(),
+          CalibrationScreen.routeName: (_) => const CalibrationScreen(),
         },
       ),
     );

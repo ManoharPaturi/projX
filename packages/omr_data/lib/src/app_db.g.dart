@@ -9941,6 +9941,339 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxEntry> {
   }
 }
 
+class $AppSettingsTable extends AppSettings
+    with TableInfo<$AppSettingsTable, AppSetting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AppSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tenantIdMeta = const VerificationMeta(
+    'tenantId',
+  );
+  @override
+  late final GeneratedColumn<String> tenantId = GeneratedColumn<String>(
+    'tenant_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _strictnessMeta = const VerificationMeta(
+    'strictness',
+  );
+  @override
+  late final GeneratedColumn<String> strictness = GeneratedColumn<String>(
+    'strictness',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('normal'),
+  );
+  static const VerificationMeta _retentionGraceDaysMeta =
+      const VerificationMeta('retentionGraceDays');
+  @override
+  late final GeneratedColumn<int> retentionGraceDays = GeneratedColumn<int>(
+    'retention_grace_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(7),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, String> updatedAt =
+      GeneratedColumn<String>(
+        'updated_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        clientDefault: nowIsoUtc,
+      ).withConverter<DateTime>($AppSettingsTable.$converterupdatedAt);
+  @override
+  List<GeneratedColumn> get $columns => [
+    tenantId,
+    strictness,
+    retentionGraceDays,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'app_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppSetting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('tenant_id')) {
+      context.handle(
+        _tenantIdMeta,
+        tenantId.isAcceptableOrUnknown(data['tenant_id']!, _tenantIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tenantIdMeta);
+    }
+    if (data.containsKey('strictness')) {
+      context.handle(
+        _strictnessMeta,
+        strictness.isAcceptableOrUnknown(data['strictness']!, _strictnessMeta),
+      );
+    }
+    if (data.containsKey('retention_grace_days')) {
+      context.handle(
+        _retentionGraceDaysMeta,
+        retentionGraceDays.isAcceptableOrUnknown(
+          data['retention_grace_days']!,
+          _retentionGraceDaysMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tenantId};
+  @override
+  AppSetting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppSetting(
+      tenantId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tenant_id'],
+      )!,
+      strictness: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}strictness'],
+      )!,
+      retentionGraceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retention_grace_days'],
+      )!,
+      updatedAt: $AppSettingsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}updated_at'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $AppSettingsTable createAlias(String alias) {
+    return $AppSettingsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DateTime, String> $converterupdatedAt =
+      const IsoDateTimeConverter();
+}
+
+class AppSetting extends DataClass implements Insertable<AppSetting> {
+  final String tenantId;
+
+  /// Capture-strictness preset for the quality gates (not the marking
+  /// thresholds — those are identical across presets so scores stay
+  /// comparable). Default 'normal'.
+  final String strictness;
+
+  /// Days a 12MP capture original is kept before the retention sweep drops
+  /// it (the warped grayscale + annotated thumb stay forever — they are the
+  /// review substrate). Default 7.
+  final int retentionGraceDays;
+  final DateTime updatedAt;
+  const AppSetting({
+    required this.tenantId,
+    required this.strictness,
+    required this.retentionGraceDays,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['tenant_id'] = Variable<String>(tenantId);
+    map['strictness'] = Variable<String>(strictness);
+    map['retention_grace_days'] = Variable<int>(retentionGraceDays);
+    {
+      map['updated_at'] = Variable<String>(
+        $AppSettingsTable.$converterupdatedAt.toSql(updatedAt),
+      );
+    }
+    return map;
+  }
+
+  AppSettingsCompanion toCompanion(bool nullToAbsent) {
+    return AppSettingsCompanion(
+      tenantId: Value(tenantId),
+      strictness: Value(strictness),
+      retentionGraceDays: Value(retentionGraceDays),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory AppSetting.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppSetting(
+      tenantId: serializer.fromJson<String>(json['tenantId']),
+      strictness: serializer.fromJson<String>(json['strictness']),
+      retentionGraceDays: serializer.fromJson<int>(json['retentionGraceDays']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tenantId': serializer.toJson<String>(tenantId),
+      'strictness': serializer.toJson<String>(strictness),
+      'retentionGraceDays': serializer.toJson<int>(retentionGraceDays),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  AppSetting copyWith({
+    String? tenantId,
+    String? strictness,
+    int? retentionGraceDays,
+    DateTime? updatedAt,
+  }) => AppSetting(
+    tenantId: tenantId ?? this.tenantId,
+    strictness: strictness ?? this.strictness,
+    retentionGraceDays: retentionGraceDays ?? this.retentionGraceDays,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  AppSetting copyWithCompanion(AppSettingsCompanion data) {
+    return AppSetting(
+      tenantId: data.tenantId.present ? data.tenantId.value : this.tenantId,
+      strictness: data.strictness.present
+          ? data.strictness.value
+          : this.strictness,
+      retentionGraceDays: data.retentionGraceDays.present
+          ? data.retentionGraceDays.value
+          : this.retentionGraceDays,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSetting(')
+          ..write('tenantId: $tenantId, ')
+          ..write('strictness: $strictness, ')
+          ..write('retentionGraceDays: $retentionGraceDays, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(tenantId, strictness, retentionGraceDays, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppSetting &&
+          other.tenantId == this.tenantId &&
+          other.strictness == this.strictness &&
+          other.retentionGraceDays == this.retentionGraceDays &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
+  final Value<String> tenantId;
+  final Value<String> strictness;
+  final Value<int> retentionGraceDays;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const AppSettingsCompanion({
+    this.tenantId = const Value.absent(),
+    this.strictness = const Value.absent(),
+    this.retentionGraceDays = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AppSettingsCompanion.insert({
+    required String tenantId,
+    this.strictness = const Value.absent(),
+    this.retentionGraceDays = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : tenantId = Value(tenantId);
+  static Insertable<AppSetting> custom({
+    Expression<String>? tenantId,
+    Expression<String>? strictness,
+    Expression<int>? retentionGraceDays,
+    Expression<String>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tenantId != null) 'tenant_id': tenantId,
+      if (strictness != null) 'strictness': strictness,
+      if (retentionGraceDays != null)
+        'retention_grace_days': retentionGraceDays,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AppSettingsCompanion copyWith({
+    Value<String>? tenantId,
+    Value<String>? strictness,
+    Value<int>? retentionGraceDays,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return AppSettingsCompanion(
+      tenantId: tenantId ?? this.tenantId,
+      strictness: strictness ?? this.strictness,
+      retentionGraceDays: retentionGraceDays ?? this.retentionGraceDays,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tenantId.present) {
+      map['tenant_id'] = Variable<String>(tenantId.value);
+    }
+    if (strictness.present) {
+      map['strictness'] = Variable<String>(strictness.value);
+    }
+    if (retentionGraceDays.present) {
+      map['retention_grace_days'] = Variable<int>(retentionGraceDays.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(
+        $AppSettingsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSettingsCompanion(')
+          ..write('tenantId: $tenantId, ')
+          ..write('strictness: $strictness, ')
+          ..write('retentionGraceDays: $retentionGraceDays, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDb extends GeneratedDatabase {
   _$AppDb(QueryExecutor e) : super(e);
   $AppDbManager get managers => $AppDbManager(this);
@@ -9964,6 +10297,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   late final $ReportJobsTable reportJobs = $ReportJobsTable(this);
   late final $AuditLogTable auditLog = $AuditLogTable(this);
   late final $SyncOutboxTable syncOutbox = $SyncOutboxTable(this);
+  late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final ScansDao scansDao = ScansDao(this as AppDb);
   late final ResultsDao resultsDao = ResultsDao(this as AppDb);
   late final ReviewDao reviewDao = ReviewDao(this as AppDb);
@@ -9974,6 +10308,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   late final SyncOutboxDao syncOutboxDao = SyncOutboxDao(this as AppDb);
   late final ReportJobsDao reportJobsDao = ReportJobsDao(this as AppDb);
   late final StudentsDao studentsDao = StudentsDao(this as AppDb);
+  late final SettingsDao settingsDao = SettingsDao(this as AppDb);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -9996,6 +10331,7 @@ abstract class _$AppDb extends GeneratedDatabase {
     reportJobs,
     auditLog,
     syncOutbox,
+    appSettings,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -18803,6 +19139,186 @@ typedef $$SyncOutboxTableProcessedTableManager =
       SyncOutboxEntry,
       PrefetchHooks Function()
     >;
+typedef $$AppSettingsTableCreateCompanionBuilder =
+    AppSettingsCompanion Function({
+      required String tenantId,
+      Value<String> strictness,
+      Value<int> retentionGraceDays,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$AppSettingsTableUpdateCompanionBuilder =
+    AppSettingsCompanion Function({
+      Value<String> tenantId,
+      Value<String> strictness,
+      Value<int> retentionGraceDays,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$AppSettingsTableFilterComposer
+    extends Composer<_$AppDb, $AppSettingsTable> {
+  $$AppSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tenantId => $composableBuilder(
+    column: $table.tenantId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get strictness => $composableBuilder(
+    column: $table.strictness,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get retentionGraceDays => $composableBuilder(
+    column: $table.retentionGraceDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DateTime, DateTime, String> get updatedAt =>
+      $composableBuilder(
+        column: $table.updatedAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+}
+
+class $$AppSettingsTableOrderingComposer
+    extends Composer<_$AppDb, $AppSettingsTable> {
+  $$AppSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tenantId => $composableBuilder(
+    column: $table.tenantId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get strictness => $composableBuilder(
+    column: $table.strictness,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get retentionGraceDays => $composableBuilder(
+    column: $table.retentionGraceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AppSettingsTableAnnotationComposer
+    extends Composer<_$AppDb, $AppSettingsTable> {
+  $$AppSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tenantId =>
+      $composableBuilder(column: $table.tenantId, builder: (column) => column);
+
+  GeneratedColumn<String> get strictness => $composableBuilder(
+    column: $table.strictness,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get retentionGraceDays => $composableBuilder(
+    column: $table.retentionGraceDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DateTime, String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$AppSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $AppSettingsTable,
+          AppSetting,
+          $$AppSettingsTableFilterComposer,
+          $$AppSettingsTableOrderingComposer,
+          $$AppSettingsTableAnnotationComposer,
+          $$AppSettingsTableCreateCompanionBuilder,
+          $$AppSettingsTableUpdateCompanionBuilder,
+          (AppSetting, BaseReferences<_$AppDb, $AppSettingsTable, AppSetting>),
+          AppSetting,
+          PrefetchHooks Function()
+        > {
+  $$AppSettingsTableTableManager(_$AppDb db, $AppSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AppSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AppSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AppSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> tenantId = const Value.absent(),
+                Value<String> strictness = const Value.absent(),
+                Value<int> retentionGraceDays = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppSettingsCompanion(
+                tenantId: tenantId,
+                strictness: strictness,
+                retentionGraceDays: retentionGraceDays,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tenantId,
+                Value<String> strictness = const Value.absent(),
+                Value<int> retentionGraceDays = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppSettingsCompanion.insert(
+                tenantId: tenantId,
+                strictness: strictness,
+                retentionGraceDays: retentionGraceDays,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AppSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $AppSettingsTable,
+      AppSetting,
+      $$AppSettingsTableFilterComposer,
+      $$AppSettingsTableOrderingComposer,
+      $$AppSettingsTableAnnotationComposer,
+      $$AppSettingsTableCreateCompanionBuilder,
+      $$AppSettingsTableUpdateCompanionBuilder,
+      (AppSetting, BaseReferences<_$AppDb, $AppSettingsTable, AppSetting>),
+      AppSetting,
+      PrefetchHooks Function()
+    >;
 
 class $AppDbManager {
   final _$AppDb _db;
@@ -18841,4 +19357,6 @@ class $AppDbManager {
       $$AuditLogTableTableManager(_db, _db.auditLog);
   $$SyncOutboxTableTableManager get syncOutbox =>
       $$SyncOutboxTableTableManager(_db, _db.syncOutbox);
+  $$AppSettingsTableTableManager get appSettings =>
+      $$AppSettingsTableTableManager(_db, _db.appSettings);
 }

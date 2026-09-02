@@ -7,6 +7,7 @@ import 'package:omr_spec/omr_spec.dart' as spec;
 import '../app_db.dart';
 import '../converters.dart';
 import '../enums.dart' as enums;
+import 'audit_log_service.dart';
 
 /// The id → rule registry backing `gradingConfigJson`'s `preset` field. Every
 /// preset omr_core ships is resolvable by id so a stored config never dangles.
@@ -222,6 +223,17 @@ class GradingService {
       await db.resultsDao.recomputeRanks(examId, keyVersionId);
     }
     await db.resultsDao.finishScoringRun(scoringRunId);
+    await AuditLogService(db).record(
+      tenantId: tenantId,
+      entity: 'scoring_runs',
+      entityId: scoringRunId,
+      action: regrade ? 'regrade' : 'grade',
+      after: {
+        'examId': examId,
+        'keyVersionId': keyVersionId,
+        'results': rows.length,
+      },
+    );
     return report;
   }
 

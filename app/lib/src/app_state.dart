@@ -33,6 +33,13 @@ class AppState extends ChangeNotifier {
       db.institutes,
     )..where((Institutes i) => i.tenantId.equals(kTenantId))).get();
     final row = rows.single;
+    // Sweep now: originals past the grace window (a previous session's
+    // captures) go before the operator touches anything. A failure must not
+    // block boot — the next launch sweeps again.
+    await runRetentionSweep(db).catchError((Object error) {
+      debugPrint('retention sweep skipped: $error');
+      return RetentionReport(purged: const [], missing: const []);
+    });
     return AppState(
       db: db,
       instituteId: row.id,

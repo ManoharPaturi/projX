@@ -8,6 +8,7 @@ import 'daos/keys_dao.dart';
 import 'daos/layouts_dao.dart';
 import 'daos/report_jobs_dao.dart';
 import 'daos/results_dao.dart';
+import 'daos/settings_dao.dart';
 import 'daos/students_dao.dart';
 import 'daos/review_dao.dart';
 import 'daos/scans_dao.dart';
@@ -17,6 +18,7 @@ import 'enums.dart';
 import 'migrations/migrations.dart';
 import 'tables/answer_key_entries.dart';
 import 'tables/answer_key_versions.dart';
+import 'tables/app_settings.dart';
 import 'tables/audit_log.dart';
 import 'tables/bubble_reads.dart';
 import 'tables/exams.dart';
@@ -37,7 +39,8 @@ part 'app_db.g.dart';
 
 /// The local database of the OMR grading system (plan §4).
 ///
-/// - schemaVersion 1; the v2+ scaffold lives in `migrations/migrations.dart`;
+/// - schemaVersion 2 (v2 added `app_settings`; history in
+///   `migrations/migrations.dart`);
 /// - `beforeOpen` enables FK enforcement and WAL journaling;
 /// - all timestamps are ISO-8601 UTC TEXT (see `converters.dart`);
 /// - client-generated UUID row ids double as the sync idempotency keys.
@@ -60,6 +63,7 @@ part 'app_db.g.dart';
     ReportJobs,
     AuditLog,
     SyncOutbox,
+    AppSettings,
   ],
   daos: [
     ScansDao,
@@ -72,6 +76,7 @@ part 'app_db.g.dart';
     SyncOutboxDao,
     ReportJobsDao,
     StudentsDao,
+    SettingsDao,
   ],
 )
 class AppDb extends _$AppDb {
@@ -84,7 +89,7 @@ class AppDb extends _$AppDb {
   factory AppDb.memory() => AppDb(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => buildMigrations(this);

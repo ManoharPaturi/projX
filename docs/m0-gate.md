@@ -24,14 +24,31 @@ build time — which is exactly why each call must be exercised, not just compil
       `app/integration_test/smoke_test.dart` — it runs the SAME `runCvSmokeProbe` the host suite
       runs, so the criteria cannot drift. Needs a physical phone:
       `flutter test integration_test/smoke_test.dart -d <device-id>`.
+- [x] **`integration_test` smoke on an arm64 Android EMULATOR** (Pixel 7 AVD, API 35,
+      `emu64a`, 2026-09-02): all five probe families PASS on-device — `cvtColor+mean`,
+      `matchTemplate`, `getPerspectiveTransform+warpPerspective`, `Laplacian variance`,
+      `detectQuad` (worst corner error 2.0 px) — with **quad-detect at 1834 µs/frame** at
+      640×480 (~17× inside the 32 ms budget; emulator timing, not the low-end-device number).
+      Driver: `flutter test integration_test/smoke_test.dart -d emulator-5554`. The
+      real low-end physical device leg remains the final word on the 32 ms budget.
 - [x] **Debug APK builds with the NDK-compiled OpenCV bundled** — `flutter build apk --debug
       --target-platform android-arm64` → `lib/arm64-v8a/libdartcv.so` (11.5 MB) alongside
       libflutter/libsqlite3 (2026-08-31).
+- [x] **App installs, launches, and renders on-emulator** with no Flutter errors in logcat
+      (2026-09-02); boot path exercised incl. the retention sweep.
 - [x] **`zipalign -c -P 16` passes** on that APK; `libdartcv.so` and `libflutter.so` both
       verified OK at 16 KB page alignment (NDK r28c default, confirmed not assumed).
 - [ ] Native-fallback decision recorded: any missing symbol, >32 ms timed frame on the low-end
       device ⇒ keep Flutter UI/spec/reports, port the live quad loop to a Kotlin platform channel
       behind `EdgeAnalyzer` (opencv_dart continues to serve the still pipeline).
+
+## Known build caveat: x86_64 ABI
+
+`flutter build apk --debug` (all ABIs) **fails in the dartcv4/OpenCV native build on x86_64**:
+libjpeg-turbo's `simd/x86_64/jsimdcpu.asm` fails to assemble under NDK 28 (`ninja: build
+stopped: subcommand failed`). arm64-v8a builds cleanly and is all an arm64 emulator/phone
+needs — build with `--target-platform android-arm64` until this is fixed upstream in
+dartcv4/libjpeg-turbo. Android-x86_64 *emulator images* are therefore unsupported for now.
 
 ## Toolchain notes (how the native build was made to work here)
 

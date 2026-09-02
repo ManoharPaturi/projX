@@ -6,6 +6,7 @@
 /// version, so old sheets keep grading correctly forever.
 library;
 
+export 'src/builders/calibration_sheet.dart';
 export 'src/builders/jee_style_sheet.dart';
 export 'src/compile/detection_template.dart'
     show
@@ -16,7 +17,7 @@ export 'src/compile/detection_template.dart'
         pxPerMm,
         specSha256;
 export 'src/compile/pdf_sheet_compiler.dart'
-    show compileSheetPdf, kDropoutColor, textWidthMm;
+    show BubbleFill, compileSheetPdf, kDropoutColor, textWidthMm;
 export 'src/models/bubble_style.dart';
 export 'src/models/fiducial.dart';
 export 'src/models/field_block.dart';

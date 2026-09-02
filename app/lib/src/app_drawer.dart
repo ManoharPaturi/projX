@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/calibration/calibration_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/review/review_queue_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -37,6 +38,11 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.fact_check_outlined),
             title: const Text('Review queue'),
             onTap: () => _replace(context, ReviewQueueScreen.routeName),
+          ),
+          ListTile(
+            leading: const Icon(Icons.print_outlined),
+            title: const Text('Printer calibration'),
+            onTap: () => _replace(context, CalibrationScreen.routeName),
           ),
           ListTile(
             leading: const Icon(Icons.settings_outlined),
