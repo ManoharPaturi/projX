@@ -137,13 +137,15 @@ class StudentResultScreen extends StatelessWidget {
   }
 
   Widget _outcomeChip(core.QuestionOutcome outcome) {
+    // 700–900 shades only: the verdict glyph must stay readable on white
+    // (the 500-shade green/teal/purple were under 3:1).
     final (color, glyph) = switch (outcome.kind) {
-      core.QuestionOutcomeKind.correct => (Colors.green, '✓'),
-      core.QuestionOutcomeKind.wrong => (Colors.red, '✗'),
-      core.QuestionOutcomeKind.unattempted => (Colors.grey, '–'),
-      core.QuestionOutcomeKind.partial => (Colors.teal, '±'),
-      core.QuestionOutcomeKind.invalidated => (Colors.blueGrey, '×'),
-      core.QuestionOutcomeKind.bonus => (Colors.purple, '+'),
+      core.QuestionOutcomeKind.correct => (const Color(0xFF1B5E20), '✓'),
+      core.QuestionOutcomeKind.wrong => (const Color(0xFFB3261E), '✗'),
+      core.QuestionOutcomeKind.unattempted => (const Color(0xFF5F6368), '–'),
+      core.QuestionOutcomeKind.partial => (const Color(0xFF00695C), '±'),
+      core.QuestionOutcomeKind.invalidated => (const Color(0xFF37474F), '×'),
+      core.QuestionOutcomeKind.bonus => (const Color(0xFF6A1B9A), '+'),
     };
     return Container(
       width: 44,

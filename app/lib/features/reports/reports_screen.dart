@@ -233,11 +233,13 @@ class _JobsList extends StatelessWidget {
                         : job.status == ReportJobStatus.failed
                         ? Icons.error_outline
                         : Icons.hourglass_empty,
+                    // 800/900 shades: the status icon must hold 3:1 on a
+                    // light card (500 green/orange did not).
                     color: job.status == ReportJobStatus.done
-                        ? Colors.green
+                        ? const Color(0xFF1B5E20)
                         : job.status == ReportJobStatus.failed
-                        ? Colors.red
-                        : Colors.orange,
+                        ? const Color(0xFFB3261E)
+                        : const Color(0xFF8B4000),
                   ),
                   title: Text('${job.type.name}.${job.format}'),
                   subtitle: Text(

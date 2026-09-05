@@ -213,42 +213,50 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
       padding: const EdgeInsets.only(right: 12),
       child: Column(
         children: [
-          InkWell(
-            onTap: () => setState(() {
-              if (chosen) {
-                _chosen.remove(fieldKey);
-              } else {
-                _chosen[fieldKey] = option;
-              }
-            }),
-            customBorder: const CircleBorder(),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
+          Semantics(
+            button: true,
+            selected: chosen,
+            label: 'Option $letter'
+                '${machineFilled ? ', machine read as marked' : ''}',
+            child: InkWell(
+              onTap: () => setState(() {
+                if (chosen) {
+                  _chosen.remove(fieldKey);
+                } else {
+                  _chosen[fieldKey] = option;
+                }
+              }),
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: chosen
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey.shade700,
+                    width: chosen ? 3 : 2,
+                  ),
                   color: chosen
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey,
-                  width: chosen ? 3 : 1.5,
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.25)
+                      : null,
                 ),
-                color: chosen
-                    ? Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.25)
-                    : null,
+                alignment: Alignment.center,
+                child: Text(letter),
               ),
-              alignment: Alignment.center,
-              child: Text(letter),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             machineFilled ? 'machine' : 'empty',
             style: TextStyle(
-              fontSize: 10,
-              color: machineFilled ? Colors.orange : Colors.grey,
+              fontSize: 11,
+              color: machineFilled
+                  ? const Color(0xFF8B4000)
+                  : Colors.grey.shade700,
             ),
           ),
         ],
