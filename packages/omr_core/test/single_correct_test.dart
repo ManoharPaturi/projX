@@ -11,10 +11,8 @@ void main() {
   final KeyEntry key = keyFor('q1', <OptionId>{'B'});
   final SingleCorrectStrategy strategy = SingleCorrectStrategy();
 
-  QuestionOutcome score(
-    Set<OptionId> chosen,
-    ScoringRule rule,
-  ) => strategy.score(resp(chosen), key, rule);
+  QuestionOutcome score(Set<OptionId> chosen, ScoringRule rule) =>
+      strategy.score(resp(chosen), key, rule);
 
   group('base outcomes (NEET / JEE-Main preset)', () {
     final ScoringRule rule = ScoringPresets.neetJeeMain;
@@ -104,7 +102,10 @@ void main() {
 
   group('validation', () {
     test('a well-formed rule passes', () {
-      expect(() => validateScoringRule(ScoringPresets.neetJeeMain), returnsNormally);
+      expect(
+        () => validateScoringRule(ScoringPresets.neetJeeMain),
+        returnsNormally,
+      );
     });
 
     test('a non-numeric marks parameter is rejected', () {

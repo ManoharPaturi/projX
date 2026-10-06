@@ -95,7 +95,8 @@ SmokeCheck _matchTemplate(OpencvService cv) {
     // Quadrant restriction: searching only the top-left quadrant still finds
     // it (it lies inside), reporting coordinates in IMAGE space.
     final tl = cv.matchTemplate(mat, CvRectI(0, 0, w ~/ 2, h ~/ 2), templ);
-    final ok = match.score > 0.7 &&
+    final ok =
+        match.score > 0.7 &&
         match.at.x == fx &&
         match.at.y == fy &&
         tl.at.x == fx &&
@@ -104,7 +105,7 @@ SmokeCheck _matchTemplate(OpencvService cv) {
       'matchTemplate finds a distinctive patch at its true location',
       ok,
       'score=${match.score.toStringAsFixed(3)} at=${match.at} '
-      'quadrant=${tl.at} (want >0.7 at ($fx,$fy))',
+          'quadrant=${tl.at} (want >0.7 at ($fx,$fy))',
     );
   } finally {
     cv.dispose(templ);
@@ -117,7 +118,9 @@ SmokeCheck _warpToCanvas(OpencvService cv) {
   // marker square at its top-left inside corner.
   const w = 640, h = 480;
   final image = _grayImage(w, h, (_, _) => 40); // dark desk
-  const tl = CvPointI(80, 60), tr = CvPointI(590, 90), br = CvPointI(560, 430),
+  const tl = CvPointI(80, 60),
+      tr = CvPointI(590, 90),
+      br = CvPointI(560, 430),
       bl = CvPointI(110, 400);
   _fillQuad(image, w, tl, tr, br, bl, 235);
   // Marker: 20×20 black square at ~8% into the sheet from tl along both
@@ -133,7 +136,10 @@ SmokeCheck _warpToCanvas(OpencvService cv) {
     // lands inside the source image), so even the canvas corner is page
     // surface — slightly darkened by the bilinear edge at the exact corner.
     final corner = cv.roiMean(warped, CvRectI(0, 0, 8, 8));
-    final interior = cv.roiMean(warped, CvRectI(cw ~/ 2 - 20, ch ~/ 2 - 20, 40, 40));
+    final interior = cv.roiMean(
+      warped,
+      CvRectI(cw ~/ 2 - 20, ch ~/ 2 - 20, 40, 40),
+    );
     // The marker lands at its canonical canvas position. The quad
     // (~510×340 px) maps onto 320×400, so the 20px marker becomes ~12×24 px
     // on canvas — probe its CENTRE with a 6×6 window (any misplacement >3px
@@ -147,8 +153,8 @@ SmokeCheck _warpToCanvas(OpencvService cv) {
       'getPerspectiveTransform + warpPerspective straightens a tilted page',
       ok,
       'corner=${corner.toStringAsFixed(1)} interior=${interior.toStringAsFixed(1)} '
-      'marker=${marker.toStringAsFixed(1)} beside=${beside.toStringAsFixed(1)} '
-      '(want >150 / >200 / <60 / >150)',
+          'marker=${marker.toStringAsFixed(1)} beside=${beside.toStringAsFixed(1)} '
+          '(want >150 / >200 / <60 / >150)',
     );
   } finally {
     cv.dispose(warped);
@@ -159,24 +165,37 @@ SmokeCheck _warpToCanvas(OpencvService cv) {
 SmokeCheck _laplacianVariance(OpencvService cv) {
   const w = 320, h = 240;
   final flat = cv.grayFromBytes(
-      w, h, Uint8List.fromList(List<int>.filled(w * h, 128)));
+    w,
+    h,
+    Uint8List.fromList(List<int>.filled(w * h, 128)),
+  );
   final rng = math.Random(7);
-  final noise = cv.grayFromBytes(w, h, _grayImage(w, h, (_, _) => rng.nextInt(256)));
+  final noise = cv.grayFromBytes(
+    w,
+    h,
+    _grayImage(w, h, (_, _) => rng.nextInt(256)),
+  );
   // Noise only on the left half, for the ROI check.
-  final halfNoise =
-      cv.grayFromBytes(w, h, _grayImage(w, h, (x, _) => x < w ~/ 2 ? rng.nextInt(256) : 128));
+  final halfNoise = cv.grayFromBytes(
+    w,
+    h,
+    _grayImage(w, h, (x, _) => x < w ~/ 2 ? rng.nextInt(256) : 128),
+  );
   try {
     final flatVar = cv.laplacianVariance(flat, null);
     final sharpVar = cv.laplacianVariance(noise, null);
     final leftVar = cv.laplacianVariance(halfNoise, CvRectI(0, 0, w ~/ 2, h));
-    final rightVar = cv.laplacianVariance(halfNoise, CvRectI(w ~/ 2, 0, w ~/ 2, h));
+    final rightVar = cv.laplacianVariance(
+      halfNoise,
+      CvRectI(w ~/ 2, 0, w ~/ 2, h),
+    );
     final ok = flatVar < 1 && sharpVar > 500 && leftVar > rightVar * 10;
     return SmokeCheck(
       'Laplacian variance separates sharp from flat regions',
       ok,
       'flat=${flatVar.toStringAsFixed(1)} noise=${sharpVar.toStringAsFixed(1)} '
-      'left=${leftVar.toStringAsFixed(1)} right=${rightVar.toStringAsFixed(1)} '
-      '(want <1 / >500 / left>10×right)',
+          'left=${leftVar.toStringAsFixed(1)} right=${rightVar.toStringAsFixed(1)} '
+          '(want <1 / >500 / left>10×right)',
     );
   } finally {
     cv.dispose(flat);
@@ -188,13 +207,18 @@ SmokeCheck _laplacianVariance(OpencvService cv) {
 SmokeCheck _detectQuad(OpencvService cv) {
   const w = 640, h = 480;
   final image = _grayImage(w, h, (_, _) => 60);
-  const tl = CvPointI(90, 70), tr = CvPointI(560, 100), br = CvPointI(530, 420),
+  const tl = CvPointI(90, 70),
+      tr = CvPointI(560, 100),
+      br = CvPointI(530, 420),
       bl = CvPointI(120, 390);
   _fillQuad(image, w, tl, tr, br, bl, 220);
 
   final mat = cv.grayFromBytes(w, h, image);
   final none = cv.grayFromBytes(
-      w, h, Uint8List.fromList(List<int>.filled(w * h, 90)));
+    w,
+    h,
+    Uint8List.fromList(List<int>.filled(w * h, 90)),
+  );
   try {
     final quad = cv.detectQuad(mat);
     // No quad on a flat frame: returns null rather than a junk quad.
@@ -215,7 +239,8 @@ SmokeCheck _detectQuad(OpencvService cv) {
         );
       }
       ok = ok && worst < 12;
-      detail = 'worst corner error=${worst.toStringAsFixed(1)}px '
+      detail =
+          'worst corner error=${worst.toStringAsFixed(1)}px '
           '(want <12); $detail';
     }
     return SmokeCheck(
@@ -238,7 +263,9 @@ double _quadTiming(OpencvService cv, int frames) {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     return 60 + (seed >> 16) % 30 + ((x * 7 + y * 13) % 10);
   });
-  const tl = CvPointI(80, 60), tr = CvPointI(580, 80), br = CvPointI(560, 430),
+  const tl = CvPointI(80, 60),
+      tr = CvPointI(580, 80),
+      br = CvPointI(560, 430),
       bl = CvPointI(100, 410);
   _fillQuad(image, w, tl, tr, br, bl, 215);
   final mat = cv.grayFromBytes(w, h, image);
@@ -269,8 +296,15 @@ Uint8List _grayImage(int width, int height, int Function(int x, int y) fn) {
 
 /// Fills a convex quad via point-in-polygon over the bounding box — fine for
 /// synthetic fixtures.
-void _fillQuad(Uint8List image, int width, CvPointI a, CvPointI b, CvPointI c,
-    CvPointI d, int value) {
+void _fillQuad(
+  Uint8List image,
+  int width,
+  CvPointI a,
+  CvPointI b,
+  CvPointI c,
+  CvPointI d,
+  int value,
+) {
   final xs = [a.x, b.x, c.x, d.x], ys = [a.y, b.y, c.y, d.y];
   final poly = [a, b, c, d];
   for (var y = ys.reduce(math.min); y <= ys.reduce(math.max); y++) {
@@ -283,7 +317,14 @@ void _fillQuad(Uint8List image, int width, CvPointI a, CvPointI b, CvPointI c,
 }
 
 void _fillRect(
-    Uint8List image, int width, int x0, int y0, int w, int h, int value) {
+  Uint8List image,
+  int width,
+  int x0,
+  int y0,
+  int w,
+  int h,
+  int value,
+) {
   for (var y = y0; y < y0 + h; y++) {
     for (var x = x0; x < x0 + w; x++) {
       image[y * width + x] = value;
@@ -291,8 +332,14 @@ void _fillRect(
   }
 }
 
-CvPointI _bilinear(CvPointI tl, CvPointI tr, CvPointI br, CvPointI bl,
-    double u, double v) {
+CvPointI _bilinear(
+  CvPointI tl,
+  CvPointI tr,
+  CvPointI br,
+  CvPointI bl,
+  double u,
+  double v,
+) {
   final top = CvPointI(
     (tl.x + u * (tr.x - tl.x)).round(),
     (tl.y + u * (tr.y - tl.y)).round(),
@@ -312,7 +359,8 @@ bool _inPoly(CvPointI p, List<CvPointI> poly) {
   var j = poly.length - 1;
   for (var i = 0; i < poly.length; i++) {
     final xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
-    final intersects = (yi > p.y) != (yj > p.y) &&
+    final intersects =
+        (yi > p.y) != (yj > p.y) &&
         p.x < (xj - xi) * (p.y - yi) / (yj - yi + 0.0) + xi;
     if (intersects) inside = !inside;
     j = i;

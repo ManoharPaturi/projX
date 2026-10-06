@@ -48,7 +48,10 @@ class StudentResultScreen extends StatelessWidget {
             children: [
               _summaryCard(context),
               const SizedBox(height: 8),
-              Text('Per question', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Per question',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
               Wrap(
                 spacing: 6,

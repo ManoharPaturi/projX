@@ -30,7 +30,9 @@ class AuditLogService {
     Map<String, Object?>? after,
     String? byUser,
   }) {
-    return db.into(db.auditLog).insert(
+    return db
+        .into(db.auditLog)
+        .insert(
           AuditLogCompanion.insert(
             tenantId: tenantId,
             entity: entity,

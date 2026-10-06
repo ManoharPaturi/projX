@@ -38,7 +38,8 @@ void main() {
 
   Map<QuestionId, KeyEntry> normalKey(List<QuestionId> ids) =>
       <QuestionId, KeyEntry>{
-        for (final QuestionId q in ids) q: KeyEntry(questionId: q, correctOptions: <OptionId>{'A'}),
+        for (final QuestionId q in ids)
+          q: KeyEntry(questionId: q, correctOptions: <OptionId>{'A'}),
       };
 
   group('planted anomalies are detected with evidence', () {
@@ -63,7 +64,11 @@ void main() {
         key: normalKey(<QuestionId>['q1', 'q2', 'q3', 'q4', 'q5', 'q6']),
       );
       expect(anomalies.length, 3);
-      expect(anomalies.map((KeyAnomaly a) => a.questionId), <String>['q1', 'q2', 'q3']);
+      expect(anomalies.map((KeyAnomaly a) => a.questionId), <String>[
+        'q1',
+        'q2',
+        'q3',
+      ]);
       expect(anomalies[0].reason, KeyAnomalyReason.nearZeroCorrectRate);
       expect(anomalies[1].reason, KeyAnomalyReason.sectionOutlierCorrectRate);
       expect(anomalies[2].reason, KeyAnomalyReason.elevatedMultiMarkRate);
@@ -198,7 +203,10 @@ void main() {
         medianCorrectRate: 0.80,
         medianMultiMarkRate: 0.04,
       );
-      expect(detector.analyze(summary: summary, key: <QuestionId, KeyEntry>{}), isEmpty);
+      expect(
+        detector.analyze(summary: summary, key: <QuestionId, KeyEntry>{}),
+        isEmpty,
+      );
     });
   });
 
@@ -215,14 +223,19 @@ void main() {
     final Map<QuestionId, KeyEntry> key = normalKey(<QuestionId>['q1', 'q2']);
 
     test('loosening the near-zero threshold silences the flag', () {
-      const WrongKeyDetector lenient = WrongKeyDetector(nearZeroThreshold: 0.01);
+      const WrongKeyDetector lenient = WrongKeyDetector(
+        nearZeroThreshold: 0.01,
+      );
       // 0.10 is no longer near-zero, but it still collapses against 0.8.
       final List<KeyAnomaly> anomalies = lenient.analyze(
         summary: summary,
         key: key,
       );
       expect(anomalies.length, 1);
-      expect(anomalies.single.reason, KeyAnomalyReason.sectionOutlierCorrectRate);
+      expect(
+        anomalies.single.reason,
+        KeyAnomalyReason.sectionOutlierCorrectRate,
+      );
     });
 
     test('raising minAttempts suppresses small-cohort noise', () {

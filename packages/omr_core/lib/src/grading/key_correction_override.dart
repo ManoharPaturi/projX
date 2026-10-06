@@ -39,13 +39,13 @@ final class KeyCorrectionOverrideStrategy {
     required ScoringRule rule,
   }) {
     final double award = ScoringParams(rule.params).numOr('award', 4);
-    final String was = ' — was ${base.kind.name} '
+    final String was =
+        ' — was ${base.kind.name} '
         '(${_formatMarks(base.marksAwarded)})';
     final QuestionOutcome override = switch (key.state) {
       KeyEntryState.normal => base,
-      KeyEntryState.multipleCorrectKey when response.chosen.any(
-        key.correctOptions.contains,
-      ) =>
+      KeyEntryState.multipleCorrectKey
+          when response.chosen.any(key.correctOptions.contains) =>
         QuestionOutcome.of(
           base.questionId,
           QuestionOutcomeKind.bonus,
@@ -60,8 +60,7 @@ final class KeyCorrectionOverrideStrategy {
           award,
           '${key.state.name}: +${_formatMarks(award)} awarded (attempted)$was',
         ),
-      KeyEntryState.noneCorrect ||
-      KeyEntryState.dropped => QuestionOutcome.of(
+      KeyEntryState.noneCorrect || KeyEntryState.dropped => QuestionOutcome.of(
         base.questionId,
         QuestionOutcomeKind.bonus,
         award,

@@ -248,9 +248,9 @@ void main() {
 
       // Plan §4: every consequential action is audited — report generation
       // writes its row on success only (the failed job IS the failure trail).
-      final audit = await (db.select(db.auditLog)
-            ..where((AuditLog a) => a.action.equals('generate_report')))
-          .get();
+      final audit = await (db.select(
+        db.auditLog,
+      )..where((AuditLog a) => a.action.equals('generate_report'))).get();
       expect(audit.length, 1);
       expect(audit.single.entityId, done.id);
       expect(audit.single.afterJson, contains('results.csv'));

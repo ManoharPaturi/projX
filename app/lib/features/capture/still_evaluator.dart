@@ -15,10 +15,10 @@ abstract class StillEvaluator {
 /// impossible through [SettingsDao.write], which refuses them — this map is
 /// defense for a hand-edited row, defaulting like the DAO does.
 Strictness strictnessFromSettings(String name) => switch (name) {
-      'strict' => Strictness.strict,
-      'relaxed' => Strictness.relaxed,
-      _ => Strictness.normal,
-    };
+  'strict' => Strictness.strict,
+  'relaxed' => Strictness.relaxed,
+  _ => Strictness.normal,
+};
 
 /// Decodes and reads a captured still against the exam's own layout.
 ///
@@ -27,8 +27,7 @@ Strictness strictnessFromSettings(String name) => switch (name) {
 /// strictness choice must apply from the next sheet, and [OmrPipeline]
 /// is a const value object — there is no warm state to lose.
 class OmrStillEvaluator implements StillEvaluator {
-  OmrStillEvaluator(this.db, {OpencvService? cv})
-      : cv = cv ?? OpencvDartImpl();
+  OmrStillEvaluator(this.db, {OpencvService? cv}) : cv = cv ?? OpencvDartImpl();
 
   final AppDb db;
   final OpencvService cv;
@@ -42,9 +41,7 @@ class OmrStillEvaluator implements StillEvaluator {
     final exam = await db.examsDao.byId(examId);
     final roster = await db.studentsDao.rosterFor(exam!.instituteId);
 
-    final settings = await SettingsDao(db).settingsFor(
-      exam.tenantId,
-    );
+    final settings = await SettingsDao(db).settingsFor(exam.tenantId);
     final decoded = cv.decodeStill(stillBytes);
     return OmrPipeline(
       cv: cv,

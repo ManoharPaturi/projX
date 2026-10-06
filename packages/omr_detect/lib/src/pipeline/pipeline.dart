@@ -8,9 +8,14 @@ import '../cv/opencv_service.dart'
     show CvExclude, CvMat, CvPointI, CvRectI, CvSizeI, OpencvService;
 import '../decode/field_decoder.dart' show FieldDecoder;
 import '../models/bubble_read.dart' show FieldRead;
-import '../registration/curvature_gate.dart' show CurvatureGate, CurvatureReport;
+import '../registration/curvature_gate.dart'
+    show CurvatureGate, CurvatureReport;
 import '../registration/fiducial_registrar.dart'
-    show FiducialMatch, FiducialRegistrar, FiducialSearch, RegistrationReport,
+    show
+        FiducialMatch,
+        FiducialRegistrar,
+        FiducialSearch,
+        RegistrationReport,
         fiducialSearchPlan;
 import '../registration/homography_warper.dart' show HomographyWarper;
 import '../thresholds/threshold_config.dart' show ThresholdConfig;
@@ -199,8 +204,10 @@ class OmrPipeline {
             CvExclude(
               x: registration.matches[i]!.center.x.toDouble(),
               y: registration.matches[i]!.center.y.toDouble(),
-              r: _excludeRadius(plan[i].baseBlackPx,
-                  registration.matches[i]!.scale),
+              r: _excludeRadius(
+                plan[i].baseBlackPx,
+                registration.matches[i]!.scale,
+              ),
             ),
       ];
       final recovered = <int, FiducialMatch>{};
@@ -218,11 +225,13 @@ class OmrPipeline {
           recovered[i] = match;
           // A recovered anchor is as much "already claimed" as an accepted
           // one — later re-searches must not land on it either.
-          exclude.add(CvExclude(
-            x: match.center.x.toDouble(),
-            y: match.center.y.toDouble(),
-            r: _excludeRadius(plan[i].baseBlackPx, match.scale),
-          ));
+          exclude.add(
+            CvExclude(
+              x: match.center.x.toDouble(),
+              y: match.center.y.toDouble(),
+              r: _excludeRadius(plan[i].baseBlackPx, match.scale),
+            ),
+          );
         }
       }
       if (recovered.length + registration.accepted.length == plan.length) {
@@ -241,26 +250,32 @@ class OmrPipeline {
     final CvMat warped;
     if (registration.ok) {
       regWatch.stop();
-      trace.add(StageTraceEntry(
-        stage: 'registration',
-        status: path == RegistrationPath.fiducialQuadrant
-            ? StageStatus.ok
-            : StageStatus.fallback,
-        detail: 'path ${path.name}, scores '
-            '${registration.matches.map((m) => (m?.score ?? 0).toStringAsFixed(2)).join(' ')}',
-        elapsedMicros: regWatch.elapsedMicroseconds,
-      ));
+      trace.add(
+        StageTraceEntry(
+          stage: 'registration',
+          status: path == RegistrationPath.fiducialQuadrant
+              ? StageStatus.ok
+              : StageStatus.fallback,
+          detail:
+              'path ${path.name}, scores '
+              '${registration.matches.map((m) => (m?.score ?? 0).toStringAsFixed(2)).join(' ')}',
+          elapsedMicros: regWatch.elapsedMicroseconds,
+        ),
+      );
       warped = HomographyWarper().warp(cv, gray, registration, plan, template);
     } else {
       regWatch.stop();
-      trace.add(StageTraceEntry(
-        stage: 'registration',
-        status: StageStatus.failed,
-        detail: 'quadrant+relaxed accepted '
-            '${registration.accepted.length}/${plan.length} anchors'
-            '$recoveryBlocked',
-        elapsedMicros: regWatch.elapsedMicroseconds,
-      ));
+      trace.add(
+        StageTraceEntry(
+          stage: 'registration',
+          status: StageStatus.failed,
+          detail:
+              'quadrant+relaxed accepted '
+              '${registration.accepted.length}/${plan.length} anchors'
+              '$recoveryBlocked',
+          elapsedMicros: regWatch.elapsedMicroseconds,
+        ),
+      );
 
       // Rung 3: the page outline, with a 180° guard the quad alone cannot
       // provide (three of the four anchors are identical squares).
@@ -268,25 +283,31 @@ class OmrPipeline {
       final quad = cv.detectQuad(gray);
       if (quad == null) {
         quadWatch.stop();
-        trace.add(StageTraceEntry(
-          stage: 'registration',
-          status: StageStatus.failed,
-          detail: 'no page quad either — rejected '
-              '(${RejectionReason.noRegistration.name})',
-          elapsedMicros: quadWatch.elapsedMicroseconds,
-        ));
+        trace.add(
+          StageTraceEntry(
+            stage: 'registration',
+            status: StageStatus.failed,
+            detail:
+                'no page quad either — rejected '
+                '(${RejectionReason.noRegistration.name})',
+            elapsedMicros: quadWatch.elapsedMicroseconds,
+          ),
+        );
         return _rejected(trace);
       }
       warped = _pageQuadWarp(gray, quad);
       path = RegistrationPath.pageQuad;
       confidenceCap = pageQuadConfidenceCap;
       quadWatch.stop();
-      trace.add(StageTraceEntry(
-        stage: 'registration',
-        status: StageStatus.fallback,
-        detail: 'page quad $quad, confidence capped at $pageQuadConfidenceCap',
-        elapsedMicros: quadWatch.elapsedMicroseconds,
-      ));
+      trace.add(
+        StageTraceEntry(
+          stage: 'registration',
+          status: StageStatus.fallback,
+          detail:
+              'page quad $quad, confidence capped at $pageQuadConfidenceCap',
+          elapsedMicros: quadWatch.elapsedMicroseconds,
+        ),
+      );
     }
 
     try {
@@ -376,10 +397,10 @@ class OmrPipeline {
   /// confidence cap routes the result to review either way.
   CvMat _pageQuadWarp(CvMat gray, List<CvPointI> quad) {
     CvMat warpOf(List<CvPointI> corners) => cv.warpToCanvas(
-          gray,
-          corners,
-          CvSizeI(template.canvasWidth, template.canvasHeight),
-        );
+      gray,
+      corners,
+      CvSizeI(template.canvasWidth, template.canvasHeight),
+    );
 
     var best = warpOf(quad);
     final alt = _altCornerIndex;
@@ -414,15 +435,15 @@ class OmrPipeline {
   }
 
   StillEvaluation _rejected(List<StageTraceEntry> trace) => StillEvaluation(
-        read: const SheetRead(
-          responses: <QuestionId, MarkedResponse>{},
-          sheetConfidence: 0,
-        ),
-        fields: const [],
-        registrationPath: RegistrationPath.none,
-        trace: trace,
-        rejection: RejectionReason.noRegistration,
-      );
+    read: const SheetRead(
+      responses: <QuestionId, MarkedResponse>{},
+      sheetConfidence: 0,
+    ),
+    fields: const [],
+    registrationPath: RegistrationPath.none,
+    trace: trace,
+    rejection: RejectionReason.noRegistration,
+  );
 
   // ------------------------------------------------- stages 4–10 on the warp
 
@@ -440,12 +461,14 @@ class OmrPipeline {
     final readWatch = Stopwatch()..start();
     final samples = BubbleReader().read(cv, warped, template);
     readWatch.stop();
-    trace.add(StageTraceEntry(
-      stage: 'read',
-      status: StageStatus.ok,
-      detail: '${samples.length} bubbles',
-      elapsedMicros: readWatch.elapsedMicroseconds,
-    ));
+    trace.add(
+      StageTraceEntry(
+        stage: 'read',
+        status: StageStatus.ok,
+        detail: '${samples.length} bubbles',
+        elapsedMicros: readWatch.elapsedMicroseconds,
+      ),
+    );
 
     // Stage 7: strips are per-field option runs. Samples arrive block-
     // ordered with each field's options contiguous and option-ordered
@@ -458,19 +481,21 @@ class OmrPipeline {
     final thresholdWatch = Stopwatch()..start();
     final thresholds = ThresholdEngine(config: thresholdConfig).compute(strips);
     thresholdWatch.stop();
-    trace.add(StageTraceEntry(
-      stage: 'threshold',
-      status: StageStatus.ok,
-      detail: 'global ${thresholds.globalThreshold.toStringAsFixed(1)} '
-          '(${thresholds.globalUsedFallback
-              ? 'fallback'
-              : 'gap ${thresholds.globalLargestGap.toStringAsFixed(0)}'})',
-      elapsedMicros: thresholdWatch.elapsedMicroseconds,
-    ));
+    trace.add(
+      StageTraceEntry(
+        stage: 'threshold',
+        status: StageStatus.ok,
+        detail:
+            'global ${thresholds.globalThreshold.toStringAsFixed(1)} '
+            '(${thresholds.globalUsedFallback ? 'fallback' : 'gap ${thresholds.globalLargestGap.toStringAsFixed(0)}'})',
+        elapsedMicros: thresholdWatch.elapsedMicroseconds,
+      ),
+    );
 
     // Stage 8: three-zone classification per field.
-    final fields = BubbleClassifier(config: thresholdConfig)
-        .classify(samples, thresholds);
+    final fields = BubbleClassifier(
+      config: thresholdConfig,
+    ).classify(samples, thresholds);
 
     // Stage 10: confidences must exist before the decoder copies them into
     // MarkedResponse.confidence.
@@ -511,7 +536,10 @@ class OmrPipeline {
   /// template grid. Bars with no measurable dark mass (track not printed,
   /// occluded by a thumb) are skipped; fewer than two measurable bars cannot
   /// indict a homography, so the stage reports skipped rather than guessing.
-  CurvatureReport? _measureCurvature(CvMat warped, List<StageTraceEntry> trace) {
+  CurvatureReport? _measureCurvature(
+    CvMat warped,
+    List<StageTraceEntry> trace,
+  ) {
     final watch = Stopwatch()..start();
     final bubbleHeight = _questionBubbleHeight();
     final slack = 0.35 * bubbleHeight;
@@ -538,13 +566,16 @@ class OmrPipeline {
     watch.stop();
 
     if (measured.length < 2) {
-      trace.add(StageTraceEntry(
-        stage: 'curvature',
-        status: StageStatus.skipped,
-        detail: '${measured.length} measurable bars of '
-            '${template.timingBars.length}',
-        elapsedMicros: watch.elapsedMicroseconds,
-      ));
+      trace.add(
+        StageTraceEntry(
+          stage: 'curvature',
+          status: StageStatus.skipped,
+          detail:
+              '${measured.length} measurable bars of '
+              '${template.timingBars.length}',
+          elapsedMicros: watch.elapsedMicroseconds,
+        ),
+      );
       return null;
     }
     final report = CurvatureGate(config: thresholdConfig).evaluate(
@@ -552,14 +583,17 @@ class OmrPipeline {
       expectedCentroids: expected,
       bubbleHeightPx: bubbleHeight,
     );
-    trace.add(StageTraceEntry(
-      stage: 'curvature',
-      status: report.curlDetected ? StageStatus.failed : StageStatus.ok,
-      detail: 'rms ${report.residualRms.toStringAsFixed(1)}px '
-          'tol ${report.tolerancePx.toStringAsFixed(1)}px '
-          '(${report.barsChecked} bars)',
-      elapsedMicros: watch.elapsedMicroseconds,
-    ));
+    trace.add(
+      StageTraceEntry(
+        stage: 'curvature',
+        status: report.curlDetected ? StageStatus.failed : StageStatus.ok,
+        detail:
+            'rms ${report.residualRms.toStringAsFixed(1)}px '
+            'tol ${report.tolerancePx.toStringAsFixed(1)}px '
+            '(${report.barsChecked} bars)',
+        elapsedMicros: watch.elapsedMicroseconds,
+      ),
+    );
     return report;
   }
 

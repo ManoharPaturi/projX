@@ -28,16 +28,16 @@ class TimingTrack {
   final double clearanceMm;
 
   Map<String, Object?> toJson() => {
-        'edge': edge,
-        'barWMm': barWMm,
-        'barHMm': barHMm,
-        'clearanceMm': clearanceMm,
-      };
+    'edge': edge,
+    'barWMm': barWMm,
+    'barHMm': barHMm,
+    'clearanceMm': clearanceMm,
+  };
 
   static TimingTrack fromJson(Map<String, Object?> j) => TimingTrack(
-        edge: j['edge'] as String? ?? 'left',
-        barWMm: (j['barWMm']! as num).toDouble(),
-        barHMm: (j['barHMm']! as num).toDouble(),
-        clearanceMm: (j['clearanceMm'] as num?)?.toDouble() ?? 5.0,
-      );
+    edge: j['edge'] as String? ?? 'left',
+    barWMm: (j['barWMm']! as num).toDouble(),
+    barHMm: (j['barHMm']! as num).toDouble(),
+    clearanceMm: (j['clearanceMm'] as num?)?.toDouble() ?? 5.0,
+  );
 }

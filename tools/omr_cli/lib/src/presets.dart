@@ -13,9 +13,9 @@ enum SheetPreset {
   final String description;
 
   SheetSpec build() => switch (this) {
-        SheetPreset.a => buildStandard90(),
-        SheetPreset.b => buildNeet180(),
-      };
+    SheetPreset.a => buildStandard90(),
+    SheetPreset.b => buildNeet180(),
+  };
 
   static SheetPreset? parse(String? flag) {
     if (flag == null) return SheetPreset.a;
@@ -26,6 +26,5 @@ enum SheetPreset {
 }
 
 extension on String {
-  bool equalsIgnoreCase(String other) =>
-      toLowerCase() == other.toLowerCase();
+  bool equalsIgnoreCase(String other) => toLowerCase() == other.toLowerCase();
 }

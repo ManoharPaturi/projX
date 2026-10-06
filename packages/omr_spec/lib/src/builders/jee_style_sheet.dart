@@ -29,7 +29,8 @@ import '../schema/sheet_spec_schema.dart';
 SheetSpec buildStandard90({
   String layoutId = 'std90',
   int layoutVersion = 1,
-  String instructionText = 'Use a blue/black ball point pen. '
+  String instructionText =
+      'Use a blue/black ball point pen. '
       'Fill the bubble completely. To change, fully erase the old mark.',
   String serialText = '',
 }) {
@@ -103,44 +104,55 @@ SheetSpec buildStandard90({
     fieldLabels: const ['set'],
   );
 
-  return validateOrThrow(SheetSpec(
-    specVersion: 1,
-    layoutId: layoutId,
-    layoutVersion: layoutVersion,
-    paperSizeMm: (a4WidthMm, a4HeightMm),
-    marginMm: 10,
-    headerHeightMm: 30,
-    bubbleStyle: bubble,
-    fiducials: const FiducialLayout(
-      sizeMm: 9,
-      insetMm: 12,
-      whiteSurroundMm: 3.5,
+  return validateOrThrow(
+    SheetSpec(
+      specVersion: 1,
+      layoutId: layoutId,
+      layoutVersion: layoutVersion,
+      paperSizeMm: (a4WidthMm, a4HeightMm),
+      marginMm: 10,
+      headerHeightMm: 30,
+      bubbleStyle: bubble,
+      fiducials: const FiducialLayout(
+        sizeMm: 9,
+        insetMm: 12,
+        whiteSurroundMm: 3.5,
+      ),
+      timingTrack: const TimingTrack(
+        edge: 'left',
+        barWMm: 5.5,
+        barHMm: 2.5,
+        clearanceMm: 5.0,
+      ),
+      qrZone: const QrZone(sizeMm: 16, position: 'tr'),
+      fieldBlocks: [...mcq, roll, set],
+      sections: const [
+        SectionSpec(
+          id: 'phy',
+          name: 'Physics',
+          subject: 'Physics',
+          questionLabels: ['q1..q30'],
+        ),
+        SectionSpec(
+          id: 'chem',
+          name: 'Chemistry',
+          subject: 'Chemistry',
+          questionLabels: ['q31..q60'],
+        ),
+        SectionSpec(
+          id: 'math',
+          name: 'Mathematics',
+          subject: 'Mathematics',
+          questionLabels: ['q61..q90'],
+        ),
+      ],
+      rollDigits: 7,
+      rollChecksum: true,
+      setValues: const ['A', 'B', 'C', 'D'],
+      serialText: serialText,
+      instructionText: instructionText,
     ),
-    timingTrack: const TimingTrack(
-      edge: 'left',
-      barWMm: 5.5,
-      barHMm: 2.5,
-      clearanceMm: 5.0,
-    ),
-    qrZone: const QrZone(sizeMm: 16, position: 'tr'),
-    fieldBlocks: [...mcq, roll, set],
-    sections: const [
-      SectionSpec(
-          id: 'phy', name: 'Physics', subject: 'Physics',
-          questionLabels: ['q1..q30']),
-      SectionSpec(
-          id: 'chem', name: 'Chemistry', subject: 'Chemistry',
-          questionLabels: ['q31..q60']),
-      SectionSpec(
-          id: 'math', name: 'Mathematics', subject: 'Mathematics',
-          questionLabels: ['q61..q90']),
-    ],
-    rollDigits: 7,
-    rollChecksum: true,
-    setValues: const ['A', 'B', 'C', 'D'],
-    serialText: serialText,
-    instructionText: instructionText,
-  ));
+  );
 }
 
 /// **Preset B — NEET-180** (dense).
@@ -158,7 +170,8 @@ SheetSpec buildStandard90({
 SheetSpec buildNeet180({
   String layoutId = 'neet180',
   int layoutVersion = 1,
-  String instructionText = 'Use a blue/black ball point pen. '
+  String instructionText =
+      'Use a blue/black ball point pen. '
       'Fill the bubble completely. To change, fully erase the old mark.',
   String serialText = '',
 }) {
@@ -210,45 +223,59 @@ SheetSpec buildNeet180({
     fieldLabels: const ['set'],
   );
 
-  return validateOrThrow(SheetSpec(
-    specVersion: 1,
-    layoutId: layoutId,
-    layoutVersion: layoutVersion,
-    paperSizeMm: (a4WidthMm, a4HeightMm),
-    marginMm: 10,
-    headerHeightMm: 28,
-    bubbleStyle: bubble,
-    fiducials: const FiducialLayout(
-      sizeMm: 9,
-      insetMm: 12,
-      whiteSurroundMm: 3.5,
+  return validateOrThrow(
+    SheetSpec(
+      specVersion: 1,
+      layoutId: layoutId,
+      layoutVersion: layoutVersion,
+      paperSizeMm: (a4WidthMm, a4HeightMm),
+      marginMm: 10,
+      headerHeightMm: 28,
+      bubbleStyle: bubble,
+      fiducials: const FiducialLayout(
+        sizeMm: 9,
+        insetMm: 12,
+        whiteSurroundMm: 3.5,
+      ),
+      timingTrack: const TimingTrack(
+        edge: 'left',
+        barWMm: 5.5,
+        barHMm: 2.5,
+        clearanceMm: 5.0,
+      ),
+      qrZone: const QrZone(sizeMm: 16, position: 'tr'),
+      fieldBlocks: [...mcq, roll, set],
+      sections: const [
+        SectionSpec(
+          id: 'phy',
+          name: 'Physics',
+          subject: 'Physics',
+          questionLabels: ['q1..q45'],
+        ),
+        SectionSpec(
+          id: 'chem',
+          name: 'Chemistry',
+          subject: 'Chemistry',
+          questionLabels: ['q46..q90'],
+        ),
+        SectionSpec(
+          id: 'bot',
+          name: 'Botany',
+          subject: 'Biology',
+          questionLabels: ['q91..q135'],
+        ),
+        SectionSpec(
+          id: 'zoo',
+          name: 'Zoology',
+          subject: 'Biology',
+          questionLabels: ['q136..q180'],
+        ),
+      ],
+      rollDigits: 7,
+      rollChecksum: true,
+      setValues: const ['A', 'B', 'C', 'D'],
+      serialText: serialText,
+      instructionText: instructionText,
     ),
-    timingTrack: const TimingTrack(
-      edge: 'left',
-      barWMm: 5.5,
-      barHMm: 2.5,
-      clearanceMm: 5.0,
-    ),
-    qrZone: const QrZone(sizeMm: 16, position: 'tr'),
-    fieldBlocks: [...mcq, roll, set],
-    sections: const [
-      SectionSpec(
-          id: 'phy', name: 'Physics', subject: 'Physics',
-          questionLabels: ['q1..q45']),
-      SectionSpec(
-          id: 'chem', name: 'Chemistry', subject: 'Chemistry',
-          questionLabels: ['q46..q90']),
-      SectionSpec(
-          id: 'bot', name: 'Botany', subject: 'Biology',
-          questionLabels: ['q91..q135']),
-      SectionSpec(
-          id: 'zoo', name: 'Zoology', subject: 'Biology',
-          questionLabels: ['q136..q180']),
-    ],
-    rollDigits: 7,
-    rollChecksum: true,
-    setValues: const ['A', 'B', 'C', 'D'],
-    serialText: serialText,
-    instructionText: instructionText,
-  ));
+  );
 }

@@ -134,9 +134,9 @@ class FieldDecoder {
   }
 
   Set<OptionId> _filledValues(FieldRead field) => {
-        for (final bubble in field.bubbles)
-          if (bubble.zone == BubbleZone.filled) bubble.sample.optionValue,
-        };
+    for (final bubble in field.bubbles)
+      if (bubble.zone == BubbleZone.filled) bubble.sample.optionValue,
+  };
 
   // ------------------------------------------------------------- set code
 

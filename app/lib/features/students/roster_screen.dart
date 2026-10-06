@@ -86,10 +86,12 @@ class _RosterScreenState extends State<RosterScreen> {
                       ),
                       subtitle: student.name == null && student.batch == null
                           ? null
-                          : Text([
-                              if (student.name != null) student.name!,
-                              if (student.batch != null) student.batch!,
-                          ].join(' · ')),
+                          : Text(
+                              [
+                                if (student.name != null) student.name!,
+                                if (student.batch != null) student.batch!,
+                              ].join(' · '),
+                            ),
                     );
                   },
                 );
@@ -143,10 +145,7 @@ class _RosterScreenState extends State<RosterScreen> {
     );
   }
 
-  Future<RosterImportResult?> _import(
-    AppState state,
-    String text,
-  ) async {
+  Future<RosterImportResult?> _import(AppState state, String text) async {
     final rows = Csv().decoder.convert(text);
     final entries = <RosterEntry>[];
     for (final row in rows) {

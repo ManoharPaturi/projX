@@ -82,12 +82,14 @@ class QuadHysteresis {
     if (_stableCount >= requiredStablePasses) {
       // Hand out the consensus the dwell triggered ON before the queue
       // resets — the shutter instant still needs to know where the sheet is.
-      final consensus = _averageQuad(_queue.sublist(
-          _queue.length - math.min(minAgreeingQuads, _queue.length)));
+      final consensus = _averageQuad(
+        _queue.sublist(
+          _queue.length - math.min(minAgreeingQuads, _queue.length),
+        ),
+      );
       _stableCount = 0;
       _queue.clear();
-      return _state(
-          tracking: true, triggered: true, consensus: consensus);
+      return _state(tracking: true, triggered: true, consensus: consensus);
     }
     return _state(tracking: true, triggered: false);
   }
@@ -116,19 +118,25 @@ class QuadHysteresis {
     return true;
   }
 
-  HysteresisState _state(
-      {required bool tracking,
-      required bool triggered,
-      List<CvPointI>? consensus}) {
+  HysteresisState _state({
+    required bool tracking,
+    required bool triggered,
+    List<CvPointI>? consensus,
+  }) {
     return HysteresisState(
-      progress:
-          (_stableCount / requiredStablePasses).clamp(0.0, 1.0).toDouble(),
+      progress: (_stableCount / requiredStablePasses)
+          .clamp(0.0, 1.0)
+          .toDouble(),
       stableCount: _stableCount,
       tracking: tracking,
-      consensusQuad: consensus ??
+      consensusQuad:
+          consensus ??
           (tracking && _queue.isNotEmpty
-              ? _averageQuad(_queue.sublist(
-                  _queue.length - math.min(minAgreeingQuads, _queue.length)))
+              ? _averageQuad(
+                  _queue.sublist(
+                    _queue.length - math.min(minAgreeingQuads, _queue.length),
+                  ),
+                )
               : null),
       triggered: triggered,
     );

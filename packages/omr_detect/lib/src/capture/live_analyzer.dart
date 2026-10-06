@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
-import '../cv/opencv_service.dart'
-    show CvPointI, CvRectI, OpencvService;
+import '../cv/opencv_service.dart' show CvPointI, CvRectI, OpencvService;
 import 'quality_gates.dart' show CaptureQualityGates, GateInput, GateResult;
 import 'hysteresis.dart' show HysteresisState, QuadHysteresis;
 
@@ -79,9 +78,9 @@ class LiveFrameAnalyzer {
     CaptureQualityGates? gates,
     this.stillShortSidePx,
     this.requiredSheetPxOnStill,
-  })  : _cv = cv,
-        gates = gates ?? CaptureQualityGates(),
-        hysteresis = QuadHysteresis();
+  }) : _cv = cv,
+       gates = gates ?? CaptureQualityGates(),
+       hysteresis = QuadHysteresis();
 
   final OpencvService _cv;
 
@@ -100,8 +99,7 @@ class LiveFrameAnalyzer {
   final double? requiredSheetPxOnStill;
 
   ScannerTick update(LiveFrame frame) {
-    final gray =
-        _cv.grayFromBytes(frame.width, frame.height, frame.gray);
+    final gray = _cv.grayFromBytes(frame.width, frame.height, frame.gray);
     try {
       final quad = _cv.detectQuad(gray);
       double? sharpness;
@@ -142,8 +140,7 @@ class LiveFrameAnalyzer {
     hysteresis.reset();
   }
 
-  static CvRectI _boundsOf(
-      List<CvPointI> quad, int width, int height) {
+  static CvRectI _boundsOf(List<CvPointI> quad, int width, int height) {
     var minX = quad.first.x, maxX = quad.first.x;
     var minY = quad.first.y, maxY = quad.first.y;
     for (final p in quad.skip(1)) {

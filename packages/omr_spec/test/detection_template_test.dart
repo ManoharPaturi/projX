@@ -21,8 +21,9 @@ void main() {
 
     test('bubble geometry equals spec mm x 8, exactly', () {
       final c1 = spec.firstMcqBlock!;
-      final q1A = t.bubbles.firstWhere((b) =>
-          b.fieldKey == 'q1' && b.optionIndex == 0);
+      final q1A = t.bubbles.firstWhere(
+        (b) => b.fieldKey == 'q1' && b.optionIndex == 0,
+      );
       expect(q1A.centerX, c1.originMm.x * pxPerMm);
       expect(q1A.centerY, c1.originMm.y * pxPerMm);
       expect(q1A.optionValue, 'A');
@@ -76,10 +77,15 @@ void main() {
     test('timing bars: one per MCQ row, derived not authored', () {
       expect(t.timingBars, hasLength(30));
       final first = t.timingBars.first;
-      expect(first.y + first.h / 2, closeTo(spec.firstMcqBlock!.originMm.y * 8, 0.01));
+      expect(
+        first.y + first.h / 2,
+        closeTo(spec.firstMcqBlock!.originMm.y * 8, 0.01),
+      );
       final last = t.timingBars.last;
-      expect(last.y + last.h / 2,
-          closeTo((spec.firstMcqBlock!.originMm.y + 29 * 7.8) * 8, 0.01));
+      expect(
+        last.y + last.h / 2,
+        closeTo((spec.firstMcqBlock!.originMm.y + 29 * 7.8) * 8, 0.01),
+      );
       expect(first.x, 10 * 8); // hugs the left margin
     });
 
@@ -91,8 +97,9 @@ void main() {
     });
 
     test('specHash is sha256 of the canonical spec JSON', () {
-      final manual =
-          crypto.sha256.convert(utf8.encode(spec.canonicalJson())).toString();
+      final manual = crypto.sha256
+          .convert(utf8.encode(spec.canonicalJson()))
+          .toString();
       expect(t.specHash, manual);
       expect(t.specHash, hasLength(64));
     });

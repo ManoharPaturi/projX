@@ -24,9 +24,7 @@ void main() {
   test('v1+v2 create exactly the 18 tenant-leading tables', () async {
     expect(db.allTables.length, 18);
     // v2's app_settings is tenant-keyed like every other table.
-    final cols = await db
-        .customSelect('PRAGMA table_info(app_settings)')
-        .get();
+    final cols = await db.customSelect('PRAGMA table_info(app_settings)').get();
     expect(cols.first.read<String>('name'), 'tenant_id');
   });
 

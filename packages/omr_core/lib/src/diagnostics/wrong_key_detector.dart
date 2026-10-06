@@ -124,7 +124,8 @@ final class WrongKeyDetector {
       if (entry.state != KeyEntryState.normal) continue;
       if (s.attempted < minAttempts) continue;
 
-      final List<QuestionStats> peers = bySubject[s.subject] ?? const <QuestionStats>[];
+      final List<QuestionStats> peers =
+          bySubject[s.subject] ?? const <QuestionStats>[];
       final double sectionMedian = _median(
         peers
             .where((QuestionStats p) => p.attempted > 0)

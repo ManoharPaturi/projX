@@ -5,7 +5,12 @@ library;
 /// Kept as an enum (not a class hierarchy) because a rule is *data*: it lives
 /// in the `scoring_rules` table as `strategy` + `params_json`, so app code must
 /// never switch on it — it resolves an id and hands the row to the engine.
-enum ScoringStrategyKind { singleCorrect, multiCorrectPartial, integerDigits, matrixMatch }
+enum ScoringStrategyKind {
+  singleCorrect,
+  multiCorrectPartial,
+  integerDigits,
+  matrixMatch,
+}
 
 /// A named marking scheme: which strategy runs and with what parameters.
 ///

@@ -86,9 +86,8 @@ class CalibrationReport {
   }
 
   /// The settings preset the SOP tells the operator to switch to.
-  String get suggestedStrictness => overall == CalibrationVerdict.comfortable
-      ? 'normal'
-      : 'strict';
+  String get suggestedStrictness =>
+      overall == CalibrationVerdict.comfortable ? 'normal' : 'strict';
 
   /// Human-readable one-liner for the CLI / app card.
   String get summary {
@@ -169,8 +168,9 @@ class CalibrationAnalyzer {
     'cal_c3_b_mid': {0, 1, 2},
   };
 
-  static final RegExp _keyPattern =
-      RegExp(r'^cal_c[123]_([tmb])_(full|faint|mid|empty)$');
+  static final RegExp _keyPattern = RegExp(
+    r'^cal_c[123]_([tmb])_(full|faint|mid|empty)$',
+  );
 
   CalibrationReport analyze({
     required OpencvService cv,
@@ -208,13 +208,22 @@ class CalibrationAnalyzer {
         regions: const [],
       );
     }
-    final warped = HomographyWarper().warp(cv, gray, registration, plan, template);
+    final warped = HomographyWarper().warp(
+      cv,
+      gray,
+      registration,
+      plan,
+      template,
+    );
     try {
       final samples = BubbleReader().read(cv, warped, template);
-      return _report(registration.matches
-          .whereType<FiducialMatch>()
-          .map((m) => m.score)
-          .toList(), samples);
+      return _report(
+        registration.matches
+            .whereType<FiducialMatch>()
+            .map((m) => m.score)
+            .toList(),
+        samples,
+      );
     } finally {
       cv.dispose(warped);
     }
@@ -253,25 +262,26 @@ class CalibrationAnalyzer {
 
     double minOf(List<double> xs) => xs.reduce((a, b) => a < b ? a : b);
     double maxOf(List<double> xs) => xs.reduce((a, b) => a > b ? a : b);
-    double meanOf(List<double> xs) =>
-        xs.reduce((a, b) => a + b) / xs.length;
+    double meanOf(List<double> xs) => xs.reduce((a, b) => a + b) / xs.length;
 
     final regions = <CalibrationRegionReport>[];
     for (final band in ['t', 'm', 'b']) {
       final e = empties[band], f = fulls[band];
       if (e == null || e.isEmpty || f == null || f.isEmpty) continue;
-      regions.add(CalibrationRegionReport(
-        band: band,
-        emptyMin: minOf(e),
-        fullMax: maxOf(f),
-        faintMean: faints[band] == null || faints[band]!.isEmpty
-            ? double.nan
-            : meanOf(faints[band]!),
-        midMean: mids[band] == null || mids[band]!.isEmpty
-            ? double.nan
-            : meanOf(mids[band]!),
-        samples: e.length + f.length,
-      ));
+      regions.add(
+        CalibrationRegionReport(
+          band: band,
+          emptyMin: minOf(e),
+          fullMax: maxOf(f),
+          faintMean: faints[band] == null || faints[band]!.isEmpty
+              ? double.nan
+              : meanOf(faints[band]!),
+          midMean: mids[band] == null || mids[band]!.isEmpty
+              ? double.nan
+              : meanOf(mids[band]!),
+          samples: e.length + f.length,
+        ),
+      );
     }
     return CalibrationReport(
       registrationOk: true,

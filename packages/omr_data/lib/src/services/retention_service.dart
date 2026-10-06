@@ -51,14 +51,14 @@ class RetentionService {
         .toUtc()
         .subtract(Duration(days: graceDays))
         .toIso8601String(); // TEXT column; ISO-8601 UTC sorts chronologically
-    final rows = await (db.select(db.scans)
-          ..where(
-            (Scans s) =>
-                s.tenantId.equals(tenantId) &
-                s.originalPath.isNotNull() &
-                s.capturedAt.isSmallerThanValue(cutoff),
-          ))
-        .get();
+    final rows =
+        await (db.select(db.scans)..where(
+              (Scans s) =>
+                  s.tenantId.equals(tenantId) &
+                  s.originalPath.isNotNull() &
+                  s.capturedAt.isSmallerThanValue(cutoff),
+            ))
+            .get();
 
     final purged = <String>[];
     final missing = <String>[];
@@ -66,8 +66,7 @@ class RetentionService {
     for (final scan in rows) {
       final path = scan.originalPath!;
       final existed = await deleteFile(path);
-      await (db.update(db.scans)
-            ..where((Scans s) => s.id.equals(scan.id)))
+      await (db.update(db.scans)..where((Scans s) => s.id.equals(scan.id)))
           .write(const ScansCompanion(originalPath: Value(null)));
       await audit.record(
         tenantId: tenantId,

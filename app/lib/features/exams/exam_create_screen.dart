@@ -12,14 +12,8 @@ import '../keys/key_editor_screen.dart';
 /// engine resolves params from its registry — marking is data, not code).
 const List<({String id, String label})> kGradingPresets = [
   (id: 'neet-jee-main-4n1p', label: 'NEET / JEE Main — +4 / −1 / 0'),
-  (
-    id: 'jee-adv-multi-2026',
-    label: 'JEE Adv multi-correct 2026 — partial, −1',
-  ),
-  (
-    id: 'jee-adv-multi-legacy',
-    label: 'JEE Adv multi-correct (legacy) — −2',
-  ),
+  (id: 'jee-adv-multi-2026', label: 'JEE Adv multi-correct 2026 — partial, −1'),
+  (id: 'jee-adv-multi-legacy', label: 'JEE Adv multi-correct (legacy) — −2'),
 ];
 
 /// Plan §6 screen 2 — pick a layout from the generated spec library, bind a
@@ -47,17 +41,15 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
   void initState() {
     super.initState();
     final state = context.read<AppState>();
-    state.db.layoutsDao
-        .activeForTenant(state.tenantId)
-        .then((rows) {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              _layouts = rows;
-              _layout = rows.isNotEmpty ? rows.first : null;
-            });
-          });
+    state.db.layoutsDao.activeForTenant(state.tenantId).then((rows) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _layouts = rows;
+        _layout = rows.isNotEmpty ? rows.first : null;
+      });
+    });
   }
 
   @override
@@ -91,9 +83,7 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
         sheetLayoutId: _layout!.id,
         totalQuestions: totalQuestions,
         heldAt: _heldAt,
-        gradingConfigJson: jsonEncode(<String, Object?>{
-          'preset': _preset,
-        }),
+        gradingConfigJson: jsonEncode(<String, Object?>{'preset': _preset}),
       );
       state.refresh();
       if (!mounted) {
@@ -161,9 +151,7 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
                 for (final row in _layouts ?? <SheetLayout>[])
                   DropdownMenuItem(
                     value: row,
-                    child: Text(
-                      '${row.layoutId} v${row.layoutVersion}',
-                    ),
+                    child: Text('${row.layoutId} v${row.layoutVersion}'),
                   ),
               ],
               initialValue: _layout,

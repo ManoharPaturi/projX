@@ -18,12 +18,7 @@ const String kTenantId = 'tenant-mvp';
 /// `<app-documents>/omr.db`.
 Future<AppDb> openAppDb({String? path}) async {
   final file = path == null
-      ? File(
-          p.join(
-            (await getApplicationDocumentsDirectory()).path,
-            'omr.db',
-          ),
-        )
+      ? File(p.join((await getApplicationDocumentsDirectory()).path, 'omr.db'))
       : File(path);
   // createInBackground: drift runs queries on a background isolate, so the
   // UI thread never blocks on a grading-sized write.
@@ -50,10 +45,9 @@ Future<String> seedFirstRun(AppDb db) async {
         mode: InsertMode.insertOrIgnore,
       );
 
-  var institutes =
-      await (db.select(
-        db.institutes,
-      )..where((Institutes i) => i.tenantId.equals(kTenantId))).get();
+  var institutes = await (db.select(
+    db.institutes,
+  )..where((Institutes i) => i.tenantId.equals(kTenantId))).get();
   if (institutes.isEmpty) {
     final created = await db
         .into(db.institutes)
@@ -67,14 +61,8 @@ Future<String> seedFirstRun(AppDb db) async {
     institutes = [created];
   }
 
-  await db.layoutsDao.upsertSpec(
-    tenantId: kTenantId,
-    spec: buildStandard90(),
-  );
-  await db.layoutsDao.upsertSpec(
-    tenantId: kTenantId,
-    spec: buildNeet180(),
-  );
+  await db.layoutsDao.upsertSpec(tenantId: kTenantId, spec: buildStandard90());
+  await db.layoutsDao.upsertSpec(tenantId: kTenantId, spec: buildNeet180());
 
   return institutes.first.id;
 }
@@ -96,8 +84,7 @@ Future<RetentionReport> runRetentionSweep(
   AppDb db, {
   String? documentsRoot,
 }) async {
-  final root =
-      documentsRoot ?? (await getApplicationDocumentsDirectory()).path;
+  final root = documentsRoot ?? (await getApplicationDocumentsDirectory()).path;
   final settings = await SettingsDao(db).settingsFor(kTenantId);
   return RetentionService(
     db,
@@ -106,8 +93,10 @@ Future<RetentionReport> runRetentionSweep(
         p.isAbsolute(path) ? path : p.join(root, path),
       );
       if (!p.isWithin(root, resolved)) {
-        throw StateError('retention: refusing path outside app documents: '
-            '$path');
+        throw StateError(
+          'retention: refusing path outside app documents: '
+          '$path',
+        );
       }
       try {
         await File(resolved).delete();
@@ -116,8 +105,5 @@ Future<RetentionReport> runRetentionSweep(
         return false; // already gone — the sweep still clears the column
       }
     },
-  ).run(
-    tenantId: kTenantId,
-    graceDays: settings.retentionGraceDays,
-  );
+  ).run(tenantId: kTenantId, graceDays: settings.retentionGraceDays);
 }

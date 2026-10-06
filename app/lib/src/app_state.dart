@@ -40,11 +40,7 @@ class AppState extends ChangeNotifier {
       debugPrint('retention sweep skipped: $error');
       return RetentionReport(purged: const [], missing: const []);
     });
-    return AppState(
-      db: db,
-      instituteId: row.id,
-      instituteName: row.name,
-    );
+    return AppState(db: db, instituteId: row.id, instituteName: row.name);
   }
 
   /// Signal "data changed" to every listening screen.
@@ -55,11 +51,9 @@ class AppState extends ChangeNotifier {
 
   /// Full grading pass over (exam, key version) + the change signal.
   Future<void> grade(String examId, String keyVersionId) async {
-    await GradingService(db).gradeExam(
-      tenantId: tenantId,
-      examId: examId,
-      keyVersionId: keyVersionId,
-    );
+    await GradingService(
+      db,
+    ).gradeExam(tenantId: tenantId, examId: examId, keyVersionId: keyVersionId);
     refresh();
   }
 }

@@ -8,19 +8,23 @@ import 'package:test/test.dart';
 import 'helpers.dart';
 
 void main() {
-  final KeyCorrectionOverrideStrategy override = KeyCorrectionOverrideStrategy();
+  final KeyCorrectionOverrideStrategy override =
+      KeyCorrectionOverrideStrategy();
   final ScoringRule award4 = ScoringPresets.keyCorrectionAward4;
 
   /// The base outcome a single-correct strategy would have produced.
   QuestionOutcome baseFor(Set<OptionId> chosen, KeyEntry key) =>
-      SingleCorrectStrategy().score(resp(chosen), key, ScoringPresets.neetJeeMain);
+      SingleCorrectStrategy().score(
+        resp(chosen),
+        key,
+        ScoringPresets.neetJeeMain,
+      );
 
   group('multipleCorrectKey (options added after publishing)', () {
-    final KeyEntry key = keyFor(
-      'q1',
-      <OptionId>{'A', 'B'},
-      state: KeyEntryState.multipleCorrectKey,
-    );
+    final KeyEntry key = keyFor('q1', <OptionId>{
+      'A',
+      'B',
+    }, state: KeyEntryState.multipleCorrectKey);
 
     test('a student who marked any keyed option gets the award', () {
       for (final OptionId option in <OptionId>['A', 'B']) {
@@ -63,11 +67,12 @@ void main() {
   });
 
   group('allOptionsCorrect (every option accepted)', () {
-    final KeyEntry key = keyFor(
-      'q1',
-      <OptionId>{'A', 'B', 'C', 'D'},
-      state: KeyEntryState.allOptionsCorrect,
-    );
+    final KeyEntry key = keyFor('q1', <OptionId>{
+      'A',
+      'B',
+      'C',
+      'D',
+    }, state: KeyEntryState.allOptionsCorrect);
 
     test('any attempt gets the award, right or wrong', () {
       for (final OptionId option in <OptionId>['A', 'C', 'D']) {
@@ -115,8 +120,16 @@ void main() {
             rule: award4,
           );
           expect(o.kind, QuestionOutcomeKind.bonus, reason: '$state $chosen');
-          expect(marksClose(o.marksAwarded, 4), isTrue, reason: '$state $chosen');
-          expect(o.reason, contains('awarded to all'), reason: '$state $chosen');
+          expect(
+            marksClose(o.marksAwarded, 4),
+            isTrue,
+            reason: '$state $chosen',
+          );
+          expect(
+            o.reason,
+            contains('awarded to all'),
+            reason: '$state $chosen',
+          );
         }
       });
     }
@@ -130,7 +143,9 @@ void main() {
         kind: ScoringStrategyKind.singleCorrect,
         params: const <String, Object?>{'award': 2},
       );
-      final KeyEntry key = keyFor('q1', <OptionId>{'B'}, state: KeyEntryState.dropped);
+      final KeyEntry key = keyFor('q1', <OptionId>{
+        'B',
+      }, state: KeyEntryState.dropped);
       final QuestionOutcome o = override.apply(
         base: baseFor(<OptionId>{}, key),
         response: resp(<OptionId>{}),
@@ -174,11 +189,7 @@ void main() {
             's1': sheet(<QuestionId, MarkedResponse>{}),
           },
           key: <QuestionId, KeyEntry>{
-            'q1': keyFor(
-              'q1',
-              <OptionId>{'B'},
-              state: KeyEntryState.dropped,
-            ),
+            'q1': keyFor('q1', <OptionId>{'B'}, state: KeyEntryState.dropped),
           },
           questionOrder: <QuestionId>['q1'],
           sections: <SectionSpec>[

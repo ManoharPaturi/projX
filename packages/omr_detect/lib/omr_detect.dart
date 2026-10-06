@@ -8,8 +8,7 @@
 /// marking decisions are testable on the host without a single pixel.
 library;
 
-export 'src/capture/hysteresis.dart'
-    show HysteresisState, QuadHysteresis;
+export 'src/capture/hysteresis.dart' show HysteresisState, QuadHysteresis;
 export 'src/capture/live_analyzer.dart'
     show LiveFrame, LiveFrameAnalyzer, ScannerTick;
 export 'src/capture/quality_gates.dart'
@@ -25,8 +24,7 @@ export 'src/cv/opencv_service.dart'
         CvSizeI,
         DecodedStill,
         OpencvService;
-export 'src/cv/smoke_probe.dart'
-    show SmokeCheck, SmokeReport, runCvSmokeProbe;
+export 'src/cv/smoke_probe.dart' show SmokeCheck, SmokeReport, runCvSmokeProbe;
 export 'src/decode/field_decoder.dart' show FieldDecoder;
 export 'src/models/bubble_read.dart'
     show BubbleRead, BubbleSample, BubbleZone, FieldRead, MarkClass;

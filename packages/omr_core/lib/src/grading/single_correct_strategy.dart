@@ -49,11 +49,11 @@ final class SingleCorrectStrategy extends ScoringStrategy {
       );
     }
 
-    final String action = p.enumOr(
-      'multiMarkAction',
-      const <String>{'invalid', 'wrong', 'zero'},
+    final String action = p.enumOr('multiMarkAction', const <String>{
+      'invalid',
       'wrong',
-    );
+      'zero',
+    }, 'wrong');
     final String marked = _labelOptions(response.chosen);
 
     if (response.chosen.length > 1) {
@@ -101,10 +101,10 @@ final class SingleCorrectStrategy extends ScoringStrategy {
     p.numOr('correct', 4);
     p.numOr('wrong', -1);
     p.numOr('unattempted', 0);
-    p.enumOr(
-      'multiMarkAction',
-      const <String>{'invalid', 'wrong', 'zero'},
+    p.enumOr('multiMarkAction', const <String>{
+      'invalid',
       'wrong',
-    );
+      'zero',
+    }, 'wrong');
   }
 }

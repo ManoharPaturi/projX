@@ -69,16 +69,14 @@ void main() {
     await tester.tap(find.text('Image retention'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.byKey(const Key('retention-days-field')),
-      '14',
-    );
+    await tester.enterText(find.byKey(const Key('retention-days-field')), '14');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(
-      (await SettingsDao(state.db).settingsFor(state.tenantId))
-          .retentionGraceDays,
+      (await SettingsDao(
+        state.db,
+      ).settingsFor(state.tenantId)).retentionGraceDays,
       14,
     );
     expect(find.textContaining('14 days after capture'), findsOneWidget);
@@ -119,8 +117,9 @@ void main() {
     expect(find.textContaining("Apply the '"), findsNothing);
   });
 
-  testWidgets('tight calibration offers the strict preset and applies it',
-      (tester) async {
+  testWidgets('tight calibration offers the strict preset and applies it', (
+    tester,
+  ) async {
     final screen = CalibrationScreen(
       stillSource: () async => Uint8List.fromList([1, 2, 3]),
       analyze: (bytes) async => CalibrationReport(

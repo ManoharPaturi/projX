@@ -95,17 +95,20 @@ void main() {
     expect(marksClose(result.totalMarks, -5), isTrue);
   });
 
-  test('overflow is voided without penalty, even when it was a wrong answer', () {
-    // Six wrong attempts: the sixth must cost nothing.
-    final GradingReport report = grade(<QuestionId, MarkedResponse>{
-      for (final QuestionId q in order) q: resp(<OptionId>{'B'}),
-    });
-    final ExamResult result = report.resultsByStudent['s1']!;
-    expect(result.outcomeCounts[QuestionOutcomeKind.wrong], 5);
-    expect(result.outcomeCounts[QuestionOutcomeKind.invalidated], 2);
-    // Five wrongs at -1; the sixth and seventh are voided at 0.
-    expect(marksClose(result.totalMarks, -5), isTrue);
-  });
+  test(
+    'overflow is voided without penalty, even when it was a wrong answer',
+    () {
+      // Six wrong attempts: the sixth must cost nothing.
+      final GradingReport report = grade(<QuestionId, MarkedResponse>{
+        for (final QuestionId q in order) q: resp(<OptionId>{'B'}),
+      });
+      final ExamResult result = report.resultsByStudent['s1']!;
+      expect(result.outcomeCounts[QuestionOutcomeKind.wrong], 5);
+      expect(result.outcomeCounts[QuestionOutcomeKind.invalidated], 2);
+      // Five wrongs at -1; the sixth and seventh are voided at 0.
+      expect(marksClose(result.totalMarks, -5), isTrue);
+    },
+  );
 
   test('selection follows sheet serial order, not section list order', () {
     // The section lists questions in reverse; serial order still decides.
@@ -210,16 +213,15 @@ void main() {
   });
 
   test('a cap below one is rejected up front', () {
-    expect(
-      () => grade(<QuestionId, MarkedResponse>{}),
-      returnsNormally,
-    );
+    expect(() => grade(<QuestionId, MarkedResponse>{}), returnsNormally);
     expect(
       () => ExamGrader().grade(
         GradingRequest(
           examId: 'e1',
           keyVersionId: 'v1',
-          reads: <String, SheetRead>{'s1': sheet(<QuestionId, MarkedResponse>{})},
+          reads: <String, SheetRead>{
+            's1': sheet(<QuestionId, MarkedResponse>{}),
+          },
           key: key,
           questionOrder: order,
           sections: <SectionSpec>[

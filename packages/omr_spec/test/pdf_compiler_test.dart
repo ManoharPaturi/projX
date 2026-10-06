@@ -8,7 +8,10 @@ import 'package:test/test.dart';
 void main() {
   group('compileSheetPdf', () {
     test('Preset A renders a real, non-trivial PDF', () async {
-      final bytes = await compileSheetPdf(buildStandard90(), examTitle: 'JEE Mock 1');
+      final bytes = await compileSheetPdf(
+        buildStandard90(),
+        examTitle: 'JEE Mock 1',
+      );
       expect(bytes, isA<Uint8List>());
       expect(bytes.lengthInBytes, greaterThan(10_000));
       expect(latin1.decode(bytes.sublist(0, 5)), '%PDF-');
@@ -31,9 +34,7 @@ void main() {
     });
 
     test('an invalid spec is refused before any PDF work', () async {
-      final bad = buildStandard90().copyWith(
-        qrZone: const QrZone(sizeMm: 8),
-      );
+      final bad = buildStandard90().copyWith(qrZone: const QrZone(sizeMm: 8));
       // Validation runs synchronously before the first await, so pass a
       // closure — a bare call would throw before expectLater sees a Future.
       await expectLater(
@@ -57,8 +58,10 @@ void main() {
       final bold = PdfFont.helveticaBold(doc);
       for (final spec in [buildStandard90(), buildNeet180()]) {
         final usable = spec.paperWidthMm - 2 * spec.marginMm;
-        final sub = '${spec.layoutId} v${spec.layoutVersion}'
-            '  ·  ${spec.instructionText}'.trim();
+        final sub =
+            '${spec.layoutId} v${spec.layoutVersion}'
+                    '  ·  ${spec.instructionText}'
+                .trim();
         expect(
           textWidthMm(font, 7, sub),
           lessThan(usable),

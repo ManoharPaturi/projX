@@ -52,7 +52,9 @@ final class ScoringParams {
   String enumParam(String key, Set<String> allowed) {
     final Object? v = raw[key];
     if (v is! String) {
-      throw ArgumentError('param "$key" must be a String, got ${v.runtimeType}');
+      throw ArgumentError(
+        'param "$key" must be a String, got ${v.runtimeType}',
+      );
     }
     if (!allowed.contains(v)) {
       throw ArgumentError(
@@ -131,7 +133,11 @@ sealed class ScoringStrategy {
   /// (e.g. a multi-correct key row with an empty correct set, or an
   /// integer-question key row with no `correctInteger`) — a malformed key must
   /// stop the run loudly rather than hand out arbitrary marks.
-  QuestionOutcome score(MarkedResponse response, KeyEntry key, ScoringRule rule);
+  QuestionOutcome score(
+    MarkedResponse response,
+    KeyEntry key,
+    ScoringRule rule,
+  );
 
   /// Checks [rule]'s params against this strategy's contract.
   ///
@@ -188,4 +194,5 @@ bool _setsEqual(Set<String> a, Set<String> b) =>
     a.length == b.length && a.containsAll(b);
 
 /// Human-friendly sorted rendering of an option set for reason strings.
-String _labelOptions(Set<String> options) => (options.toList()..sort()).join(', ');
+String _labelOptions(Set<String> options) =>
+    (options.toList()..sort()).join(', ');

@@ -3,7 +3,8 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:omr_core/omr_core.dart' as core;
 import 'package:omr_data/omr_data.dart';
-import 'package:omr_detect/omr_detect.dart' as detect
+import 'package:omr_detect/omr_detect.dart'
+    as detect
     show BubbleRead, BubbleZone, FieldRead, MarkClass, StillEvaluation;
 
 import 'still_evaluator.dart';
@@ -16,7 +17,7 @@ import 'still_evaluator.dart';
 /// and re-grade never know which path inserted a scan.
 class SheetIntake {
   SheetIntake(this.db, {StillEvaluator? evaluator})
-      : evaluator = evaluator ?? OmrStillEvaluator(db);
+    : evaluator = evaluator ?? OmrStillEvaluator(db);
 
   final AppDb db;
   final StillEvaluator evaluator;
@@ -39,8 +40,9 @@ class SheetIntake {
 
     final evaluation = await evaluator.evaluate(examId, stillBytes);
     final read = evaluation.read;
-    final layoutVersion =
-        (await GradingService(db).templateFor(examId)).layoutVersion;
+    final layoutVersion = (await GradingService(
+      db,
+    ).templateFor(examId)).layoutVersion;
 
     // Roll → student: an unresolvable roll leaves the scan student-less on
     // purpose — it belongs to review, not to a guessed roster row.
@@ -74,9 +76,7 @@ class SheetIntake {
         annotatedPath: 'capture://pending',
         sheetConfidence: Value(read.sheetConfidence),
         curlFlag: Value(read.flags.contains(core.SheetReadFlag.curlDetected)),
-        status: Value(
-          needsReview ? ScanStatus.needsReview : ScanStatus.graded,
-        ),
+        status: Value(needsReview ? ScanStatus.needsReview : ScanStatus.graded),
       ),
       [for (final field in evaluation.fields) ..._bubbleInputs(field)],
     );
@@ -102,11 +102,9 @@ class SheetIntake {
         examId: examId,
         keyVersionId: keyVersion.id,
       );
-      result = await GradingService(db).gradeScan(
-        examId: examId,
-        keyVersionId: keyVersion.id,
-        scanId: scanId,
-      );
+      result = await GradingService(
+        db,
+      ).gradeScan(examId: examId, keyVersionId: keyVersion.id, scanId: scanId);
     }
 
     return CapturedSheet(
@@ -122,17 +120,17 @@ class SheetIntake {
   /// One [BubbleReadInput] per bubble — the re-grade substrate, so a
   /// corrected key reproduces this sheet's marks without re-scanning.
   List<BubbleReadInput> _bubbleInputs(detect.FieldRead field) => [
-        for (final bubble in field.bubbles)
-          BubbleReadInput(
-            fieldKey: bubble.sample.fieldKey,
-            optionIndex: bubble.sample.optionIndex,
-            markClass: _markClass(field, bubble),
-            meanIntensity: bubble.sample.meanIntensity,
-            fillRatio: bubble.sample.fillRatio,
-            confidence: bubble.confidence,
-            thresholdUsed: bubble.thresholdUsed,
-          ),
-      ];
+    for (final bubble in field.bubbles)
+      BubbleReadInput(
+        fieldKey: bubble.sample.fieldKey,
+        optionIndex: bubble.sample.optionIndex,
+        markClass: _markClass(field, bubble),
+        meanIntensity: bubble.sample.meanIntensity,
+        fillRatio: bubble.sample.fillRatio,
+        confidence: bubble.confidence,
+        thresholdUsed: bubble.thresholdUsed,
+      ),
+  ];
 
   /// Bubble-level mark, a pure translation of the detect verdicts: the
   /// bubble's zone, except that overfill is a ROW verdict — the zone knows
@@ -158,7 +156,7 @@ class SheetIntake {
 /// per read flag. Public so the intake's tests and any future batch path
 /// assert against the same mapping.
 List<({String code, ReviewSeverity severity, List<String> fieldRefs})>
-    reviewReasonsFor(detect.StillEvaluation evaluation) {
+reviewReasonsFor(detect.StillEvaluation evaluation) {
   // Field refs per reason where the read can name them.
   final multiMarked = [
     for (final f in evaluation.fields)
@@ -181,50 +179,50 @@ List<({String code, ReviewSeverity severity, List<String> fieldRefs})>
     for (final flag in evaluation.read.flags)
       switch (flag) {
         core.SheetReadFlag.rollChecksumMismatch => (
-            code: 'ROLL_CHECKSUM_ERR',
-            severity: ReviewSeverity.high,
-            fieldRefs: const <String>[],
-          ),
+          code: 'ROLL_CHECKSUM_ERR',
+          severity: ReviewSeverity.high,
+          fieldRefs: const <String>[],
+        ),
         core.SheetReadFlag.rollNotOnRoster => (
-            code: 'ROLL_NOT_ON_ROSTER',
-            severity: ReviewSeverity.high,
-            fieldRefs: const <String>[],
-          ),
+          code: 'ROLL_NOT_ON_ROSTER',
+          severity: ReviewSeverity.high,
+          fieldRefs: const <String>[],
+        ),
         core.SheetReadFlag.rollColumnAmbiguous => (
-            code: 'ROLL_AMBIGUOUS',
-            severity: ReviewSeverity.high,
-            fieldRefs: const <String>[],
-          ),
+          code: 'ROLL_AMBIGUOUS',
+          severity: ReviewSeverity.high,
+          fieldRefs: const <String>[],
+        ),
         core.SheetReadFlag.setCodeBlank => (
-            code: 'SET_BLANK',
-            severity: ReviewSeverity.medium,
-            fieldRefs: const <String>[],
-          ),
+          code: 'SET_BLANK',
+          severity: ReviewSeverity.medium,
+          fieldRefs: const <String>[],
+        ),
         core.SheetReadFlag.setCodeMulti => (
-            code: 'SET_MULTI',
-            severity: ReviewSeverity.medium,
-            fieldRefs: const <String>[],
-          ),
+          code: 'SET_MULTI',
+          severity: ReviewSeverity.medium,
+          fieldRefs: const <String>[],
+        ),
         core.SheetReadFlag.multiMarkedField => (
-            code: 'MULTI_BUBBLE_WARN',
-            severity: ReviewSeverity.high,
-            fieldRefs: multiMarked,
-          ),
+          code: 'MULTI_BUBBLE_WARN',
+          severity: ReviewSeverity.high,
+          fieldRefs: multiMarked,
+        ),
         core.SheetReadFlag.probableBubblesPresent => (
-            code: 'PROBABLE_BUBBLE',
-            severity: ReviewSeverity.medium,
-            fieldRefs: probable,
-          ),
+          code: 'PROBABLE_BUBBLE',
+          severity: ReviewSeverity.medium,
+          fieldRefs: probable,
+        ),
         core.SheetReadFlag.curlDetected => (
-            code: 'CURL_WARN',
-            severity: ReviewSeverity.medium,
-            fieldRefs: const <String>[],
-          ),
+          code: 'CURL_WARN',
+          severity: ReviewSeverity.medium,
+          fieldRefs: const <String>[],
+        ),
         core.SheetReadFlag.lowConfidence => (
-            code: 'LOW_CONFIDENCE',
-            severity: ReviewSeverity.medium,
-            fieldRefs: const <String>[],
-          ),
+          code: 'LOW_CONFIDENCE',
+          severity: ReviewSeverity.medium,
+          fieldRefs: const <String>[],
+        ),
       },
   ];
 }

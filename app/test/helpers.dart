@@ -71,11 +71,9 @@ Future<SeededExam> seedExamWithRoster(
   final rolls = [
     for (var i = 1; i <= students; i++) 'R${i.toString().padLeft(3, '0')}',
   ];
-  await db.studentsDao.importRoster(
-    state.tenantId,
-    state.instituteId,
-    [for (final roll in rolls) RosterEntry(rollNo: roll)],
-  );
+  await db.studentsDao.importRoster(state.tenantId, state.instituteId, [
+    for (final roll in rolls) RosterEntry(rollNo: roll),
+  ]);
 
   return SeededExam(
     examId: examId,

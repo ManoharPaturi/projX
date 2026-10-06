@@ -53,25 +53,25 @@ class BubbleRect {
   }
 
   Map<String, Object?> toJson() => {
-        'fieldKey': fieldKey,
-        'blockId': blockId,
-        'optionIndex': optionIndex,
-        'optionValue': optionValue,
-        'center': [centerX, centerY],
-        'w': w,
-        'h': h,
-      };
+    'fieldKey': fieldKey,
+    'blockId': blockId,
+    'optionIndex': optionIndex,
+    'optionValue': optionValue,
+    'center': [centerX, centerY],
+    'w': w,
+    'h': h,
+  };
 
   static BubbleRect fromJson(Map<String, Object?> j) => BubbleRect(
-        fieldKey: j['fieldKey']! as String,
-        blockId: j['blockId']! as String,
-        optionIndex: j['optionIndex']! as int,
-        optionValue: j['optionValue']! as String,
-        centerX: ((j['center']! as List).first as num).toDouble(),
-        centerY: ((j['center']! as List).last as num).toDouble(),
-        w: (j['w']! as num).toDouble(),
-        h: (j['h']! as num).toDouble(),
-      );
+    fieldKey: j['fieldKey']! as String,
+    blockId: j['blockId']! as String,
+    optionIndex: j['optionIndex']! as int,
+    optionValue: j['optionValue']! as String,
+    centerX: ((j['center']! as List).first as num).toDouble(),
+    centerY: ((j['center']! as List).last as num).toDouble(),
+    w: (j['w']! as num).toDouble(),
+    h: (j['h']! as num).toDouble(),
+  );
 }
 
 /// A registration anchor on the canonical canvas.
@@ -93,19 +93,19 @@ class FiducialRect {
   final double size;
 
   Map<String, Object?> toJson() => {
-        'corner': corner,
-        'isAltAnchor': isAltAnchor,
-        'center': [centerX, centerY],
-        'size': size,
-      };
+    'corner': corner,
+    'isAltAnchor': isAltAnchor,
+    'center': [centerX, centerY],
+    'size': size,
+  };
 
   static FiducialRect fromJson(Map<String, Object?> j) => FiducialRect(
-        corner: j['corner']! as String,
-        isAltAnchor: j['isAltAnchor']! as bool,
-        centerX: ((j['center']! as List).first as num).toDouble(),
-        centerY: ((j['center']! as List).last as num).toDouble(),
-        size: (j['size']! as num).toDouble(),
-      );
+    corner: j['corner']! as String,
+    isAltAnchor: j['isAltAnchor']! as bool,
+    centerX: ((j['center']! as List).first as num).toDouble(),
+    centerY: ((j['center']! as List).last as num).toDouble(),
+    size: (j['size']! as num).toDouble(),
+  );
 }
 
 /// The compiled detection geometry: what the pipeline actually consumes.
@@ -180,29 +180,30 @@ class DetectionTemplate {
   }
 
   /// The minimum px/mm a capture needs to resolve this layout's bubbles.
-  static double requiredPxPerMm(double bubbleMinorAxisMm,
-          {double minBubblePx = 40}) =>
-      minBubblePx / bubbleMinorAxisMm;
+  static double requiredPxPerMm(
+    double bubbleMinorAxisMm, {
+    double minBubblePx = 40,
+  }) => minBubblePx / bubbleMinorAxisMm;
 
   Map<String, Object?> toJson() => {
-        'templateVersion': 1,
-        'layoutId': layoutId,
-        'layoutVersion': layoutVersion,
-        'specHash': specHash,
-        'pxPerMm': pxPerMm,
-        'canvas': [canvasWidth, canvasHeight],
-        'bubbles': [for (final b in bubbles) b.toJson()],
-        'fiducials': [for (final f in fiducials) f.toJson()],
-        'timingBars': [
-          for (final t in timingBars) [t.x, t.y, t.w, t.h],
-        ],
-        'qrRect': [qrRect.x, qrRect.y, qrRect.w, qrRect.h],
-        'rollFieldKeys': rollFieldKeys,
-        'setFieldKey': setFieldKey,
-        'questionFieldKeys': questionFieldKeys,
-        'qrPayload': qrPayload,
-        'minPxPerMmOnCapture': minPxPerMmOnCapture,
-      };
+    'templateVersion': 1,
+    'layoutId': layoutId,
+    'layoutVersion': layoutVersion,
+    'specHash': specHash,
+    'pxPerMm': pxPerMm,
+    'canvas': [canvasWidth, canvasHeight],
+    'bubbles': [for (final b in bubbles) b.toJson()],
+    'fiducials': [for (final f in fiducials) f.toJson()],
+    'timingBars': [
+      for (final t in timingBars) [t.x, t.y, t.w, t.h],
+    ],
+    'qrRect': [qrRect.x, qrRect.y, qrRect.w, qrRect.h],
+    'rollFieldKeys': rollFieldKeys,
+    'setFieldKey': setFieldKey,
+    'questionFieldKeys': questionFieldKeys,
+    'qrPayload': qrPayload,
+    'minPxPerMmOnCapture': minPxPerMmOnCapture,
+  };
 
   static DetectionTemplate fromJson(Map<String, Object?> j) {
     final qr = (j['qrRect']! as List).cast<num>();
@@ -232,8 +233,8 @@ class DetectionTemplate {
       ),
       rollFieldKeys: (j['rollFieldKeys']! as List<Object?>).cast<String>(),
       setFieldKey: j['setFieldKey']! as String,
-      questionFieldKeys:
-          (j['questionFieldKeys']! as List<Object?>).cast<String>(),
+      questionFieldKeys: (j['questionFieldKeys']! as List<Object?>)
+          .cast<String>(),
       qrPayload: j['qrPayload']! as String,
       minPxPerMmOnCapture: (j['minPxPerMmOnCapture']! as num).toDouble(),
     );
@@ -267,16 +268,18 @@ DetectionTemplate compileDetectionTemplate(SheetSpec spec) {
     for (var f = 0; f < fields.length; f++) {
       for (var o = 0; o < values.length; o++) {
         final c = block.bubbleCenter(f, o);
-        bubbles.add(BubbleRect(
-          fieldKey: fields[f],
-          blockId: block.blockId,
-          optionIndex: o,
-          optionValue: values[o],
-          centerX: _px(c.x),
-          centerY: _px(c.y),
-          w: _px(bs.wMm),
-          h: _px(bs.hMm),
-        ));
+        bubbles.add(
+          BubbleRect(
+            fieldKey: fields[f],
+            blockId: block.blockId,
+            optionIndex: o,
+            optionValue: values[o],
+            centerX: _px(c.x),
+            centerY: _px(c.y),
+            w: _px(bs.wMm),
+            h: _px(bs.hMm),
+          ),
+        );
       }
       switch (block.blockType) {
         case BlockType.rollDigits:
@@ -317,12 +320,7 @@ DetectionTemplate compileDetectionTemplate(SheetSpec spec) {
     fiducials: fiducials,
     timingBars: [
       for (final b in geo.timingBars)
-        (
-          x: _px(b.x),
-          y: _px(b.y),
-          w: _px(b.w),
-          h: _px(b.h),
-        ),
+        (x: _px(b.x), y: _px(b.y), w: _px(b.w), h: _px(b.h)),
     ],
     qrRect: (
       x: _px(geo.qrRect.x),
@@ -341,11 +339,11 @@ DetectionTemplate compileDetectionTemplate(SheetSpec spec) {
 double _px(double mm) => mm * pxPerMm;
 
 ({double x, double y, double w, double h}) _rectFromJson(List<Object?> l) => (
-      x: (l[0]! as num).toDouble(),
-      y: (l[1]! as num).toDouble(),
-      w: (l[2]! as num).toDouble(),
-      h: (l[3]! as num).toDouble(),
-    );
+  x: (l[0]! as num).toDouble(),
+  y: (l[1]! as num).toDouble(),
+  w: (l[2]! as num).toDouble(),
+  h: (l[3]! as num).toDouble(),
+);
 
 /// sha256 hex of the spec's canonical JSON — the identity stored with every
 /// layout row, scan and scoring run.

@@ -174,12 +174,16 @@ class _ScanCountsCard extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    _countChip('scanned', counts.values.fold(0, (a, b) => a + b)),
+                    _countChip(
+                      'scanned',
+                      counts.values.fold(0, (a, b) => a + b),
+                    ),
                     _countChip('graded', of(ScanStatus.graded)),
                     _countChip(
                       'needs review',
                       of(ScanStatus.needsReview),
-                      color: counts[ScanStatus.needsReview] != null &&
+                      color:
+                          counts[ScanStatus.needsReview] != null &&
                               counts[ScanStatus.needsReview]! > 0
                           ? const Color(0xFF8B4000)
                           : null,
@@ -229,10 +233,7 @@ class _ActionsCard extends StatelessWidget {
               title: const Text('Activate exam'),
               subtitle: const Text('Unlock scanning for this exam'),
               onTap: () async {
-                await state.db.examsDao.setStatus(
-                  exam.id,
-                  ExamStatus.active,
-                );
+                await state.db.examsDao.setStatus(exam.id, ExamStatus.active);
                 state.refresh();
               },
             ),

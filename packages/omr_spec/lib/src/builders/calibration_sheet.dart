@@ -84,7 +84,11 @@ SheetSpec buildCalibrationSpec({
         blockId: 'cal_c${c + 1}',
         blockType: BlockType.mcq,
         originMm: MmPoint(
-          c == 0 ? x1 : c == 1 ? x2 : x3,
+          c == 0
+              ? x1
+              : c == 1
+              ? x2
+              : x3,
           originY,
         ),
         bubblePitchMm: 7.6,
@@ -121,46 +125,50 @@ SheetSpec buildCalibrationSpec({
     fieldLabels: const ['set'],
   );
 
-  return validateOrThrow(SheetSpec(
-    specVersion: 1,
-    layoutId: layoutId,
-    layoutVersion: layoutVersion,
-    paperSizeMm: (a4WidthMm, a4HeightMm),
-    marginMm: 10,
-    headerHeightMm: 30,
-    bubbleStyle: bubble,
-    fiducials: const FiducialLayout(
-      sizeMm: 9,
-      insetMm: 12,
-      whiteSurroundMm: 3.5,
-    ),
-    timingTrack: const TimingTrack(
-      edge: 'left',
-      barWMm: 5.5,
-      barHMm: 2.5,
-      clearanceMm: 5.0,
-    ),
-    qrZone: const QrZone(sizeMm: 16, position: 'tr'),
-    fieldBlocks: [...blocks, roll, set],
-    sections: [
-      SectionSpec(
-        id: 'cal',
-        name: 'Calibration',
-        subject: 'Calibration',
-        questionLabels: [
-          for (var c = 1; c <= 3; c++)
-            for (final band in calibrationBands)
-              for (final level in calibrationLevels) 'cal_c${c}_${band}_$level',
-        ],
+  return validateOrThrow(
+    SheetSpec(
+      specVersion: 1,
+      layoutId: layoutId,
+      layoutVersion: layoutVersion,
+      paperSizeMm: (a4WidthMm, a4HeightMm),
+      marginMm: 10,
+      headerHeightMm: 30,
+      bubbleStyle: bubble,
+      fiducials: const FiducialLayout(
+        sizeMm: 9,
+        insetMm: 12,
+        whiteSurroundMm: 3.5,
       ),
-    ],
-    rollDigits: 7,
-    rollChecksum: true,
-    setValues: const ['A', 'B', 'C', 'D'],
-    serialText: 'CALIBRATION - print at 100% scale, no fit-to-page',
-    instructionText: 'Printer calibration reference sheet (plan §9). '
-        'Do not distribute; see docs/calibration-sop.md.',
-  ));
+      timingTrack: const TimingTrack(
+        edge: 'left',
+        barWMm: 5.5,
+        barHMm: 2.5,
+        clearanceMm: 5.0,
+      ),
+      qrZone: const QrZone(sizeMm: 16, position: 'tr'),
+      fieldBlocks: [...blocks, roll, set],
+      sections: [
+        SectionSpec(
+          id: 'cal',
+          name: 'Calibration',
+          subject: 'Calibration',
+          questionLabels: [
+            for (var c = 1; c <= 3; c++)
+              for (final band in calibrationBands)
+                for (final level in calibrationLevels)
+                  'cal_c${c}_${band}_$level',
+          ],
+        ),
+      ],
+      rollDigits: 7,
+      rollChecksum: true,
+      setValues: const ['A', 'B', 'C', 'D'],
+      serialText: 'CALIBRATION - print at 100% scale, no fit-to-page',
+      instructionText:
+          'Printer calibration reference sheet (plan §9). '
+          'Do not distribute; see docs/calibration-sop.md.',
+    ),
+  );
 }
 
 /// The sheet plus its reference fills, ready for `compileSheetPdf`.
@@ -178,19 +186,19 @@ CalibrationSheet buildCalibrationSheet({
 /// The fills, derived from the level table — `mid` leaves one option empty so
 /// every printed row band also carries an in-row empty sample.
 Map<String, BubbleFill> calibrationFills() => {
-      for (var c = 1; c <= 3; c++)
-        for (final band in calibrationBands) ...{
-          'cal_c${c}_${band}_full': BubbleFill(
-            optionIndexes: const [0, 1, 2, 3],
-            gray: calibrationLevelGrays['full']!,
-          ),
-          'cal_c${c}_${band}_faint': BubbleFill(
-            optionIndexes: const [0, 1, 2, 3],
-            gray: calibrationLevelGrays['faint']!,
-          ),
-          'cal_c${c}_${band}_mid': BubbleFill(
-            optionIndexes: const [0, 1, 2],
-            gray: calibrationLevelGrays['mid']!,
-          ),
-        },
-    };
+  for (var c = 1; c <= 3; c++)
+    for (final band in calibrationBands) ...{
+      'cal_c${c}_${band}_full': BubbleFill(
+        optionIndexes: const [0, 1, 2, 3],
+        gray: calibrationLevelGrays['full']!,
+      ),
+      'cal_c${c}_${band}_faint': BubbleFill(
+        optionIndexes: const [0, 1, 2, 3],
+        gray: calibrationLevelGrays['faint']!,
+      ),
+      'cal_c${c}_${band}_mid': BubbleFill(
+        optionIndexes: const [0, 1, 2],
+        gray: calibrationLevelGrays['mid']!,
+      ),
+    },
+};

@@ -24,11 +24,7 @@ typedef CalibrationAnalyzeFn =
 /// On devices without a camera (emulator) the print leg still works; the
 /// photo leg says so instead of pretending.
 class CalibrationScreen extends StatefulWidget {
-  const CalibrationScreen({
-    super.key,
-    this.stillSource,
-    this.analyze,
-  });
+  const CalibrationScreen({super.key, this.stillSource, this.analyze});
 
   /// Test seam: armed still bytes in place of the camera.
   final Future<Uint8List> Function()? stillSource;
@@ -108,7 +104,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
         bubbleFills: sheet.fills,
         examTitle: 'Printer calibration',
       );
-      await Printing.layoutPdf(name: 'omr-calibration', onLayout: (_) async => pdf);
+      await Printing.layoutPdf(
+        name: 'omr-calibration',
+        onLayout: (_) async => pdf,
+      );
     } catch (error) {
       _snack('print failed: $error');
     } finally {
@@ -178,8 +177,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
                 ListTile(
                   leading: const Icon(Icons.print_outlined),
                   title: const Text('Print calibration sheet'),
-                  subtitle: const Text('Reference bubbles at known ink '
-                      'levels, on the Standard-90 frame'),
+                  subtitle: const Text(
+                    'Reference bubbles at known ink '
+                    'levels, on the Standard-90 frame',
+                  ),
                   enabled: !_busy,
                   onTap: _printSheet,
                 ),
@@ -210,8 +211,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             for (final region in report.regions)
               ListTile(
                 leading: const Icon(Icons.straighten),
-                title: Text('Band ${region.band.toUpperCase()} · '
-                    '${region.samples} samples'),
+                title: Text(
+                  'Band ${region.band.toUpperCase()} · '
+                  '${region.samples} samples',
+                ),
                 subtitle: Text(
                   'separation ${region.separation.toStringAsFixed(0)} '
                   '· split at ${region.threshold.toStringAsFixed(0)} '

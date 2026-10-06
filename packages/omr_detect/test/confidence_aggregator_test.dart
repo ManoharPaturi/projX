@@ -8,20 +8,19 @@ void main() {
   const aggregator = ConfidenceAggregator();
 
   FieldRead good(String key, {String option = 'A'}) => fieldRead(
-        key,
-        markClass: MarkClass.filled,
-        selected: 'ABCD'.indexOf(option),
-        zones: [
-          BubbleZone.filled,
-          BubbleZone.empty,
-          BubbleZone.empty,
-          BubbleZone.empty,
-        ],
-        means: [110, 220, 222, 218],
-      );
+    key,
+    markClass: MarkClass.filled,
+    selected: 'ABCD'.indexOf(option),
+    zones: [
+      BubbleZone.filled,
+      BubbleZone.empty,
+      BubbleZone.empty,
+      BubbleZone.empty,
+    ],
+    means: [110, 220, 222, 218],
+  );
 
-  test('bubble confidence is 1 beyond one band width, 0 at the band edge',
-      () {
+  test('bubble confidence is 1 beyond one band width, 0 at the band edge', () {
     // T=170, band=12: 110 is 60 away → 1; 158 is 12 away → 0; 164 is 6
     // away → 0; 200 is 30 away → 1.
     final read = BubbleRead(
@@ -63,8 +62,10 @@ void main() {
       zone: BubbleZone.filled,
     );
 
-    expect(aggregator.bubbleConfidence(stray),
-        closeTo(aggregator.bubbleConfidence(clean) * 0.7, 1e-9));
+    expect(
+      aggregator.bubbleConfidence(stray),
+      closeTo(aggregator.bubbleConfidence(clean) * 0.7, 1e-9),
+    );
   });
 
   test('field confidence is the weakest bubble, minus class penalties', () {
@@ -174,11 +175,7 @@ void main() {
           BubbleZone.filled,
           ...List.filled(8, BubbleZone.empty),
         ],
-        means: [
-          200,
-          110,
-          ...List.filled(8, 210),
-        ],
+        means: [200, 110, ...List.filled(8, 210)],
       ),
       fieldRead(
         'roll2',

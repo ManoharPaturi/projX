@@ -9,38 +9,40 @@ void main() {
   const decoder = FieldDecoder();
 
   FieldRead mcq(String key, MarkClass mc, {String? selected}) => fieldRead(
-        key,
-        markClass: mc,
-        selected: selected == null ? null : 'ABCD'.indexOf(selected),
-      );
+    key,
+    markClass: mc,
+    selected: selected == null ? null : 'ABCD'.indexOf(selected),
+  );
 
   FieldRead mcqMulti(String key, List<String> markedOptions) => fieldRead(
-        key,
-        markClass: MarkClass.multiple,
-        zones: [
-          for (final v in ['A', 'B', 'C', 'D'])
-            if (markedOptions.contains(v)) BubbleZone.filled
-            else BubbleZone.empty,
-        ],
-        means: [
-          for (final v in ['A', 'B', 'C', 'D'])
-            markedOptions.contains(v) ? 110.0 : 220.0,
-        ],
-      );
+    key,
+    markClass: MarkClass.multiple,
+    zones: [
+      for (final v in ['A', 'B', 'C', 'D'])
+        if (markedOptions.contains(v)) BubbleZone.filled else BubbleZone.empty,
+    ],
+    means: [
+      for (final v in ['A', 'B', 'C', 'D'])
+        markedOptions.contains(v) ? 110.0 : 220.0,
+    ],
+  );
 
   group('MCQ fields', () {
     test('filled → chosen option, valid', () {
-      final read = decoder
-          .decode(fields: [mcq('q1', MarkClass.filled, selected: 'B')],
-              sheetConfidence: 0.95);
+      final read = decoder.decode(
+        fields: [mcq('q1', MarkClass.filled, selected: 'B')],
+        sheetConfidence: 0.95,
+      );
       expect(read.responses['q1']!.chosen, {'B'});
       expect(read.responses['q1']!.validity, ResponseValidity.valid);
       expect(read.flags, isEmpty);
     });
 
     test('blank → unattempted, never a guess', () {
-      final read = decoder
-          .decode(fields: [mcq('q2', MarkClass.blank)], sheetConfidence: 0.95);
+      final read = decoder.decode(
+        fields: [mcq('q2', MarkClass.blank)],
+        sheetConfidence: 0.95,
+      );
       expect(read.responses['q2']!.chosen, isEmpty);
       expect(read.responses['q2']!.validity, ResponseValidity.valid);
       expect(read.flags, isEmpty);
@@ -48,7 +50,9 @@ void main() {
 
     test('multiple → every clear mark carried, flagged for review', () {
       final read = decoder.decode(
-        fields: [mcqMulti('q3', ['A', 'C'])],
+        fields: [
+          mcqMulti('q3', ['A', 'C']),
+        ],
         sheetConfidence: 0.95,
       );
       expect(read.responses['q3']!.chosen, {'A', 'C'});
@@ -57,8 +61,10 @@ void main() {
     });
 
     test('probable → empty chosen, probable validity, flagged', () {
-      final read = decoder
-          .decode(fields: [mcq('q4', MarkClass.probable)], sheetConfidence: 0.95);
+      final read = decoder.decode(
+        fields: [mcq('q4', MarkClass.probable)],
+        sheetConfidence: 0.95,
+      );
       expect(read.responses['q4']!.chosen, isEmpty);
       expect(read.responses['q4']!.validity, ResponseValidity.probable);
       expect(read.flags, contains(SheetReadFlag.probableBubblesPresent));
@@ -76,31 +82,36 @@ void main() {
 
   group('set code', () {
     FieldRead set(MarkClass mc, {String? selected}) => fieldRead(
-          'set',
-          markClass: mc,
-          selected: selected == null ? null : 'ABCD'.indexOf(selected),
-          blockId: 'set',
-          blockType: BlockType.setCode,
-        );
+      'set',
+      markClass: mc,
+      selected: selected == null ? null : 'ABCD'.indexOf(selected),
+      blockId: 'set',
+      blockType: BlockType.setCode,
+    );
 
     test('filled set decodes to its value', () {
-      final read = decoder
-          .decode(fields: [set(MarkClass.filled, selected: 'A')],
-              sheetConfidence: 0.95);
+      final read = decoder.decode(
+        fields: [set(MarkClass.filled, selected: 'A')],
+        sheetConfidence: 0.95,
+      );
       expect(read.setCodeRead, 'A');
       expect(read.flags, isEmpty);
     });
 
     test('blank set is flagged', () {
-      final read = decoder
-          .decode(fields: [set(MarkClass.blank)], sheetConfidence: 0.95);
+      final read = decoder.decode(
+        fields: [set(MarkClass.blank)],
+        sheetConfidence: 0.95,
+      );
       expect(read.setCodeRead, isNull);
       expect(read.flags, contains(SheetReadFlag.setCodeBlank));
     });
 
     test('multi-marked set is flagged', () {
-      final read = decoder
-          .decode(fields: [set(MarkClass.multiple)], sheetConfidence: 0.95);
+      final read = decoder.decode(
+        fields: [set(MarkClass.multiple)],
+        sheetConfidence: 0.95,
+      );
       expect(read.setCodeRead, isNull);
       expect(read.flags, contains(SheetReadFlag.setCodeMulti));
     });
@@ -170,8 +181,7 @@ void main() {
       );
       expect(read.rollNoRead, '1234567');
       expect(read.flags, contains(SheetReadFlag.rollColumnAmbiguous));
-      expect(
-          read.flags, isNot(contains(SheetReadFlag.rollChecksumMismatch)));
+      expect(read.flags, isNot(contains(SheetReadFlag.rollChecksumMismatch)));
     });
 
     test('leading blanks are legal and distinct from explicit zeros', () {
@@ -259,10 +269,9 @@ void main() {
       ];
       // 9·(3+1+3+1+3+1+3) = 9·15 = 135 → 5; 9 ≠ 5 → checksum mismatch too,
       // which is exactly the situation the roster check must not mask.
-      final offRoster = FieldDecoder(roster: {'1234567'}).decode(
-        fields: fields,
-        sheetConfidence: 0.95,
-      );
+      final offRoster = FieldDecoder(
+        roster: {'1234567'},
+      ).decode(fields: fields, sheetConfidence: 0.95);
       expect(offRoster.flags, contains(SheetReadFlag.rollNotOnRoster));
       expect(offRoster.flags, contains(SheetReadFlag.rollChecksumMismatch));
 
@@ -273,13 +282,13 @@ void main() {
 
   group('integer answers', () {
     FieldRead intCol(String key, int blockColumn, String? digit) => fieldRead(
-          key,
-          markClass: digit == null ? MarkClass.blank : MarkClass.filled,
-          selected: digit == null ? null : digitValues.indexOf(digit),
-          blockId: 'int1',
-          blockType: BlockType.intDigits,
-          values: digitValues,
-        );
+      key,
+      markClass: digit == null ? MarkClass.blank : MarkClass.filled,
+      selected: digit == null ? null : digitValues.indexOf(digit),
+      blockId: 'int1',
+      blockType: BlockType.intDigits,
+      values: digitValues,
+    );
 
     test('columns encode through IntegerDigitsCodec', () {
       final read = decoder.decode(

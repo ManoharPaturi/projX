@@ -39,22 +39,22 @@ class BubbleStyle {
   final String labelColorHex;
 
   Map<String, Object?> toJson() => {
-        'wMm': wMm,
-        'hMm': hMm,
-        'strokeMm': strokeMm,
-        'pitchMm': pitchMm,
-        'outlineColorHex': outlineColorHex,
-        'labelColorHex': labelColorHex,
-      };
+    'wMm': wMm,
+    'hMm': hMm,
+    'strokeMm': strokeMm,
+    'pitchMm': pitchMm,
+    'outlineColorHex': outlineColorHex,
+    'labelColorHex': labelColorHex,
+  };
 
   static BubbleStyle fromJson(Map<String, Object?> j) => BubbleStyle(
-        wMm: (j['wMm']! as num).toDouble(),
-        hMm: (j['hMm']! as num).toDouble(),
-        strokeMm: (j['strokeMm'] as num?)?.toDouble() ?? 0.25,
-        pitchMm: (j['pitchMm']! as num).toDouble(),
-        outlineColorHex: j['outlineColorHex'] as String? ?? '#D64000',
-        labelColorHex: j['labelColorHex'] as String? ?? '#D64000',
-      );
+    wMm: (j['wMm']! as num).toDouble(),
+    hMm: (j['hMm']! as num).toDouble(),
+    strokeMm: (j['strokeMm'] as num?)?.toDouble() ?? 0.25,
+    pitchMm: (j['pitchMm']! as num).toDouble(),
+    outlineColorHex: j['outlineColorHex'] as String? ?? '#D64000',
+    labelColorHex: j['labelColorHex'] as String? ?? '#D64000',
+  );
 
   BubbleStyle copyWith({
     double? wMm,
@@ -63,15 +63,14 @@ class BubbleStyle {
     double? pitchMm,
     String? outlineColorHex,
     String? labelColorHex,
-  }) =>
-      BubbleStyle(
-        wMm: wMm ?? this.wMm,
-        hMm: hMm ?? this.hMm,
-        strokeMm: strokeMm ?? this.strokeMm,
-        pitchMm: pitchMm ?? this.pitchMm,
-        outlineColorHex: outlineColorHex ?? this.outlineColorHex,
-        labelColorHex: labelColorHex ?? this.labelColorHex,
-      );
+  }) => BubbleStyle(
+    wMm: wMm ?? this.wMm,
+    hMm: hMm ?? this.hMm,
+    strokeMm: strokeMm ?? this.strokeMm,
+    pitchMm: pitchMm ?? this.pitchMm,
+    outlineColorHex: outlineColorHex ?? this.outlineColorHex,
+    labelColorHex: labelColorHex ?? this.labelColorHex,
+  );
 
   /// The smallest rectangle (centred on origin) covering the bubble outline.
   MmRect bubbleRectAt(MmPoint center) =>

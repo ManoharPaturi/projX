@@ -16,7 +16,7 @@ class QrZone {
   Map<String, Object?> toJson() => {'sizeMm': sizeMm, 'position': position};
 
   static QrZone fromJson(Map<String, Object?> j) => QrZone(
-        sizeMm: (j['sizeMm']! as num).toDouble(),
-        position: j['position'] as String? ?? 'tr',
-      );
+    sizeMm: (j['sizeMm']! as num).toDouble(),
+    position: j['position'] as String? ?? 'tr',
+  );
 }

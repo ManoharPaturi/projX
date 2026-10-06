@@ -14,24 +14,26 @@ void main() {
     core.SheetRead? read,
     detect.RejectionReason? rejection,
     List<detect.FieldRead> fields = const [],
-  }) =>
-      detect.StillEvaluation(
-        read: read ??
-            core.SheetRead(responses: const {}, sheetConfidence: 0.9),
-        fields: fields,
-        registrationPath: detect.RegistrationPath.fiducialQuadrant,
-        trace: const [],
-        rejection: rejection,
-      );
+  }) => detect.StillEvaluation(
+    read: read ?? core.SheetRead(responses: const {}, sheetConfidence: 0.9),
+    fields: fields,
+    registrationPath: detect.RegistrationPath.fiducialQuadrant,
+    trace: const [],
+    rejection: rejection,
+  );
 
   test('a clean read routes nowhere', () {
     expect(
-      reviewReasonsFor(evaluation(read: core.SheetRead(
-        responses: const {},
-        sheetConfidence: 0.95,
-        rollNoRead: '0000073',
-        setCodeRead: 'B',
-      ))),
+      reviewReasonsFor(
+        evaluation(
+          read: core.SheetRead(
+            responses: const {},
+            sheetConfidence: 0.95,
+            rollNoRead: '0000073',
+            setCodeRead: 'B',
+          ),
+        ),
+      ),
       isEmpty,
     );
   });
@@ -46,45 +48,52 @@ void main() {
   });
 
   test('read flags map to their severities', () {
-    final reasons = reviewReasonsFor(evaluation(read: core.SheetRead(
-      responses: const {},
-      sheetConfidence: 0.9,
-      rollNoRead: '0000074',
-      flags: const {
-        core.SheetReadFlag.rollChecksumMismatch,
-        core.SheetReadFlag.setCodeBlank,
-        core.SheetReadFlag.curlDetected,
-        core.SheetReadFlag.lowConfidence,
-      },
-    )));
+    final reasons = reviewReasonsFor(
+      evaluation(
+        read: core.SheetRead(
+          responses: const {},
+          sheetConfidence: 0.9,
+          rollNoRead: '0000074',
+          flags: const {
+            core.SheetReadFlag.rollChecksumMismatch,
+            core.SheetReadFlag.setCodeBlank,
+            core.SheetReadFlag.curlDetected,
+            core.SheetReadFlag.lowConfidence,
+          },
+        ),
+      ),
+    );
 
-    expect({
-      for (final r in reasons) r.code: r.severity,
-    }, {
-      'ROLL_CHECKSUM_ERR': ReviewSeverity.high,
-      'SET_BLANK': ReviewSeverity.medium,
-      'CURL_WARN': ReviewSeverity.medium,
-      'LOW_CONFIDENCE': ReviewSeverity.medium,
-    });
+    expect(
+      {for (final r in reasons) r.code: r.severity},
+      {
+        'ROLL_CHECKSUM_ERR': ReviewSeverity.high,
+        'SET_BLANK': ReviewSeverity.medium,
+        'CURL_WARN': ReviewSeverity.medium,
+        'LOW_CONFIDENCE': ReviewSeverity.medium,
+      },
+    );
   });
 
   test('a multi-marked field names the field in the review row', () {
-    final reasons = reviewReasonsFor(evaluation(
-      read: core.SheetRead(
-        responses: const {},
-        sheetConfidence: 0.9,
-        flags: const {core.SheetReadFlag.multiMarkedField},
-      ),
-      fields: [
-        detect.FieldRead(
-          fieldKey: 'q17',
-          blockId: 'mcq_col2',
-          blockType: BlockType.mcq,
-          bubbles: const [],
-          markClass: detect.MarkClass.multiple,
+    final reasons = reviewReasonsFor(
+      evaluation(
+        read: core.SheetRead(
+          responses: const {},
+          sheetConfidence: 0.9,
+          flags: const {core.SheetReadFlag.multiMarkedField},
         ),
-      ],
-    ));
+        fields: [
+          detect.FieldRead(
+            fieldKey: 'q17',
+            blockId: 'mcq_col2',
+            blockType: BlockType.mcq,
+            bubbles: const [],
+            markClass: detect.MarkClass.multiple,
+          ),
+        ],
+      ),
+    );
 
     expect(reasons, hasLength(1));
     expect(reasons.single.code, 'MULTI_BUBBLE_WARN');

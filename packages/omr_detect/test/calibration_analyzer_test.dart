@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omr_detect/omr_detect.dart';
-import 'package:omr_detect/testing.dart' show inkAt, renderSheetPhoto;import 'package:omr_spec/omr_spec.dart'
+import 'package:omr_detect/testing.dart' show inkAt, renderSheetPhoto;
+import 'package:omr_spec/omr_spec.dart'
     show buildCalibrationSpec, compileDetectionTemplate;
 
 /// The calibration analyzer over a synthetic photo of the printed
@@ -14,18 +15,22 @@ void main() {
   const imgW = 1200, imgH = 1600;
 
   Uint8List photo({List<({int x, int y, int w, int h})> marks = const []}) =>
-      renderSheetPhoto(cv, template, imageWidth: imgW, imageHeight: imgH,
-          marks: marks);
+      renderSheetPhoto(
+        cv,
+        template,
+        imageWidth: imgW,
+        imageHeight: imgH,
+        marks: marks,
+      );
 
   /// Ink every option the printed sheet fills, at the analyzer's own
   /// `filledOptions` truth — the same data `calibrationFills()` prints.
   /// MCQ bubbles carry letter option values (A..D).
   List<({int x, int y, int w, int h})> allPrintedInk() => [
-        for (final entry
-            in CalibrationAnalyzer.calibrationFilledOptions.entries)
-          for (final option in entry.value)
-            inkAt(template, entry.key, 'ABCD'[option]),
-      ];
+    for (final entry in CalibrationAnalyzer.calibrationFilledOptions.entries)
+      for (final option in entry.value)
+        inkAt(template, entry.key, 'ABCD'[option]),
+  ];
 
   test('inked calibration photo: three bands, comfortable margins', () {
     final report = CalibrationAnalyzer().analyze(
@@ -67,9 +72,7 @@ void main() {
   });
 
   test('unregisterable noise: report says retake, no regions', () {
-    final noise = Uint8List.fromList(
-      List.filled(imgW * imgH, 128),
-    );
+    final noise = Uint8List.fromList(List.filled(imgW * imgH, 128));
     final report = CalibrationAnalyzer().analyze(
       cv: cv,
       template: template,

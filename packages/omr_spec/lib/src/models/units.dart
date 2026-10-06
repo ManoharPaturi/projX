@@ -19,8 +19,7 @@ extension type const MmPoint._((double, double) _v) {
 
 /// An axis-aligned rectangle in mm, defined by its top-left corner and size.
 extension type const MmRect._((double, double, double, double) _v) {
-  const MmRect(double x, double y, double w, double h)
-      : this._((x, y, w, h));
+  const MmRect(double x, double y, double w, double h) : this._((x, y, w, h));
 
   double get x => _v.$1;
   double get y => _v.$2;
@@ -41,5 +40,8 @@ extension type const MmRect._((double, double, double, double) _v) {
       o.left >= left && o.right <= right && o.top >= top && o.bottom <= bottom;
 
   bool intersects(MmRect o) =>
-      !(o.right <= left || o.left >= right || o.bottom <= top || o.top >= bottom);
+      !(o.right <= left ||
+          o.left >= right ||
+          o.bottom <= top ||
+          o.top >= bottom);
 }

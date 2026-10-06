@@ -5,15 +5,13 @@ void main() {
   const gate = CurvatureGate();
 
   // std90 timing bars: 30 bars, 7.8mm = 62.4px apart; bubble 3.5mm = 28px.
-  final expected = [
-    for (var i = 0; i < 7; i++) (x: 80.0, y: 336.0 + i * 62.4),
-  ];
+  final expected = [for (var i = 0; i < 7; i++) (x: 80.0, y: 336.0 + i * 62.4)];
 
-  List<({double x, double y})> shift(List<({double x, double y})> pts,
-          double dx, double dy) =>
-      [
-        for (final p in pts) (x: p.x + dx, y: p.y + dy),
-      ];
+  List<({double x, double y})> shift(
+    List<({double x, double y})> pts,
+    double dx,
+    double dy,
+  ) => [for (final p in pts) (x: p.x + dx, y: p.y + dy)];
 
   test('a flat sheet has zero residual and no curl', () {
     final report = gate.evaluate(

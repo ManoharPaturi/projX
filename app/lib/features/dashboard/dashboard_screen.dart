@@ -128,10 +128,7 @@ class _ExamList extends StatelessWidget {
     final state = context.read<AppState>();
     return FutureBuilder<List<Exam>>(
       key: ValueKey('exams-$version'),
-      future: state.db.examsDao.forInstitute(
-        state.tenantId,
-        state.instituteId,
-      ),
+      future: state.db.examsDao.forInstitute(state.tenantId, state.instituteId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());

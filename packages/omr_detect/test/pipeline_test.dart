@@ -116,12 +116,11 @@ void main() {
   /// Ink ROIs for (fieldKey, optionValue) pairs — a deliberate pen-dot
   /// smaller than the outline, as on a real sheet.
   List<({int x, int y, int w, int h})> inkAt(List<(String, String)> pairs) => [
-        for (final (key, value) in pairs)
-          template.bubbles
-              .firstWhere(
-                  (b) => b.fieldKey == key && b.optionValue == value)
-              .roi(fraction: 0.72),
-      ];
+    for (final (key, value) in pairs)
+      template.bubbles
+          .firstWhere((b) => b.fieldKey == key && b.optionValue == value)
+          .roi(fraction: 0.72),
+  ];
 
   /// q1='C', q2='A', set='B', roll 0000073 with checksum 6
   /// (0·3+0·1+0·3+0·1+0·3+7·1+3·3 = 16 → 6).
@@ -140,13 +139,16 @@ void main() {
   ]);
 
   test('happy path: quadrant registration → decoded answers, clean roll', () {
-    final result = OmrPipeline(cv: cv, template: template)
-        .evaluateGray(imgW, imgH, photo(marks: happyMarks));
+    final result = OmrPipeline(
+      cv: cv,
+      template: template,
+    ).evaluateGray(imgW, imgH, photo(marks: happyMarks));
 
     expect(result.rejected, isFalse);
     expect(result.registrationPath, RegistrationPath.fiducialQuadrant);
-    expect(result.read.responses['q1']!.chosen, {'C'},
-        reason: 'inked option must decode; trace: ${result.trace}');
+    expect(result.read.responses['q1']!.chosen, {
+      'C',
+    }, reason: 'inked option must decode; trace: ${result.trace}');
     expect(result.read.responses['q2']!.chosen, {'A'});
     expect(result.read.rollNoRead, '0000073');
     expect(result.read.setCodeRead, 'B');
@@ -154,67 +156,88 @@ void main() {
     expect(result.needsReview, isFalse);
     expect(result.read.sheetConfidence, greaterThan(0.90));
     expect(result.curvature, isNotNull);
-    expect(result.curvature!.curlDetected, isFalse,
-        reason: '${result.curvature}');
+    expect(
+      result.curvature!.curlDetected,
+      isFalse,
+      reason: '${result.curvature}',
+    );
     expect(result.curvature!.barsChecked, template.timingBars.length);
   });
 
   test('trace records each stage with status and timing', () {
-    final result = OmrPipeline(cv: cv, template: template)
-        .evaluateGray(imgW, imgH, photo(marks: happyMarks));
+    final result = OmrPipeline(
+      cv: cv,
+      template: template,
+    ).evaluateGray(imgW, imgH, photo(marks: happyMarks));
 
     final stages = result.trace.map((e) => e.stage).toSet();
-    expect(stages, containsAll(['registration', 'curvature', 'read', 'threshold']));
+    expect(
+      stages,
+      containsAll(['registration', 'curvature', 'read', 'threshold']),
+    );
     for (final entry in result.trace) {
       expect(entry.elapsedMicros, greaterThanOrEqualTo(0));
       expect(entry.detail, isNotEmpty);
     }
   });
 
-  test('rung 2: off-centre capture recovers anchors outside their quadrants', () {
-    // The photographer stands left of the desk: a ~512px-wide sheet in the
-    // right half of the frame (its 0.43 scale lands ON a sweep step, so
-    // anchors match at true size), with BOTH left anchors past the vertical
-    // midline + bleed — outside the tl/bl quadrant windows — while the right
-    // two register normally. The re-search must recover the true pair (not
-    // the identical square neighbours, which exclusion suppresses) and warp
-    // true.
-    final result = OmrPipeline(cv: cv, template: template).evaluateGray(
-      imgW,
-      imgH,
-      photo(
-        marks: happyMarks,
-        anchorDst: const {
-          'tl': CvPointI(704, 487),
-          'tr': CvPointI(1151, 487),
-          'br': CvPointI(1151, 1113),
-          'bl': CvPointI(704, 1113),
-        },
-      ),
-    );
+  test(
+    'rung 2: off-centre capture recovers anchors outside their quadrants',
+    () {
+      // The photographer stands left of the desk: a ~512px-wide sheet in the
+      // right half of the frame (its 0.43 scale lands ON a sweep step, so
+      // anchors match at true size), with BOTH left anchors past the vertical
+      // midline + bleed — outside the tl/bl quadrant windows — while the right
+      // two register normally. The re-search must recover the true pair (not
+      // the identical square neighbours, which exclusion suppresses) and warp
+      // true.
+      final result = OmrPipeline(cv: cv, template: template).evaluateGray(
+        imgW,
+        imgH,
+        photo(
+          marks: happyMarks,
+          anchorDst: const {
+            'tl': CvPointI(704, 487),
+            'tr': CvPointI(1151, 487),
+            'br': CvPointI(1151, 1113),
+            'bl': CvPointI(704, 1113),
+          },
+        ),
+      );
 
-    expect(result.rejected, isFalse);
-    expect(result.registrationPath, RegistrationPath.fiducialRelaxed,
-        reason: 'out-of-window anchors must fail in-quadrant then recover '
-            'unrestricted; trace: ${result.trace}');
-    expect(result.read.responses['q1']!.chosen, {'C'},
-        reason: 'the recovered correspondences must warp bubbles true; '
-            'trace: ${result.trace}');
-    expect(result.read.rollNoRead, '0000073');
-    expect(result.read.setCodeRead, 'B');
-    // A capture this small and off-centre legitimately routes to review: the
-    // binding term is curvature (1 − rms/tol ≈ 0.84 — the ~8.6px-tall timing
-    // bars soften under double resampling), NOT the anchors (all ≈0.95). A
-    // real still warps DOWN to canvas, where interpolation costs far less.
-    // What distinguishes this rung from the page-quad one below is the
-    // absence of the 0.75 trust cap: this confidence was measured, not
-    // clamped by distrust of the registration path.
-    expect(result.read.sheetConfidence, greaterThan(0.80));
-    expect(
-        result.read.flags, contains(SheetReadFlag.lowConfidence),
-        reason: '${result.read.flags}');
-    expect(result.needsReview, isTrue);
-  });
+      expect(result.rejected, isFalse);
+      expect(
+        result.registrationPath,
+        RegistrationPath.fiducialRelaxed,
+        reason:
+            'out-of-window anchors must fail in-quadrant then recover '
+            'unrestricted; trace: ${result.trace}',
+      );
+      expect(
+        result.read.responses['q1']!.chosen,
+        {'C'},
+        reason:
+            'the recovered correspondences must warp bubbles true; '
+            'trace: ${result.trace}',
+      );
+      expect(result.read.rollNoRead, '0000073');
+      expect(result.read.setCodeRead, 'B');
+      // A capture this small and off-centre legitimately routes to review: the
+      // binding term is curvature (1 − rms/tol ≈ 0.84 — the ~8.6px-tall timing
+      // bars soften under double resampling), NOT the anchors (all ≈0.95). A
+      // real still warps DOWN to canvas, where interpolation costs far less.
+      // What distinguishes this rung from the page-quad one below is the
+      // absence of the 0.75 trust cap: this confidence was measured, not
+      // clamped by distrust of the registration path.
+      expect(result.read.sheetConfidence, greaterThan(0.80));
+      expect(
+        result.read.flags,
+        contains(SheetReadFlag.lowConfidence),
+        reason: '${result.read.flags}',
+      );
+      expect(result.needsReview, isTrue);
+    },
+  );
 
   test('rung 3: anchors unusable → page-quad warp, capped confidence', () {
     final result = OmrPipeline(
@@ -227,9 +250,13 @@ void main() {
 
     expect(result.rejected, isFalse);
     expect(result.registrationPath, RegistrationPath.pageQuad);
-    expect(result.read.responses['q1']!.chosen, {'C'},
-        reason: 'page-quad warp must still land the bubbles; '
-            'trace: ${result.trace}');
+    expect(
+      result.read.responses['q1']!.chosen,
+      {'C'},
+      reason:
+          'page-quad warp must still land the bubbles; '
+          'trace: ${result.trace}',
+    );
     expect(result.read.rollNoRead, '0000073');
     expect(result.read.setCodeRead, 'B');
     expect(result.read.sheetConfidence, lessThanOrEqualTo(0.75));
@@ -240,8 +267,10 @@ void main() {
   test('rung 4: nothing registerable → rejected with a reason code', () {
     final blank = Uint8List(imgW * imgH);
     blank.fillRange(0, blank.length, 60);
-    final result =
-        OmrPipeline(cv: cv, template: template).evaluateGray(imgW, imgH, blank);
+    final result = OmrPipeline(
+      cv: cv,
+      template: template,
+    ).evaluateGray(imgW, imgH, blank);
 
     expect(result.rejected, isTrue);
     expect(result.rejection, RejectionReason.noRegistration);
@@ -259,9 +288,13 @@ void main() {
     );
 
     expect(result.curvature, isNotNull);
-    expect(result.curvature!.curlDetected, isTrue,
-        reason: 'middle-third bars displaced 30 canvas px must exceed the '
-            'tolerance; report: ${result.curvature}');
+    expect(
+      result.curvature!.curlDetected,
+      isTrue,
+      reason:
+          'middle-third bars displaced 30 canvas px must exceed the '
+          'tolerance; report: ${result.curvature}',
+    );
     expect(result.read.flags, contains(SheetReadFlag.curlDetected));
     expect(result.needsReview, isTrue);
   });
@@ -284,10 +317,12 @@ void main() {
     final tlSearch = plan.firstWhere((s) => s.corner == 'tl');
     final registrar = FiducialRegistrar();
 
-    final quadrant =
-        registrar.register(cv, gray, [tlSearch], imageWidth: imgW);
-    expect(quadrant.ok, isFalse,
-        reason: 'the quadrant window must miss the anchor entirely');
+    final quadrant = registrar.register(cv, gray, [tlSearch], imageWidth: imgW);
+    expect(
+      quadrant.ok,
+      isFalse,
+      reason: 'the quadrant window must miss the anchor entirely',
+    );
 
     final recovered = registrar.reSearch(
       cv,

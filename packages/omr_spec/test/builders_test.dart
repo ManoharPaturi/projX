@@ -31,7 +31,9 @@ void main() {
     test('geometry matches the documented layout arithmetic', () {
       final c1 = spec.firstMcqBlock!;
       final e = c1.extentMm(
-          bubbleW: spec.bubbleStyle.wMm, bubbleH: spec.bubbleStyle.hMm);
+        bubbleW: spec.bubbleStyle.wMm,
+        bubbleH: spec.bubbleStyle.hMm,
+      );
       expect(e.left, closeTo(21.5, 1e-9));
       expect(e.right, closeTo(49.3, 1e-9));
 
@@ -40,12 +42,16 @@ void main() {
           .toList();
       final last = mcq.last;
       final le = last.extentMm(
-          bubbleW: spec.bubbleStyle.wMm, bubbleH: spec.bubbleStyle.hMm);
+        bubbleW: spec.bubbleStyle.wMm,
+        bubbleH: spec.bubbleStyle.hMm,
+      );
       expect(le.bottom, lessThan(285.5)); // inside the inner content rect
 
       final roll = spec.rollBlock!;
       final re = roll.extentMm(
-          bubbleW: spec.bubbleStyle.wMm, bubbleH: spec.bubbleStyle.hMm);
+        bubbleW: spec.bubbleStyle.wMm,
+        bubbleH: spec.bubbleStyle.hMm,
+      );
       expect(re.right, lessThanOrEqualTo(198.5));
       expect(re.bottom, lessThan(120));
     });
@@ -79,7 +85,9 @@ void main() {
           .toList();
       final lastCol = mcq.last;
       final e = lastCol.extentMm(
-          bubbleW: spec.bubbleStyle.wMm, bubbleH: spec.bubbleStyle.hMm);
+        bubbleW: spec.bubbleStyle.wMm,
+        bubbleH: spec.bubbleStyle.hMm,
+      );
       // 45 rows x 5.7 pitch + bubble: must end above the inner bottom edge.
       expect(e.bottom, lessThanOrEqualTo(285.5));
       expect(e.right, lessThan(130)); // clears the roll grid at x 130

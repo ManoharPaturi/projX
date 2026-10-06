@@ -23,7 +23,11 @@ class BubbleReader {
   /// Inner fraction of the outline the measurement ROI covers.
   final double roiFraction;
 
-  List<BubbleSample> read(OpencvService cv, CvMat channel, DetectionTemplate template) {
+  List<BubbleSample> read(
+    OpencvService cv,
+    CvMat channel,
+    DetectionTemplate template,
+  ) {
     return [
       for (final b in template.bubbles)
         _measure(cv, channel, b, template.canvasWidth, template.canvasHeight),

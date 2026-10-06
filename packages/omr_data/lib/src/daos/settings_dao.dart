@@ -14,8 +14,8 @@ class TenantSettings {
   });
 
   const TenantSettings.defaults()
-      : strictness = 'normal',
-        retentionGraceDays = 7;
+    : strictness = 'normal',
+      retentionGraceDays = 7;
 
   final String strictness;
   final int retentionGraceDays;
@@ -35,9 +35,9 @@ class SettingsDao extends DatabaseAccessor<AppDb> with _$SettingsDaoMixin {
 
   /// Current settings, defaults when the row is missing or invalid.
   Future<TenantSettings> settingsFor(String tenantId) async {
-    final row = await (select(appSettings)
-          ..where((AppSettings s) => s.tenantId.equals(tenantId)))
-        .getSingleOrNull();
+    final row = await (select(
+      appSettings,
+    )..where((AppSettings s) => s.tenantId.equals(tenantId))).getSingleOrNull();
     if (row == null) return const TenantSettings.defaults();
     final settings = TenantSettings(
       strictness: row.strictness,
@@ -53,21 +53,23 @@ class SettingsDao extends DatabaseAccessor<AppDb> with _$SettingsDaoMixin {
     String? strictness,
     int? retentionGraceDays,
   }) async {
-    if (strictness != null && !const ['strict', 'normal', 'relaxed'].contains(strictness)) {
+    if (strictness != null &&
+        !const ['strict', 'normal', 'relaxed'].contains(strictness)) {
       throw ArgumentError.value(strictness, 'strictness');
     }
     if (retentionGraceDays != null && retentionGraceDays <= 0) {
       throw ArgumentError.value(retentionGraceDays, 'retentionGraceDays');
     }
-    final existing = await (select(appSettings)
-          ..where((AppSettings s) => s.tenantId.equals(tenantId)))
-        .getSingleOrNull();
+    final existing = await (select(
+      appSettings,
+    )..where((AppSettings s) => s.tenantId.equals(tenantId))).getSingleOrNull();
     await into(appSettings).insertOnConflictUpdate(
       AppSettingsCompanion.insert(
         tenantId: tenantId,
         strictness: Value(strictness ?? existing?.strictness ?? 'normal'),
-        retentionGraceDays:
-            Value(retentionGraceDays ?? existing?.retentionGraceDays ?? 7),
+        retentionGraceDays: Value(
+          retentionGraceDays ?? existing?.retentionGraceDays ?? 7,
+        ),
         updatedAt: Value(DateTime.now().toUtc()),
       ),
     );

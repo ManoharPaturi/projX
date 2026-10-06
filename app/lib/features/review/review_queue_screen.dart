@@ -40,7 +40,7 @@ class ReviewQueueScreen extends StatelessWidget {
           return ListView.separated(
             itemCount: rows.length,
             separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
+            itemBuilder: (context, index) {
               final row = rows[index];
               return ListTile(
                 leading: _SeverityBadge(severity: row.severity),
@@ -73,19 +73,20 @@ class ReviewQueueScreen extends StatelessWidget {
 /// beside the queue because the code itself stays the storage key — only
 /// the display is human.
 String _reasonLabel(String code) => switch (code) {
-      'NO_MARKER_ERR' => 'sheet not detected',
-      'ROLL_CHECKSUM_ERR' => 'roll number failed its check digit',
-      'ROLL_NOT_ON_ROSTER' => 'roll number not on the roster',
-      'ROLL_AMBIGUOUS' => 'a roll digit was ambiguous',
-      'SET_BLANK' => 'set code left blank',
-      'SET_MULTI' => 'set code marked twice',
-      'MULTI_BUBBLE_WARN' => 'a question has two marks',
-      'PROBABLE_BUBBLE' => 'some bubbles read faintly',
-      'CURL_WARN' => 'sheet looked curved',
-      _ => code,
-    };
+  'NO_MARKER_ERR' => 'sheet not detected',
+  'ROLL_CHECKSUM_ERR' => 'roll number failed its check digit',
+  'ROLL_NOT_ON_ROSTER' => 'roll number not on the roster',
+  'ROLL_AMBIGUOUS' => 'a roll digit was ambiguous',
+  'SET_BLANK' => 'set code left blank',
+  'SET_MULTI' => 'set code marked twice',
+  'MULTI_BUBBLE_WARN' => 'a question has two marks',
+  'PROBABLE_BUBBLE' => 'some bubbles read faintly',
+  'CURL_WARN' => 'sheet looked curved',
+  _ => code,
+};
 
-class _SeverityBadge extends StatelessWidget {  const _SeverityBadge({required this.severity});
+class _SeverityBadge extends StatelessWidget {
+  const _SeverityBadge({required this.severity});
 
   final ReviewSeverity severity;
 

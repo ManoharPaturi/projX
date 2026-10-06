@@ -44,9 +44,9 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
     setState(() {
       _item = item;
       _detail = detail;
-      _flaggedFields = decodeJsonList(item.fieldRefsJson)
-          .map((e) => '$e')
-          .toList(growable: false);
+      _flaggedFields = decodeJsonList(
+        item.fieldRefsJson,
+      ).map((e) => '$e').toList(growable: false);
       _loading = false;
     });
   }
@@ -60,8 +60,7 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
     }
     return <BubbleCorrection>[
       for (final entry in _chosen.entries)
-        for (final read in _detail!.reads
-            .where((r) => r.fieldKey == entry.key))
+        for (final read in _detail!.reads.where((r) => r.fieldKey == entry.key))
           BubbleCorrection(
             fieldKey: entry.key,
             optionIndex: read.optionIndex,
@@ -78,7 +77,9 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
       widget.reviewId,
       resolvedBy: 'app-operator',
       outcome: outcome,
-      corrections: outcome == ReviewOutcome.corrected ? _corrections() : const [],
+      corrections: outcome == ReviewOutcome.corrected
+          ? _corrections()
+          : const [],
     );
     // A correction changes marks: re-grade so results/reports follow.
     if (outcome == ReviewOutcome.corrected && _detail != null) {
@@ -172,9 +173,8 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
   }
 
   Widget _fieldEditor(String fieldKey) {
-    final reads =
-        _detail!.reads.where((r) => r.fieldKey == fieldKey).toList()
-          ..sort((a, b) => a.optionIndex.compareTo(b.optionIndex));
+    final reads = _detail!.reads.where((r) => r.fieldKey == fieldKey).toList()
+      ..sort((a, b) => a.optionIndex.compareTo(b.optionIndex));
     if (reads.isEmpty) {
       return Card(
         child: ListTile(
@@ -205,7 +205,8 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
   }
 
   Widget _bubble(String fieldKey, int option, BubbleRead read) {
-    final machineFilled = read.markClass == MarkClass.filled ||
+    final machineFilled =
+        read.markClass == MarkClass.filled ||
         read.markClass == MarkClass.multiple;
     final chosen = _chosen[fieldKey] == option;
     final letter = String.fromCharCode(65 + option);
@@ -216,7 +217,8 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
           Semantics(
             button: true,
             selected: chosen,
-            label: 'Option $letter'
+            label:
+                'Option $letter'
                 '${machineFilled ? ', machine read as marked' : ''}',
             child: InkWell(
               onTap: () => setState(() {

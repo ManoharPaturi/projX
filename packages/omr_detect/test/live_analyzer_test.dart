@@ -36,43 +36,43 @@ void main() {
     CaptureQualityGates? gates,
     double? stillShortSidePx = 3000,
     double? requiredSheetPxOnStill = 1680,
-  }) =>
-      LiveFrameAnalyzer(
-        cv: OpencvDartImpl(),
-        gates: gates,
-        stillShortSidePx: stillShortSidePx,
-        requiredSheetPxOnStill: requiredSheetPxOnStill,
-      );
+  }) => LiveFrameAnalyzer(
+    cv: OpencvDartImpl(),
+    gates: gates,
+    stillShortSidePx: stillShortSidePx,
+    requiredSheetPxOnStill: requiredSheetPxOnStill,
+  );
 
-  test('steady clean stream: locks on, then auto-captures after the dwell',
-      () async {
-    // Exposure to 255: the fixture sheet is a bright 238, which the DEFAULT
-    // exposure band would (correctly) coach away — here the dwell is under
-    // test, not the lighting gate.
-    final a = analyzer(
-        gates: CaptureQualityGates(exposureMax: 255));
-    final bytes = photo(60, 40, 520, 400);
+  test(
+    'steady clean stream: locks on, then auto-captures after the dwell',
+    () async {
+      // Exposure to 255: the fixture sheet is a bright 238, which the DEFAULT
+      // exposure band would (correctly) coach away — here the dwell is under
+      // test, not the lighting gate.
+      final a = analyzer(gates: CaptureQualityGates(exposureMax: 255));
+      final bytes = photo(60, 40, 520, 400);
 
-    var triggeredAt = -1;
-    ScannerTick? last;
-    for (var i = 1; i <= 40; i++) {
-      last = a.update(frameOf(bytes));
-      if (last.autoShutter) {
-        triggeredAt = i;
-        break;
+      var triggeredAt = -1;
+      ScannerTick? last;
+      for (var i = 1; i <= 40; i++) {
+        last = a.update(frameOf(bytes));
+        if (last.autoShutter) {
+          triggeredAt = i;
+          break;
+        }
+        expect(last.hint, isNull, reason: 'frame $i: ${last.gates}');
+        expect(last.lockedOn, isTrue);
       }
-      expect(last.hint, isNull, reason: 'frame $i: ${last.gates}');
-      expect(last.lockedOn, isTrue);
-    }
 
-    expect(triggeredAt, 36, reason: 'same dwell as the hysteresis suite');
-    expect(last!.quad, isNotNull);
-    // The overlay quad is the CONSENSUS of the agreeing window — spot-check
-    // one corner lands within a few px of the drawn sheet's tl.
-    final tl = last.quad!.reduce((p, q) => (p.x + p.y) < (q.x + q.y) ? p : q);
-    expect(tl.x, inInclusiveRange(50, 75));
-    expect(tl.y, inInclusiveRange(30, 55));
-  });
+      expect(triggeredAt, 36, reason: 'same dwell as the hysteresis suite');
+      expect(last!.quad, isNotNull);
+      // The overlay quad is the CONSENSUS of the agreeing window — spot-check
+      // one corner lands within a few px of the drawn sheet's tl.
+      final tl = last.quad!.reduce((p, q) => (p.x + p.y) < (q.x + q.y) ? p : q);
+      expect(tl.x, inInclusiveRange(50, 75));
+      expect(tl.y, inInclusiveRange(30, 55));
+    },
+  );
 
   test('a steady but badly lit sheet never earns shutter credit', () {
     // Same fixture, default exposure band: mean ~238 > 200 fails every
@@ -86,8 +86,11 @@ void main() {
       expect(tick.autoShutter, isFalse);
       expect(tick.lockedOn, isFalse);
       expect(tick.hint, 'too bright — avoid direct light on the sheet');
-      expect(tick.hysteresis.progress, 0,
-          reason: 'gate-failing frames are misses, not dwell credit');
+      expect(
+        tick.hysteresis.progress,
+        0,
+        reason: 'gate-failing frames are misses, not dwell credit',
+      );
     }
   });
 

@@ -3,8 +3,7 @@ import 'dart:typed_data';
 
 import 'package:omr_spec/omr_spec.dart' show DetectionTemplate, FiducialRect;
 
-import '../cv/opencv_service.dart'
-    show CvMat, CvPointI, CvSizeI, OpencvService;
+import '../cv/opencv_service.dart' show CvMat, CvPointI, CvSizeI, OpencvService;
 
 /// Renders synthetic marked-sheet photos for tests and the golden harness
 /// (plan §9): the sheet is drawn ON THE DETECTION CANVAS — template
@@ -93,12 +92,18 @@ Uint8List renderSheetPhoto(
   ];
   final dstPts = [
     for (final f in template.fiducials)
-      anchorDst[f.corner] ?? _centredAnchorDst(f, template, imageWidth, imageHeight),
+      anchorDst[f.corner] ??
+          _centredAnchorDst(f, template, imageWidth, imageHeight),
   ];
   final canvasMat = cv.grayFromBytes(cw, ch, canvas);
   final CvMat warpedMat;
   try {
-    warpedMat = cv.warp(canvasMat, srcPts, dstPts, CvSizeI(imageWidth, imageHeight));
+    warpedMat = cv.warp(
+      canvasMat,
+      srcPts,
+      dstPts,
+      CvSizeI(imageWidth, imageHeight),
+    );
   } finally {
     cv.dispose(canvasMat);
   }

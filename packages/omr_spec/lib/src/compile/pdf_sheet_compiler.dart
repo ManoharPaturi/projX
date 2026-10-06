@@ -125,10 +125,12 @@ class _SheetPainter {
       top,
       color: _ink,
     );
-    final sub = '${spec.layoutId} v${spec.layoutVersion}'
-        // '·' (U+00B7) is Latin-1 safe; Helvetica here has no Unicode
-        // support and anything beyond Latin-1 throws at measure time.
-        '  ·  ${spec.instructionText}'.trim();
+    final sub =
+        '${spec.layoutId} v${spec.layoutVersion}'
+                // '·' (U+00B7) is Latin-1 safe; Helvetica here has no Unicode
+                // support and anything beyond Latin-1 throws at measure time.
+                '  ·  ${spec.instructionText}'
+            .trim();
     _drawTextCentered(
       font,
       7,
@@ -206,12 +208,14 @@ class _SheetPainter {
     for (var row = 0; row < n; row++) {
       for (var col = 0; col < n; col++) {
         if (!image.isDark(row, col)) continue;
-        _fillRect(MmRect(
-          rect.x + (quiet + col) * moduleMm,
-          rect.y + (quiet + row) * moduleMm,
-          moduleMm,
-          moduleMm,
-        ));
+        _fillRect(
+          MmRect(
+            rect.x + (quiet + col) * moduleMm,
+            rect.y + (quiet + row) * moduleMm,
+            moduleMm,
+            moduleMm,
+          ),
+        );
       }
     }
   }
@@ -315,14 +319,7 @@ class _SheetPainter {
     final topMm = _horizontalGridTopMm(block);
     for (var f = 0; f < block.fields.length; f++) {
       final c = block.bubbleCenter(f, 0);
-      _drawTextCentered(
-        font,
-        6,
-        '${f + 1}',
-        c.x,
-        topMm - 1.2,
-        color: _dropout,
-      );
+      _drawTextCentered(font, 6, '${f + 1}', c.x, topMm - 1.2, color: _dropout);
       for (var o = 0; o < 10; o++) {
         _paintBubble(block, f, o, label: '$o', sizePt: 6.5);
       }
@@ -356,12 +353,7 @@ class _SheetPainter {
 
     canvas.setStrokeColor(_dropout);
     canvas.setLineWidth(bs.strokeMm * _mm);
-    canvas.drawEllipse(
-      _x(c.x),
-      _y(c.y),
-      bs.wMm / 2 * _mm,
-      bs.hMm / 2 * _mm,
-    );
+    canvas.drawEllipse(_x(c.x), _y(c.y), bs.wMm / 2 * _mm, bs.hMm / 2 * _mm);
     canvas.strokePath();
 
     // Calibration reference ink: an interior ellipse at the level's gray,
@@ -391,7 +383,8 @@ class _SheetPainter {
       c.x,
       c.y,
       color: fill != null && fill.optionIndexes.contains(optionIndex)
-          ? PdfColors.white // letter over reference ink, for the operator
+          ? PdfColors
+                .white // letter over reference ink, for the operator
           : _dropout,
     );
   }

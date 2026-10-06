@@ -26,7 +26,9 @@ class SettingsScreen extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.school_outlined),
                   title: const Text('Institute'),
-                  subtitle: Text('${state.instituteName} (id ${state.instituteId})'),
+                  subtitle: Text(
+                    '${state.instituteName} (id ${state.instituteId})',
+                  ),
                 ),
                 ListTile(
                   leading: const Icon(Icons.business_outlined),
@@ -51,8 +53,10 @@ class SettingsScreen extends StatelessWidget {
                 const ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('About'),
-                  subtitle: Text('OMR Evaluator · on-device, offline-first · '
-                      'reports reproduce from stored reads'),
+                  subtitle: Text(
+                    'OMR Evaluator · on-device, offline-first · '
+                    'reports reproduce from stored reads',
+                  ),
                 ),
               ],
             ),
@@ -124,10 +128,9 @@ class _StrictnessTile extends StatelessWidget {
       ),
     );
     if (picked == null || picked == current) return;
-    await SettingsDao(state.db).write(
-      tenantId: state.tenantId,
-      strictness: picked,
-    );
+    await SettingsDao(
+      state.db,
+    ).write(tenantId: state.tenantId, strictness: picked);
     state.refresh();
   }
 }
@@ -151,9 +154,11 @@ class _RetentionTile extends StatelessWidget {
         return ListTile(
           leading: const Icon(Icons.auto_delete_outlined),
           title: const Text('Image retention'),
-          subtitle: Text('12MP originals dropped $days day'
-              '${days == 1 ? '' : 's'} after capture; warped + thumbnails '
-              'kept'),
+          subtitle: Text(
+            '12MP originals dropped $days day'
+            '${days == 1 ? '' : 's'} after capture; warped + thumbnails '
+            'kept',
+          ),
           enabled: snapshot.hasData,
           onTap: () => _choose(context, state, days),
         );
@@ -187,10 +192,9 @@ class _RetentionTile extends StatelessWidget {
       ),
     );
     if (picked == null || picked <= 0) return;
-    await SettingsDao(state.db).write(
-      tenantId: state.tenantId,
-      retentionGraceDays: picked,
-    );
+    await SettingsDao(
+      state.db,
+    ).write(tenantId: state.tenantId, retentionGraceDays: picked);
     state.refresh();
   }
 }
@@ -207,9 +211,7 @@ class _StorageTile extends StatelessWidget {
       key: ValueKey('storage-$version'),
       future: () async {
         final rows = await state.db.scansDao.pendingReview();
-        return <ScanStatus, int>{
-          ScanStatus.needsReview: rows.length,
-        };
+        return <ScanStatus, int>{ScanStatus.needsReview: rows.length};
       }(),
       builder: (context, snapshot) {
         return ListTile(

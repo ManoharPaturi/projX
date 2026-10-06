@@ -16,12 +16,7 @@ final class PdfCommand extends Command<int> {
         allowed: ['A', 'B', 'a', 'b'],
         defaultsTo: 'A',
       )
-      ..addOption(
-        'out',
-        abbr: 'o',
-        mandatory: true,
-        help: 'Output .pdf path',
-      )
+      ..addOption('out', abbr: 'o', mandatory: true, help: 'Output .pdf path')
       ..addOption('title', help: 'Exam title printed in the header band');
   }
 
@@ -45,8 +40,10 @@ final class PdfCommand extends Command<int> {
     await file.writeAsBytes(bytes, flush: true);
 
     final kb = (bytes.lengthInBytes / 1024).toStringAsFixed(1);
-    stdout.writeln('wrote $out ($kb KB) — ${spec.layoutId} v'
-        '${spec.layoutVersion}, specHash ${specSha256(spec).substring(0, 12)}…');
+    stdout.writeln(
+      'wrote $out ($kb KB) — ${spec.layoutId} v'
+      '${spec.layoutVersion}, specHash ${specSha256(spec).substring(0, 12)}…',
+    );
     return 0;
   }
 }

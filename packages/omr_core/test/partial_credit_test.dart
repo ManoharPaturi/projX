@@ -129,22 +129,25 @@ void main() {
       expect(marksClose(o.marksAwarded, 1), isTrue);
     });
 
-    test('no table at all means a subset earns nothing but is not penalised', () {
-      final ScoringRule noTable = ScoringRule(
-        id: 'no-partial',
-        name: 'multi without partial credit',
-        kind: ScoringStrategyKind.multiCorrectPartial,
-        params: const <String, Object?>{'full': 4, 'anyWrong': -2},
-      );
-      final QuestionOutcome o = strategy.score(
-        resp(<OptionId>{'A'}),
-        key,
-        noTable,
-      );
-      expect(o.kind, QuestionOutcomeKind.partial);
-      expect(marksClose(o.marksAwarded, 0), isTrue);
-      expect(o.reason, contains('no partial credit table'));
-    });
+    test(
+      'no table at all means a subset earns nothing but is not penalised',
+      () {
+        final ScoringRule noTable = ScoringRule(
+          id: 'no-partial',
+          name: 'multi without partial credit',
+          kind: ScoringStrategyKind.multiCorrectPartial,
+          params: const <String, Object?>{'full': 4, 'anyWrong': -2},
+        );
+        final QuestionOutcome o = strategy.score(
+          resp(<OptionId>{'A'}),
+          key,
+          noTable,
+        );
+        expect(o.kind, QuestionOutcomeKind.partial);
+        expect(marksClose(o.marksAwarded, 0), isTrue);
+        expect(o.reason, contains('no partial credit table'));
+      },
+    );
   });
 
   group('legacy scheme keeps its own penalty', () {

@@ -94,11 +94,7 @@ final class IntegerDigitsCodec {
     }
 
     if (byColumn.isEmpty) {
-      return (
-        value: null,
-        ambiguous: issues.isNotEmpty,
-        issues: issues,
-      );
+      return (value: null, ambiguous: issues.isNotEmpty, issues: issues);
     }
 
     final List<int> columns = byColumn.keys.toList()..sort();
@@ -185,11 +181,10 @@ final class IntegerDigitsStrategy extends ScoringStrategy {
         .join(', ');
 
     if (read.ambiguous) {
-      final String action = p.enumOr(
-        'ambiguousAction',
-        const <String>{'wrong', 'unattempted'},
+      final String action = p.enumOr('ambiguousAction', const <String>{
         'wrong',
-      );
+        'unattempted',
+      }, 'wrong');
       return switch (action) {
         'unattempted' => QuestionOutcome.of(
           questionId,
@@ -230,10 +225,9 @@ final class IntegerDigitsStrategy extends ScoringStrategy {
     p.numOr('correct', 4);
     p.numOr('wrong', -1);
     p.numOr('unattempted', 0);
-    p.enumOr(
-      'ambiguousAction',
-      const <String>{'wrong', 'unattempted'},
+    p.enumOr('ambiguousAction', const <String>{
       'wrong',
-    );
+      'unattempted',
+    }, 'wrong');
   }
 }

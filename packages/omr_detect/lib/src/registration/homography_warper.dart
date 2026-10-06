@@ -1,8 +1,7 @@
 import 'package:omr_spec/omr_spec.dart' show DetectionTemplate;
 
 import '../cv/opencv_service.dart' show CvMat, CvPointI, CvSizeI, OpencvService;
-import 'fiducial_registrar.dart'
-    show FiducialSearch, RegistrationReport;
+import 'fiducial_registrar.dart' show FiducialSearch, RegistrationReport;
 
 /// Stage 3: flattens the registered still onto the canonical canvas.
 ///
@@ -45,9 +44,7 @@ class HomographyWarper {
       srcPoints.add(match.center);
       // Plan coordinates are canvas-space doubles from the template; the
       // homography consumes integer points, so round once, here.
-      dstPoints.add(
-        CvPointI(search.canvasX.round(), search.canvasY.round()),
-      );
+      dstPoints.add(CvPointI(search.canvasX.round(), search.canvasY.round()));
     }
     return cv.warp(
       gray,

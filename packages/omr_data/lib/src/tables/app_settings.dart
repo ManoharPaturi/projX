@@ -22,7 +22,8 @@ class AppSettings extends Table {
   /// Days a 12MP capture original is kept before the retention sweep drops
   /// it (the warped grayscale + annotated thumb stay forever — they are the
   /// review substrate). Default 7.
-  IntColumn get retentionGraceDays => integer().withDefault(const Constant(7))();
+  IntColumn get retentionGraceDays =>
+      integer().withDefault(const Constant(7))();
 
   TextColumn get updatedAt =>
       text().map(const IsoDateTimeConverter()).clientDefault(nowIsoUtc)();
