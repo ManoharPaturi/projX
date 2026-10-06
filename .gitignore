@@ -4,8 +4,8 @@
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
-pubspec.lock
-# Keep package lockfiles out except the app's release ones (decide later)
+# The workspace root pubspec.lock IS committed: CI and release builds must
+# resolve the exact versions the suites were verified against.
 *.iml
 .ipynb_checkpoints
 
@@ -44,3 +44,10 @@ packages/omr_detect/test/testdata/golden/generated/
 
 # Node tooling that leaked into the repo root (codex CLI et al)
 node_modules/
+package.json
+package-lock.json
+
+# Android release signing — never commit keys
+app/android/key.properties
+*.jks
+*.keystore

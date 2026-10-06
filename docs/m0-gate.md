@@ -115,3 +115,29 @@ resolve a DIFFERENT hash for the same macos-arm64 target. Seeding one does not s
 new `.dart_tool/hooks_runner/shared/dartcv4/build/<hash>` needs the same seeding (the exact
 invocation — toolchain file, `-DPLATFORM=MAC_ARM64`, module toggles — is printed by
 `dart run --verbose`; only `-B` and `-DCMAKE_INSTALL_PREFIX` change with the hash).
+
+## KleidiCV download (arm64 targets) — 2026-10-06
+
+OpenCV 4.13 fetches **KleidiCV 0.7.0** from `gitlab.arm.com` during configure for
+every arm64 target (macOS arm64 host tests and Android arm64-v8a). The Android
+SDK's **CMake 3.22.1** bundles a curl that now fails the TLS handshake with that
+host (`A bad protocol version was encountered`), and on failure OpenCV leaves a
+**zero-byte** tarball in its download cache, so configure loops until killed.
+
+- **Local fix (no toolchain change):** seed the exact file OpenCV asks for — it is
+  md5-verified before use, so a wrong file is rejected, never built:
+
+  ```sh
+  F=e8f94e427bd78a745afa5c8cd073b416-kleidicv-0.7.0.tar.gz
+  for d in .dart_tool/hooks_runner/shared/dartcv4/build/*/_deps/opencv-src/.cache; do
+    mkdir -p "$d/kleidicv"
+    curl -sSL -o "$d/kleidicv/$F" \
+      https://gitlab.arm.com/kleidi/kleidicv/-/archive/0.7.0/kleidicv-0.7.0.tar.gz
+  done
+  ```
+
+  (`OPENCV_DOWNLOAD_PATH` would be the clean knob, but the hooks runner strips
+  every environment variable outside its allowlist before CMake sees it.)
+- **CI fix:** the Android job installs SDK `cmake;3.31.6`; the hook resolves the
+  newest `<sdk>/cmake/*`, whose curl negotiates fine. Linux x86_64 host builds
+  never fetch KleidiCV.
