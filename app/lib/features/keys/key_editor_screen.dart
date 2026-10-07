@@ -136,6 +136,28 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
     return ok ?? false;
   }
 
+  /// Fills the current set from typed letters, in question order — the
+  /// way most institutes already hold their key ("ABDC CABD …"). Anything
+  /// that is not an option letter (spaces, commas, numbers) is skipped.
+  Future<void> _typeAnswers() async {
+    final set = _sets[_setTabs.index];
+    final typed = await showDialog<String>(
+      context: context,
+      builder: (_) =>
+          _TypeAnswersDialog(set: set, questionCount: _questionOrder.length),
+    );
+    if (typed == null) return;
+    final letters = typed.toUpperCase().replaceAll(RegExp(r'[^A-Z]'), '');
+    setState(() {
+      for (var i = 0; i < letters.length && i < _questionOrder.length; i++) {
+        final questionId = _questionOrder[i];
+        final option = letters.codeUnitAt(i) - 65;
+        final optionCount = _optionsByField[questionId]?.length ?? 4;
+        if (option < optionCount) _draft[set]![questionId] = option;
+      }
+    });
+  }
+
   Future<void> _publish() async {
     if (!await _confirmPublish()) return;
     if (!mounted) return;
@@ -233,6 +255,10 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
                         'in set ${_sets[_setTabs.index]}',
                       ),
                     ),
+                    TextButton(
+                      onPressed: _typeAnswers,
+                      child: const Text('Type answers'),
+                    ),
                     if (_keyedCount > 0)
                       TextButton(
                         onPressed: () => setState(
@@ -240,11 +266,11 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
                         ),
                         child: const Text('Clear set'),
                       ),
-                    FilledButton(
-                      onPressed: _canPublish ? _publish : null,
-                      child: const Text('Save answer key'),
-                    ),
                   ],
+                ),
+                FilledButton(
+                  onPressed: _canPublish ? _publish : null,
+                  child: const Text('Save answer key'),
                 ),
               ],
             ),
@@ -305,7 +331,7 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
               child: Row(
                 children: [
                   SizedBox(
@@ -382,5 +408,68 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
       }
     }
     return null;
+  }
+}
+
+class _TypeAnswersDialog extends StatefulWidget {
+  const _TypeAnswersDialog({required this.set, required this.questionCount});
+
+  final String set;
+  final int questionCount;
+
+  @override
+  State<_TypeAnswersDialog> createState() => _TypeAnswersDialogState();
+}
+
+class _TypeAnswersDialogState extends State<_TypeAnswersDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  int get _count =>
+      _controller.text.toUpperCase().replaceAll(RegExp(r'[^A-Z]'), '').length;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Type answers for set ${widget.set}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Type one letter per question, in order — for example '
+            'ABDC CABD. Spaces and commas are ignored.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('type-answers-field'),
+            controller: _controller,
+            autofocus: true,
+            maxLines: 4,
+            textCapitalization: TextCapitalization.characters,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 8),
+          Text('$_count of ${widget.questionCount} answers typed'),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _count == 0
+              ? null
+              : () => Navigator.pop(context, _controller.text),
+          child: const Text('Fill answers'),
+        ),
+      ],
+    );
   }
 }
