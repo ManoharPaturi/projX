@@ -19,7 +19,7 @@ dependencies:
   uuid: 4.5.1
 
 dev_dependencies:
-  build_runner: 2.16.0
+  build_runner: 2.16.1
   drift_dev: 2.34.5
   # Host tests run against real SQLite via FFI (no Flutter boot needed).
   # ^3.0.0 is what drift_dev 2.34.3 itself requires — stay on one major.
