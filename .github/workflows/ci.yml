@@ -78,7 +78,7 @@ jobs:
       - name: Native build tools
         run: sudo apt-get update && sudo apt-get install -y ninja-build cmake
       - name: Cache native-assets builds (OpenCV)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .dart_tool/hooks_runner
@@ -104,7 +104,7 @@ jobs:
     needs: [analyze]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -125,7 +125,7 @@ jobs:
         # KleidiCV for arm64 (docs/m0-gate.md, "KleidiCV download").
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "cmake;3.31.6" > /dev/null
       - name: Cache native-assets builds (OpenCV, Android)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .dart_tool/hooks_runner
@@ -140,7 +140,7 @@ jobs:
         run: |
           ZIPALIGN=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)zipalign
           "$ZIPALIGN" -c -P 16 -v 4 app/build/app/outputs/flutter-apk/app-debug.apk | tail -5
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-debug-arm64
           path: app/build/app/outputs/flutter-apk/app-debug.apk
