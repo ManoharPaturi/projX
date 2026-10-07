@@ -102,7 +102,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
       final pdf = await compileSheetPdf(
         sheet.spec,
         bubbleFills: sheet.fills,
-        examTitle: 'Printer calibration',
+        examTitle: 'Printer check',
       );
       await Printing.layoutPdf(
         name: 'omr-calibration',
@@ -156,7 +156,7 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
   Widget build(BuildContext context) {
     final report = _report;
     return Scaffold(
-      appBar: AppBar(title: const Text('Printer calibration')),
+      appBar: AppBar(title: const Text('Printer check')),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -164,10 +164,10 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             child: Padding(
               padding: EdgeInsets.all(12),
               child: Text(
-                'Print the calibration sheet at 100% scale (no fit-to-page), '
-                'photograph it flat and evenly lit, then read the margin '
-                'report. Run this when onboarding a printer, paper stock, or '
-                'after photocopying.',
+                'Do this once for each new printer, paper or photocopier, '
+                'to make sure its sheets read correctly.\n\n'
+                '1. Print the test sheet at 100% size (not "Fit to page").\n'
+                '2. Lay it flat in even light and take its photo here.',
               ),
             ),
           ),
@@ -176,21 +176,21 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.print_outlined),
-                  title: const Text('Print calibration sheet'),
+                  title: const Text('1. Print the test sheet'),
                   subtitle: const Text(
-                    'Reference bubbles at known ink '
-                    'levels, on the Standard-90 frame',
+                    'One page with bubbles printed at different darkness',
                   ),
                   enabled: !_busy,
                   onTap: _printSheet,
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_camera_outlined),
-                  title: const Text('Photograph & analyze'),
+                  title: const Text('2. Take its photo and check'),
                   subtitle: Text(
                     _cameraTried && !_cameraReady
-                        ? 'No camera on this device — print still works'
-                        : 'Capture the printed sheet, read the margins',
+                        ? 'Camera not available — allow camera access in '
+                              'phone Settings'
+                        : 'The result appears below in a few seconds',
                   ),
                   enabled: !_busy && _cameraReady,
                   onTap: _captureAndAnalyze,
@@ -208,19 +208,27 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             ),
           if (report != null) ...[
             _VerdictCard(report: report),
-            for (final region in report.regions)
-              ListTile(
-                leading: const Icon(Icons.straighten),
-                title: Text(
-                  'Band ${region.band.toUpperCase()} · '
-                  '${region.samples} samples',
-                ),
-                subtitle: Text(
-                  'separation ${region.separation.toStringAsFixed(0)} '
-                  '· split at ${region.threshold.toStringAsFixed(0)} '
-                  '· faint at ${region.faintMean.toStringAsFixed(0)}',
-                ),
+            Card(
+              child: ExpansionTile(
+                title: const Text('Technical details'),
+                children: [
+                  ListTile(title: Text(report.summary)),
+                  for (final region in report.regions)
+                    ListTile(
+                      leading: const Icon(Icons.straighten),
+                      title: Text(
+                        'Band ${region.band.toUpperCase()} · '
+                        '${region.samples} samples',
+                      ),
+                      subtitle: Text(
+                        'separation ${region.separation.toStringAsFixed(0)} '
+                        '· split at ${region.threshold.toStringAsFixed(0)} '
+                        '· faint at ${region.faintMean.toStringAsFixed(0)}',
+                      ),
+                    ),
+                ],
               ),
+            ),
           ],
         ],
       ),
@@ -238,21 +246,27 @@ class _VerdictCard extends StatelessWidget {
     // Dark-filled verdict chip with white bold text (WCAG AA — the 500
     // green and amber shades were under 3:1), and a semantics label so the
     // verdict is announced, not just colored.
-    final (color, label, spoken) = switch (report.overall) {
+    final (color, label, spoken, advice) = switch (report.overall) {
       CalibrationVerdict.comfortable => (
         const Color(0xFF1B5E20),
-        'PASS',
-        'Calibration passed',
+        'GOOD',
+        'Printer check passed',
+        'Sheets from this printer read well. You are ready to go.',
       ),
       CalibrationVerdict.tight => (
         const Color(0xFF8B4000),
-        'TIGHT',
-        'Calibration tight',
+        'OK',
+        'Printer check: usable',
+        'Usable, but faint marks may need more checking. Use the '
+            'suggested setting below.',
       ),
       CalibrationVerdict.failed => (
         Theme.of(context).colorScheme.error,
-        'FAIL',
-        'Calibration failed',
+        'POOR',
+        'Printer check failed',
+        'Sheets from this printer may be misread. Try another printer, '
+            'better paper, or print instead of photocopying — then check '
+            'again.',
       ),
     };
     final state = context.read<AppState>();
@@ -285,7 +299,12 @@ class _VerdictCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: Text(report.summary)),
+                Expanded(
+                  child: Text(
+                    advice,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
               ],
             ),
             if (report.registrationOk &&
@@ -295,7 +314,8 @@ class _VerdictCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.tune),
                   label: Text(
-                    "Apply the '${report.suggestedStrictness}' preset",
+                    'Use the suggested setting '
+                    '(${report.suggestedStrictness})',
                   ),
                   onPressed: () async {
                     await SettingsDao(state.db).write(

@@ -111,13 +111,19 @@ void main() {
     await tester.pumpWidget(wrapForTest(screen, state));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Photograph & analyze'));
+    await tester.tap(find.text('2. Take its photo and check'));
     await tester.pumpAndSettle();
 
     expect(analyzed, 1);
+    expect(
+      find.textContaining('Sheets from this printer read well'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Technical details'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('PASS - min band margin'), findsOneWidget);
     expect(find.textContaining('Band T'), findsOneWidget);
-    expect(find.textContaining("Apply the '"), findsNothing);
+    expect(find.textContaining('Use the suggested setting'), findsNothing);
   });
 
   testWidgets('tight calibration offers the strict preset and applies it', (
@@ -143,12 +149,12 @@ void main() {
     await tester.pumpWidget(wrapForTest(screen, state));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Photograph & analyze'));
+    await tester.tap(find.text('2. Take its photo and check'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('TIGHT - min band margin'), findsOneWidget);
+    expect(find.textContaining('Usable, but faint marks'), findsOneWidget);
 
-    await tester.tap(find.textContaining("Apply the 'strict' preset"));
+    await tester.tap(find.textContaining('Use the suggested setting (strict)'));
     await tester.pumpAndSettle();
 
     expect(
