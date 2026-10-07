@@ -19,7 +19,7 @@ dependencies:
   # — native-assets reads them from a package that DIRECTLY depends on the
   # hook's package (they live in the WORKSPACE ROOT pubspec; see
   # docs/m0-gate.md for why).
-  dartcv4: 2.3.0
+  dartcv4: 2.3.1
   flutter:
     sdk: flutter
   meta: 1.19.0
