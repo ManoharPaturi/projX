@@ -1,4 +1,5 @@
 import 'package:omr_core/omr_core.dart';
+import 'package:omr_core/omr_core.dart' as core show rollChecksumOf;
 import 'package:omr_spec/omr_spec.dart' show BlockType;
 
 import '../models/bubble_read.dart';
@@ -170,13 +171,7 @@ class FieldDecoder {
   /// a = b), which a plain digit sum would miss. Leading blank columns
   /// weigh in as 0, so an unpadded roll and its zero-padded roster form
   /// produce the same check digit.
-  static int rollChecksumOf(List<int?> payload) {
-    var sum = 0;
-    for (var i = 0; i < payload.length; i++) {
-      sum += (payload[i] ?? 0) * (i.isEven ? 3 : 1);
-    }
-    return sum % 10;
-  }
+  static int rollChecksumOf(List<int?> payload) => core.rollChecksumOf(payload);
 
   String? _decodeRoll(List<FieldRead> rollFields, Set<SheetReadFlag> flags) {
     // Column digit, null = blank column. Ambiguous columns (MULTIPLE or
@@ -252,7 +247,7 @@ class FieldDecoder {
     if (roster != null &&
         rollNo != null &&
         rollNo.isNotEmpty &&
-        !roster.contains(rollNo)) {
+        !roster.map(canonicalRoll).contains(canonicalRoll(rollNo))) {
       flags.add(SheetReadFlag.rollNotOnRoster);
     }
 

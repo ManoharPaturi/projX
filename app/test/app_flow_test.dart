@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omr_app/features/exams/exam_detail_screen.dart';
@@ -131,6 +132,71 @@ void main() {
     expect(rows.single.rollNo, 'R001');
   });
 
+  testWidgets('unmatched roll: operator assigns the student, sheet grades', (
+    tester,
+  ) async {
+    final seeded = await seedExamWithRoster(state, students: 1);
+    await state.db.studentsDao.importRoster(
+      state.tenantId,
+      state.instituteId,
+      const [RosterEntry(rollNo: '1234', name: 'Asha')],
+    );
+    final layoutVersion = (await GradingService(
+      state.db,
+    ).templateFor(seeded.examId)).layoutVersion;
+    final scanId = await state.db.scansDao.insertScanWithReads(
+      ScansCompanion.insert(
+        tenantId: state.tenantId,
+        examId: seeded.examId,
+        rollNoRead: const Value('9999'),
+        layoutVersion: layoutVersion,
+        warpedImagePath: 'capture://pending',
+        thumbPath: 'capture://pending',
+        annotatedPath: 'capture://pending',
+        status: const Value(ScanStatus.needsReview),
+      ),
+      const [],
+    );
+    await state.db.reviewDao.enqueue(
+      tenantId: state.tenantId,
+      scanId: scanId,
+      reasonCode: 'ROLL_NOT_ON_ROSTER',
+      severity: ReviewSeverity.mandatory,
+      fieldRefs: const [],
+    );
+
+    await tester.pumpWidget(wrapForTest(const ReviewQueueScreen(), state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(ListTile));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Whose sheet is this?'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('assign-roll-field')),
+      '0001234',
+    );
+    await tester.tap(find.text('Find'));
+    await tester.pumpAndSettle();
+    expect(find.text('Roll 1234 · Asha'), findsOneWidget);
+
+    await tester.tap(find.text('Save and grade this sheet'));
+    await tester.pumpAndSettle();
+
+    final scan = (await state.db.scansDao.fetchWithReads(scanId))!.scan;
+    final asha = await state.db.studentsDao.findByRoll(
+      state.instituteId,
+      '1234',
+    );
+    expect(scan.studentId, asha!.id);
+    expect(scan.status, ScanStatus.reviewed);
+    final rows = await ResultsQuery(
+      state.db,
+      examId: seeded.examId,
+      keyVersionId: seeded.keyVersionId,
+    ).rows();
+    expect(rows.map((r) => r.rollNo), contains('1234'));
+  });
+
   testWidgets('roster import: header skipped, duplicates reported', (
     tester,
   ) async {
@@ -162,7 +228,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('R001'), findsOneWidget);
-    expect(find.text('Aarav · Batch-A'), findsOneWidget);
+    expect(find.textContaining('Aarav · Batch-A'), findsOneWidget);
     expect(find.text('Imposter'), findsNothing);
 
     // A second import of R001 must not rewrite the enrolled name.

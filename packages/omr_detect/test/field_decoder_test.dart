@@ -280,6 +280,24 @@ void main() {
     });
   });
 
+  group('roster matching ignores leading zeros', () {
+    test('a fully zero-padded roll matches a roster typed without zeros', () {
+      // 0001234 + check digit 2 (3·0+0+3·0+1+3·2+3+3·4 = 22).
+      final digits = '00012342'.split('');
+      final fields = [
+        for (var i = 0; i < digits.length; i++)
+          rollColumn('roll${i + 1}', digits[i]),
+      ];
+      final read = FieldDecoder(
+        roster: {'1234'},
+      ).decode(fields: fields, sheetConfidence: 0.95);
+
+      expect(read.rollNoRead, '0001234');
+      expect(read.flags, isNot(contains(SheetReadFlag.rollNotOnRoster)));
+      expect(read.flags, isNot(contains(SheetReadFlag.rollChecksumMismatch)));
+    });
+  });
+
   group('integer answers', () {
     FieldRead intCol(String key, int blockColumn, String? digit) => fieldRead(
       key,

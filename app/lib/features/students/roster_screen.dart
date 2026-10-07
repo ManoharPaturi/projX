@@ -1,5 +1,6 @@
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
+import 'package:omr_core/omr_core.dart' show kSheetRollDigits, rollCheckDigit;
 import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
@@ -77,21 +78,28 @@ class _RosterScreenState extends State<RosterScreen> {
                   separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final student = roster[index];
+                    final check = rollCheckDigit(student.rollNo);
                     return ListTile(
-                      dense: true,
                       leading: CircleAvatar(child: Text('${index + 1}')),
                       title: Text(
                         student.rollNo,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      subtitle: student.name == null && student.batch == null
-                          ? null
-                          : Text(
-                              [
-                                if (student.name != null) student.name!,
-                                if (student.batch != null) student.batch!,
-                              ].join(' · '),
-                            ),
+                      subtitle: Text(
+                        [
+                          if (student.name != null) student.name!,
+                          if (student.batch != null) student.batch!,
+                          check == null
+                              ? 'Cannot be bubbled: use digits only, up to '
+                                    '$kSheetRollDigits'
+                              : 'Check digit $check',
+                        ].join(' · '),
+                        style: check == null
+                            ? TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              )
+                            : null,
+                      ),
                     );
                   },
                 );

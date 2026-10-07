@@ -100,4 +100,70 @@ void main() {
       reason: 'case-insensitive roll filter for the search box',
     );
   });
+
+  test('leading zeros do not create a second student', () async {
+    await db.studentsDao.importRoster(kTenantId, instituteId, const [
+      RosterEntry(rollNo: '1234'),
+    ]);
+    final result = await db.studentsDao.importRoster(kTenantId, instituteId, [
+      const RosterEntry(rollNo: '0001234'),
+      const RosterEntry(rollNo: '42'),
+      const RosterEntry(rollNo: '0042'),
+    ]);
+
+    expect(result.imported, 1);
+    expect(result.existingRolls, ['0001234']);
+    expect(result.duplicatesInFile, ['0042']);
+  });
+
+  test(
+    'findByRoll matches a zero-padded scan to the typed roster roll',
+    () async {
+      await db.studentsDao.importRoster(kTenantId, instituteId, const [
+        RosterEntry(rollNo: '1234', name: 'Asha'),
+      ]);
+
+      final found = await db.studentsDao.findByRoll(instituteId, '0001234');
+      expect(found?.name, 'Asha');
+      expect(await db.studentsDao.findByRoll(instituteId, '1235'), isNull);
+    },
+  );
+
+  test('addStudent reports added, duplicate and invalid', () async {
+    final dao = db.studentsDao;
+    expect(
+      await dao.addStudent(
+        kTenantId,
+        instituteId,
+        const RosterEntry(rollNo: '77', name: 'Ravi'),
+      ),
+      AddStudentResult.added,
+    );
+    expect(
+      await dao.addStudent(
+        kTenantId,
+        instituteId,
+        const RosterEntry(rollNo: '0077'),
+      ),
+      AddStudentResult.duplicate,
+    );
+    expect(
+      await dao.addStudent(
+        kTenantId,
+        instituteId,
+        const RosterEntry(rollNo: '  '),
+      ),
+      AddStudentResult.invalid,
+    );
+  });
+
+  test('deleteStudent removes a never-scanned student', () async {
+    await db.studentsDao.importRoster(kTenantId, instituteId, const [
+      RosterEntry(rollNo: '501'),
+    ]);
+    final student = (await db.studentsDao.rosterFor(instituteId)).single;
+
+    expect(await db.studentsDao.deleteStudent(student.id), isTrue);
+    expect(await db.studentsDao.count(instituteId), 0);
+  });
 }

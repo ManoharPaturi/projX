@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../src/app_state.dart';
+import '../../src/report_fonts_loader.dart';
 
 /// Plan §6 screen 8's student detail: summary, per-question outcomes rebuilt
 /// from the stored substrate, and the marksheet PDF (print or share).
@@ -173,14 +174,19 @@ class StudentResultScreen extends StatelessWidget {
     await Printing.layoutPdf(
       name: 'marksheet-${row.rollNo}',
       onLayout: (PdfPageFormat format) async => Uint8List.fromList(
-        await MarksheetPdf(pageFormat: format).build(_query(db), row),
+        await MarksheetPdf(
+          pageFormat: format,
+          fonts: await loadReportFonts(),
+        ).build(_query(db), row),
       ),
     );
   }
 
   Future<void> _share(BuildContext context, AppDb db) async {
     final messenger = ScaffoldMessenger.of(context);
-    final bytes = await MarksheetPdf().build(_query(db), row);
+    final bytes = await MarksheetPdf(
+      fonts: await loadReportFonts(),
+    ).build(_query(db), row);
     final docs = await getApplicationDocumentsDirectory();
     final file = File(
       p.joinAll([docs.path, 'reports', examId, 'marksheet-${row.rollNo}.pdf']),

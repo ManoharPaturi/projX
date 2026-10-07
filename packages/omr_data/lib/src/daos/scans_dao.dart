@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 
 import '../app_db.dart';
 import '../enums.dart';
+import '../services/audit_log_service.dart';
 import '../tables/bubble_reads.dart';
 import '../tables/review_queue.dart';
 import '../tables/scans.dart';
@@ -158,6 +159,40 @@ class ScansDao extends DatabaseAccessor<AppDb> with _$ScansDaoMixin {
     return (update(scans)..where((Scans s) => s.id.equals(scanId))).write(
       const ScansCompanion(status: Value(ScanStatus.reviewed)),
     );
+  }
+
+  /// Attributes a scan to a roster student after a human confirmed who wrote
+  /// it (unreadable roll, roll not on the roster, failed check digit).
+  ///
+  /// Without a student a scan is never graded, so this is what lets such a
+  /// sheet reach the results. [rollNo] replaces the machine read; the change
+  /// is audit-logged with the previous attribution.
+  Future<void> assignStudent(
+    String scanId, {
+    required String studentId,
+    required String rollNo,
+    String? byUser,
+  }) async {
+    await transaction(() async {
+      final before = await (select(
+        scans,
+      )..where((Scans s) => s.id.equals(scanId))).getSingle();
+      await (update(scans)..where((Scans s) => s.id.equals(scanId))).write(
+        ScansCompanion(studentId: Value(studentId), rollNoRead: Value(rollNo)),
+      );
+      await AuditLogService(attachedDatabase).record(
+        tenantId: before.tenantId,
+        entity: 'scans',
+        entityId: scanId,
+        action: 'assign_student',
+        before: {
+          'studentId': before.studentId,
+          'rollNoRead': before.rollNoRead,
+        },
+        after: {'studentId': studentId, 'rollNoRead': rollNo},
+        byUser: byUser,
+      );
+    });
   }
 
   /// Per-status scan counts for one exam (dashboard + review badge).

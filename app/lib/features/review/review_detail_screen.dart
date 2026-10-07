@@ -26,6 +26,10 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
   /// fieldKey → the option the operator marked as the real one.
   final Map<String, int> _chosen = {};
 
+  /// The roster student the operator confirmed this sheet belongs to, when
+  /// it differs from (or replaces a missing) machine attribution.
+  Student? _assigned;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +77,15 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
 
   Future<void> _resolve(ReviewOutcome outcome) async {
     final state = context.read<AppState>();
+    final assigned = _assigned;
+    if (outcome == ReviewOutcome.corrected && assigned != null) {
+      await state.db.scansDao.assignStudent(
+        _detail!.scan.id,
+        studentId: assigned.id,
+        rollNo: assigned.rollNo,
+        byUser: 'app-operator',
+      );
+    }
     await state.db.reviewDao.resolve(
       widget.reviewId,
       resolvedBy: 'app-operator',
@@ -137,16 +150,25 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
           const SizedBox(height: 8),
           // The zoomed warped crop lives here in production; fixtures carry
           // no image bytes, so the read values stand alone.
-          for (final fieldKey in _flaggedFields) _fieldEditor(fieldKey),
+          _AssignStudentCard(
+            currentStudentId: scan.studentId,
+            machineRoll: scan.rollNoRead,
+            assigned: _assigned,
+            onAssigned: (student) => setState(() => _assigned = student),
+          ),
+          for (final fieldKey in _flaggedFields)
+            if (!fieldKey.startsWith('roll')) _fieldEditor(fieldKey),
           const SizedBox(height: 8),
           FilledButton.icon(
-            onPressed: _chosen.isNotEmpty
+            onPressed: _chosen.isNotEmpty || _assigned != null
                 ? () => _resolve(ReviewOutcome.corrected)
                 : null,
             icon: const Icon(Icons.check),
             label: Text(
-              'Save correction${_chosen.length == 1 ? '' : 's'}'
-              '${_chosen.isEmpty ? '' : ' (${_chosen.length})'}',
+              _chosen.isEmpty && _assigned != null
+                  ? 'Save and grade this sheet'
+                  : 'Save correction${_chosen.length == 1 ? '' : 's'}'
+                        '${_chosen.isEmpty ? '' : ' (${_chosen.length})'}',
             ),
           ),
           const SizedBox(height: 8),
@@ -262,6 +284,124 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Whose sheet is this?" — the human answer for an unreadable roll, a roll
+/// that is not on the roster, or a failed check digit. A sheet with no
+/// student is never graded, so this card is what rescues it.
+class _AssignStudentCard extends StatefulWidget {
+  const _AssignStudentCard({
+    required this.currentStudentId,
+    required this.machineRoll,
+    required this.assigned,
+    required this.onAssigned,
+  });
+
+  /// The scan's current student id (null = nobody yet).
+  final String? currentStudentId;
+  final String? machineRoll;
+  final Student? assigned;
+  final ValueChanged<Student?> onAssigned;
+
+  @override
+  State<_AssignStudentCard> createState() => _AssignStudentCardState();
+}
+
+class _AssignStudentCardState extends State<_AssignStudentCard> {
+  final _controller = TextEditingController();
+  String? _message;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _lookup() async {
+    final roll = _controller.text.trim();
+    if (roll.isEmpty) return;
+    final state = context.read<AppState>();
+    final student = await state.db.studentsDao.findByRoll(
+      state.instituteId,
+      roll,
+    );
+    if (!mounted) return;
+    setState(() {
+      _message = student == null
+          ? 'No student with roll $roll. Add them on the Students screen '
+                'first, then come back.'
+          : null;
+    });
+    widget.onAssigned(student);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final unattributed = widget.currentStudentId == null;
+    final assigned = widget.assigned;
+    return Card(
+      key: const Key('assign-student-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Whose sheet is this?', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              unattributed
+                  ? 'The roll number could not be matched to a student'
+                        '${widget.machineRoll == null ? '' : ' (read as ${widget.machineRoll})'}. '
+                        'Type the roll number written on the sheet.'
+                  : 'Matched to roll ${widget.machineRoll ?? '?'}. '
+                        'Change it only if that is wrong.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('assign-roll-field'),
+                    controller: _controller,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Roll number'),
+                    onSubmitted: (_) => _lookup(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.tonal(
+                  onPressed: _lookup,
+                  child: const Text('Find'),
+                ),
+              ],
+            ),
+            if (assigned != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Color(0xFF1B5E20)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Roll ${assigned.rollNo}'
+                      '${assigned.name == null ? '' : ' · ${assigned.name}'}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            if (_message != null) ...[
+              const SizedBox(height: 8),
+              Text(_message!, style: TextStyle(color: theme.colorScheme.error)),
+            ],
+          ],
+        ),
       ),
     );
   }
