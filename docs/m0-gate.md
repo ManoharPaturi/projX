@@ -141,3 +141,28 @@ host (`A bad protocol version was encountered`), and on failure OpenCV leaves a
 - **CI fix:** the Android job installs SDK `cmake;3.31.6`; the hook resolves the
   newest `<sdk>/cmake/*`, whose curl negotiates fine. Linux x86_64 host builds
   never fetch KleidiCV.
+
+## After a dartcv4 version bump — 2026-10-07
+
+Dependabot moved dartcv4 2.3.0 → 2.3.1. Any OpenCV build directory configured
+for the old version then fails with:
+
+```
+CMake Error: The source ".../dartcv4-2.3.1/src/CMakeLists.txt" does not match
+the source ".../dartcv4-2.3.0/src/CMakeLists.txt" used to generate cache.
+```
+
+- **CI** caches native builds on the exact lockfile hash only (no prefix
+  `restore-keys`), so a bump always starts clean.
+- **Locally**, clear the stale configure state and rebuild (keeps the
+  downloaded sources and the seeded KleidiCV tarball):
+
+  ```sh
+  for d in .dart_tool/hooks_runner/shared/dartcv4/build/*/; do
+    grep -q "dartcv4-2.3.0" "$d/CMakeCache.txt" 2>/dev/null &&
+      rm -rf "$d/CMakeCache.txt" "$d/CMakeFiles"
+  done
+  ```
+
+  On a Command-Line-Tools-only Mac the fresh configure needs the sysroot
+  seeding from "Toolchain notes" step 4 above.
