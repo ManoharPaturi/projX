@@ -26,18 +26,18 @@ class SectionSpec {
   final int? maxCounted;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'name': name,
-        'subject': subject,
-        'questionLabels': questionLabels,
-        if (maxCounted != null) 'maxCounted': maxCounted,
-      };
+    'id': id,
+    'name': name,
+    'subject': subject,
+    'questionLabels': questionLabels,
+    if (maxCounted != null) 'maxCounted': maxCounted,
+  };
 
   static SectionSpec fromJson(Map<String, Object?> j) => SectionSpec(
-        id: j['id']! as String,
-        name: j['name']! as String,
-        subject: j['subject']! as String,
-        questionLabels: (j['questionLabels']! as List<Object?>).cast<String>(),
-        maxCounted: j['maxCounted'] as int?,
-      );
+    id: j['id']! as String,
+    name: j['name']! as String,
+    subject: j['subject']! as String,
+    questionLabels: (j['questionLabels']! as List<Object?>).cast<String>(),
+    maxCounted: j['maxCounted'] as int?,
+  );
 }

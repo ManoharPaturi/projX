@@ -15,10 +15,7 @@ void main() {
   final ScoringRule perRow = ScoringPresets.matrixMatchPerRow;
 
   /// Row → correct column: 4 rows, keyed as r0→2, r1→0, r2→3, r3→1.
-  final KeyEntry key = keyFor(
-    'q1',
-    <OptionId>{'0:2', '1:0', '2:3', '3:1'},
-  );
+  final KeyEntry key = keyFor('q1', <OptionId>{'0:2', '1:0', '2:3', '3:1'});
 
   /// Builds a chosen set from row → bubbled column(s).
   Set<OptionId> marks(Map<int, Set<String>> rows) => <OptionId>{
@@ -68,20 +65,17 @@ void main() {
       id: 'matrix-penal',
       name: 'matrix with row penalty',
       kind: ScoringStrategyKind.matrixMatch,
-      params: const <String, Object?>{
-        'perRowCorrect': 1,
-        'perRowWrong': -1,
-      },
+      params: const <String, Object?>{'perRowCorrect': 1, 'perRowWrong': -1},
     );
-    final QuestionOutcome o = score(
-      <int, Set<String>>{
-        0: <String>{'2'},
-        1: <String>{'9'},
-      },
-      penalising,
-    );
+    final QuestionOutcome o = score(<int, Set<String>>{
+      0: <String>{'2'},
+      1: <String>{'9'},
+    }, penalising);
     expect(o.kind, QuestionOutcomeKind.partial);
-    expect(marksClose(o.marksAwarded, 0), isTrue); // +1 for the hit, -1 for the miss
+    expect(
+      marksClose(o.marksAwarded, 0),
+      isTrue,
+    ); // +1 for the hit, -1 for the miss
   });
 
   test('two columns bubbled in one row make that row wrong, not void', () {
@@ -142,10 +136,10 @@ void main() {
     });
 
     test('three of four rows still scores nothing', () {
-      final QuestionOutcome o = score(
-        <int, Set<String>>{...allCorrect, 3: <String>{'2'}},
-        allOrNothing,
-      );
+      final QuestionOutcome o = score(<int, Set<String>>{
+        ...allCorrect,
+        3: <String>{'2'},
+      }, allOrNothing);
       expect(o.kind, QuestionOutcomeKind.wrong);
       expect(marksClose(o.marksAwarded, 0), isTrue);
     });
@@ -161,10 +155,10 @@ void main() {
           'allOrNothing': true,
         },
       );
-      final QuestionOutcome o = score(
-        <int, Set<String>>{...allCorrect, 0: <String>{'0'}},
-        penalising,
-      );
+      final QuestionOutcome o = score(<int, Set<String>>{
+        ...allCorrect,
+        0: <String>{'0'},
+      }, penalising);
       expect(o.kind, QuestionOutcomeKind.wrong);
       expect(marksClose(o.marksAwarded, -2), isTrue);
     });

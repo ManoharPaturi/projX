@@ -7,21 +7,23 @@ import 'package:omr_spec/omr_spec.dart' as spec;
 import '../app_db.dart';
 import '../converters.dart';
 import '../enums.dart' as enums;
+import 'audit_log_service.dart';
 
 /// The id → rule registry backing `gradingConfigJson`'s `preset` field. Every
 /// preset omr_core ships is resolvable by id so a stored config never dangles.
 /// `final`, not `const`: the keys are themselves `.id` reads.
-final Map<String, core.ScoringRule> _presetRegistry = <String, core.ScoringRule>{
-  core.ScoringPresets.neetJeeMain.id: core.ScoringPresets.neetJeeMain,
-  core.ScoringPresets.jeeAdvMultiCorrect2026.id:
-      core.ScoringPresets.jeeAdvMultiCorrect2026,
-  core.ScoringPresets.jeeAdvMultiCorrectLegacy.id:
-      core.ScoringPresets.jeeAdvMultiCorrectLegacy,
-  core.ScoringPresets.integerJeeMain2026.id:
-      core.ScoringPresets.integerJeeMain2026,
-  core.ScoringPresets.matrixMatchPerRow.id:
-      core.ScoringPresets.matrixMatchPerRow,
-};
+final Map<String, core.ScoringRule> _presetRegistry =
+    <String, core.ScoringRule>{
+      core.ScoringPresets.neetJeeMain.id: core.ScoringPresets.neetJeeMain,
+      core.ScoringPresets.jeeAdvMultiCorrect2026.id:
+          core.ScoringPresets.jeeAdvMultiCorrect2026,
+      core.ScoringPresets.jeeAdvMultiCorrectLegacy.id:
+          core.ScoringPresets.jeeAdvMultiCorrectLegacy,
+      core.ScoringPresets.integerJeeMain2026.id:
+          core.ScoringPresets.integerJeeMain2026,
+      core.ScoringPresets.matrixMatchPerRow.id:
+          core.ScoringPresets.matrixMatchPerRow,
+    };
 
 /// Layout facts a grading run needs, resolved once per exam: question serial
 /// order, per-field option values, section attribution, and the layout version
@@ -68,7 +70,10 @@ class GradingService {
     // option value ('A'..'E', '0'..'9'), so this is a group-by, not a rederive.
     final byField = <String, List<core.OptionId>>{};
     for (final bubble in template.bubbles) {
-      final values = byField.putIfAbsent(bubble.fieldKey, () => <core.OptionId>[]);
+      final values = byField.putIfAbsent(
+        bubble.fieldKey,
+        () => <core.OptionId>[],
+      );
       while (values.length <= bubble.optionIndex) {
         values.add('');
       }
@@ -113,9 +118,9 @@ class GradingService {
     if (exam == null) {
       throw StateError('unknown exam $examId');
     }
-    final layoutRow = await (db.select(db.sheetLayouts)
-          ..where((l) => l.id.equals(exam.sheetLayoutId)))
-        .getSingle();
+    final layoutRow = await (db.select(
+      db.sheetLayouts,
+    )..where((l) => l.id.equals(exam.sheetLayoutId))).getSingle();
     final sheetSpec = spec.SheetSpec.fromJson(
       decodeJsonObject(layoutRow.specJson),
     );
@@ -142,18 +147,19 @@ class GradingService {
 
     // Review-cleared scans with a resolved student — an unresolved roll has
     // no result row to hang marks on (FK), and belongs to review, not marks.
-    final scans = await (db.select(db.scans)
-          ..where(
-            (s) =>
-                s.examId.equals(examId) &
-                s.studentId.isNotNull() &
-                s.status.isInValues([
-                  enums.ScanStatus.graded,
-                  enums.ScanStatus.reviewed,
-                ]),
-          )
-          ..orderBy([(s) => OrderingTerm.asc(s.capturedAt)]))
-        .get();
+    final scans =
+        await (db.select(db.scans)
+              ..where(
+                (s) =>
+                    s.examId.equals(examId) &
+                    s.studentId.isNotNull() &
+                    s.status.isInValues([
+                      enums.ScanStatus.graded,
+                      enums.ScanStatus.reviewed,
+                    ]),
+              )
+              ..orderBy([(s) => OrderingTerm.asc(s.capturedAt)]))
+            .get();
 
     final reads = <String, core.SheetRead>{};
     final scanIdByStudent = <String, String>{};
@@ -201,20 +207,19 @@ class GradingService {
             entry.value.outcomeCounts[core.QuestionOutcomeKind.wrong] ?? 0,
           ),
           unattempted: Value(
-            entry.value.outcomeCounts[core.QuestionOutcomeKind.unattempted] ?? 0,
+            entry.value.outcomeCounts[core.QuestionOutcomeKind.unattempted] ??
+                0,
           ),
           subjectTotalsJson: Value(
             encodeJsonObject(<String, Object?>{
               for (final s in entry.value.subjectTotals.entries) s.key: s.value,
             }),
           ),
-          status: Value(
-            switch (entry.value.status) {
-              core.ExamResultStatus.ok => enums.ResultStatus.ok,
-              core.ExamResultStatus.doubtful => enums.ResultStatus.doubtful,
-              core.ExamResultStatus.regraded => enums.ResultStatus.regraded,
-            },
-          ),
+          status: Value(switch (entry.value.status) {
+            core.ExamResultStatus.ok => enums.ResultStatus.ok,
+            core.ExamResultStatus.doubtful => enums.ResultStatus.doubtful,
+            core.ExamResultStatus.regraded => enums.ResultStatus.regraded,
+          }),
         ),
     ];
     if (rows.isNotEmpty) {
@@ -222,6 +227,17 @@ class GradingService {
       await db.resultsDao.recomputeRanks(examId, keyVersionId);
     }
     await db.resultsDao.finishScoringRun(scoringRunId);
+    await AuditLogService(db).record(
+      tenantId: tenantId,
+      entity: 'scoring_runs',
+      entityId: scoringRunId,
+      action: regrade ? 'regrade' : 'grade',
+      after: {
+        'examId': examId,
+        'keyVersionId': keyVersionId,
+        'results': rows.length,
+      },
+    );
     return report;
   }
 
@@ -263,17 +279,18 @@ class GradingService {
     String scanId,
     LayoutContext layout,
   ) async {
-    final scan = await (db.select(db.scans)
-          ..where((s) => s.id.equals(scanId)))
-        .getSingle();
+    final scan = await (db.select(
+      db.scans,
+    )..where((s) => s.id.equals(scanId))).getSingle();
 
-    final rows = await (db.select(db.bubbleReads)
-          ..where((b) => b.scanId.equals(scanId))
-          ..orderBy([
-            (b) => OrderingTerm.asc(b.fieldKey),
-            (b) => OrderingTerm.asc(b.optionIndex),
-          ]))
-        .get();
+    final rows =
+        await (db.select(db.bubbleReads)
+              ..where((b) => b.scanId.equals(scanId))
+              ..orderBy([
+                (b) => OrderingTerm.asc(b.fieldKey),
+                (b) => OrderingTerm.asc(b.optionIndex),
+              ]))
+            .get();
 
     final byField = <String, List<BubbleRead>>{};
     for (final row in rows) {
@@ -365,7 +382,7 @@ class GradingService {
     final rule = presetId == null
         ? core.ScoringPresets.neetJeeMain
         : (_presetRegistry[presetId] ??
-            (throw StateError('unknown scoring preset "$presetId"')));
+              (throw StateError('unknown scoring preset "$presetId"')));
 
     return core.GradingRequest(
       examId: examId,

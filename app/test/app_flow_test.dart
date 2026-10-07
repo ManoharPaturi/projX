@@ -26,8 +26,9 @@ void main() {
 
   tearDown(() => state.db.close());
 
-  testWidgets('dashboard → exam → ranked results (flagged sheet excluded)',
-      (tester) async {
+  testWidgets('dashboard → exam → ranked results (flagged sheet excluded)', (
+    tester,
+  ) async {
     final seeded = await seedExamWithRoster(state);
     final roster = await state.db.studentsDao.rosterFor(state.instituteId);
 
@@ -68,12 +69,18 @@ void main() {
     );
     expect(r1Tile, findsOneWidget);
     expect(r2Tile, findsOneWidget);
-    expect(find.text('R003'), findsNothing, reason: 'needs-review sheets do '
-        'not publish marks');
+    expect(
+      find.text('R003'),
+      findsNothing,
+      reason:
+          'needs-review sheets do '
+          'not publish marks',
+    );
   });
 
-  testWidgets('review correction rewrites the read and re-grades',
-      (tester) async {
+  testWidgets('review correction rewrites the read and re-grades', (
+    tester,
+  ) async {
     final seeded = await seedExamWithRoster(state, students: 1);
     final roster = await state.db.studentsDao.rosterFor(state.instituteId);
     final scanId = await insertDemoScan(
@@ -85,11 +92,11 @@ void main() {
       flaggedForReview: true,
     );
 
-    await tester.pumpWidget(
-      wrapForTest(const ReviewQueueScreen(), state),
-    );
+    await tester.pumpWidget(wrapForTest(const ReviewQueueScreen(), state));
     await tester.pumpAndSettle();
-    expect(find.textContaining('MULTI_BUBBLE_WARN'), findsOneWidget);
+    // The queue speaks operator language; MULTI_BUBBLE_WARN is the stored
+    // reason code, the tile says what it means.
+    expect(find.textContaining('a question has two marks'), findsOneWidget);
 
     await tester.tap(find.byType(ListTile));
     await tester.pumpAndSettle();
@@ -124,8 +131,9 @@ void main() {
     expect(rows.single.rollNo, 'R001');
   });
 
-  testWidgets('roster import: header skipped, duplicates reported',
-      (tester) async {
+  testWidgets('roster import: header skipped, duplicates reported', (
+    tester,
+  ) async {
     await tester.pumpWidget(wrapForTest(const RosterScreen(), state));
     await tester.pumpAndSettle();
 
@@ -224,12 +232,12 @@ void main() {
     expect(path, isNotNull, reason: 'runAsync returned before completion');
     final artifact = File(path!);
     expect(artifact.existsSync(), isTrue);
-    expect(artifact.readAsBytesSync().sublist(0, 3), const [0xEF, 0xBB, 0xBF],
-        reason: 'UTF-8 BOM so Indian-language names survive Excel');
-    expect(
-      artifact.readAsLinesSync().first.split(',').first,
-      'Roll No',
-    );
+    expect(artifact.readAsBytesSync().sublist(0, 3), const [
+      0xEF,
+      0xBB,
+      0xBF,
+    ], reason: 'UTF-8 BOM so Indian-language names survive Excel');
+    expect(artifact.readAsLinesSync().first.split(',').first, 'Roll No');
 
     final jobs = await state.db.reportJobsDao.recentFor(seeded.examId);
     expect(jobs.single.status, ReportJobStatus.done);

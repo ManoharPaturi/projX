@@ -40,33 +40,32 @@ class FiducialLayout {
     List<String>? squareCorners,
     String? altAnchorCorner,
     double? lArmMm,
-  }) =>
-      FiducialLayout(
-        sizeMm: sizeMm ?? this.sizeMm,
-        insetMm: insetMm ?? this.insetMm,
-        whiteSurroundMm: whiteSurroundMm ?? this.whiteSurroundMm,
-        squareCorners: squareCorners ?? this.squareCorners,
-        altAnchorCorner: altAnchorCorner ?? this.altAnchorCorner,
-        lArmMm: lArmMm ?? this.lArmMm,
-      );
+  }) => FiducialLayout(
+    sizeMm: sizeMm ?? this.sizeMm,
+    insetMm: insetMm ?? this.insetMm,
+    whiteSurroundMm: whiteSurroundMm ?? this.whiteSurroundMm,
+    squareCorners: squareCorners ?? this.squareCorners,
+    altAnchorCorner: altAnchorCorner ?? this.altAnchorCorner,
+    lArmMm: lArmMm ?? this.lArmMm,
+  );
 
   Map<String, Object?> toJson() => {
-        'sizeMm': sizeMm,
-        'insetMm': insetMm,
-        'whiteSurroundMm': whiteSurroundMm,
-        'squareCorners': squareCorners,
-        'altAnchorCorner': altAnchorCorner,
-        'lArmMm': lArmMm,
-      };
+    'sizeMm': sizeMm,
+    'insetMm': insetMm,
+    'whiteSurroundMm': whiteSurroundMm,
+    'squareCorners': squareCorners,
+    'altAnchorCorner': altAnchorCorner,
+    'lArmMm': lArmMm,
+  };
 
   static FiducialLayout fromJson(Map<String, Object?> j) => FiducialLayout(
-        sizeMm: (j['sizeMm']! as num).toDouble(),
-        insetMm: (j['insetMm']! as num).toDouble(),
-        whiteSurroundMm: (j['whiteSurroundMm']! as num).toDouble(),
-        squareCorners:
-            (j['squareCorners'] as List<Object?>? ?? const ['tl', 'tr', 'br'])
-                .cast<String>(),
-        altAnchorCorner: j['altAnchorCorner'] as String? ?? 'bl',
-        lArmMm: (j['lArmMm'] as num?)?.toDouble() ?? 2.5,
-      );
+    sizeMm: (j['sizeMm']! as num).toDouble(),
+    insetMm: (j['insetMm']! as num).toDouble(),
+    whiteSurroundMm: (j['whiteSurroundMm']! as num).toDouble(),
+    squareCorners:
+        (j['squareCorners'] as List<Object?>? ?? const ['tl', 'tr', 'br'])
+            .cast<String>(),
+    altAnchorCorner: j['altAnchorCorner'] as String? ?? 'bl',
+    lArmMm: (j['lArmMm'] as num?)?.toDouble() ?? 2.5,
+  );
 }

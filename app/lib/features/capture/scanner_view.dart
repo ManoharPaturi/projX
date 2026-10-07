@@ -94,7 +94,8 @@ class _ScannerViewState extends State<ScannerView> {
   @override
   Widget build(BuildContext context) {
     final tick = _tick;
-    final hint = tick?.hint ??
+    final hint =
+        tick?.hint ??
         (tick != null && tick.lockedOn ? 'Hold steady…' : 'Find the sheet');
     final progress = tick?.hysteresis.progress ?? 0;
 
@@ -114,11 +115,25 @@ class _ScannerViewState extends State<ScannerView> {
         ),
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(
-            key: const ValueKey('scan_hint'),
-            hint,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
+          // The hint sits over the live camera feed — a dark scrim keeps it
+          // legible whatever the scene behind it (bright hall, dark room).
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Text(
+                key: const ValueKey('scan_hint'),
+                hint,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ),
         ),
         Padding(
@@ -183,8 +198,12 @@ class _ScannerPainter extends CustomPainter {
     fillRect(0, 0, size.width, finder.top);
     fillRect(0, finder.bottom, size.width, size.height - finder.bottom);
     fillRect(0, finder.top, finder.left, finder.height);
-    fillRect(finder.right, finder.top,
-        size.width - finder.right, finder.height);
+    fillRect(
+      finder.right,
+      finder.top,
+      size.width - finder.right,
+      finder.height,
+    );
 
     _drawBrackets(canvas, finder);
 
@@ -195,16 +214,13 @@ class _ScannerPainter extends CustomPainter {
       // of overlay skew, tightened when the device leg (M0/M2) measures the
       // real transform.
       final path = Path()
-        ..addPolygon(
-          [
-            for (final p in q)
-              Offset(
-                p.x * size.width / analysisSize.width,
-                p.y * size.height / analysisSize.height,
-              ),
-          ],
-          true,
-        );
+        ..addPolygon([
+          for (final p in q)
+            Offset(
+              p.x * size.width / analysisSize.width,
+              p.y * size.height / analysisSize.height,
+            ),
+        ], true);
       final paint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3

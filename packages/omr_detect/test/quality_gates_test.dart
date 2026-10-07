@@ -9,11 +9,11 @@ void main() {
   /// Axis-aligned quad (tl, tr, br, bl) — what a flat, square capture looks
   /// like to the detector.
   List<CvPointI> quadAt(int x, int y, int w, int h) => [
-        CvPointI(x, y),
-        CvPointI(x + w, y),
-        CvPointI(x + w, y + h),
-        CvPointI(x, y + h),
-      ];
+    CvPointI(x, y),
+    CvPointI(x + w, y),
+    CvPointI(x + w, y + h),
+    CvPointI(x, y + h),
+  ];
 
   /// The standard well-framed quad as a const, so it can be a parameter
   /// DEFAULT — an explicitly passed `null` still means "no quad detected"
@@ -32,16 +32,15 @@ void main() {
     double? exposureMean = 110,
     double? stillShortSidePx = 3000,
     double? requiredSheetPxOnStill = 1680,
-  }) =>
-      GateInput(
-        frameWidth: 640,
-        frameHeight: 480,
-        quad: quad,
-        sharpness: sharpness,
-        exposureMean: exposureMean,
-        stillShortSidePx: stillShortSidePx,
-        requiredSheetPxOnStill: requiredSheetPxOnStill,
-      );
+  }) => GateInput(
+    frameWidth: 640,
+    frameHeight: 480,
+    quad: quad,
+    sharpness: sharpness,
+    exposureMean: exposureMean,
+    stillShortSidePx: stillShortSidePx,
+    requiredSheetPxOnStill: requiredSheetPxOnStill,
+  );
 
   GateResult resultFor(List<GateResult> results, GateType type) =>
       results.firstWhere((r) => r.type == type);
@@ -67,8 +66,7 @@ void main() {
 
     test('tiny quad → directional move-closer hint', () {
       final gates = CaptureQualityGates();
-      final results =
-          gates.evaluate(frame(quad: quadAt(240, 190, 150, 200)));
+      final results = gates.evaluate(frame(quad: quadAt(240, 190, 150, 200)));
 
       final area = resultFor(results, GateType.area);
       expect(area.passed, isFalse);
@@ -91,11 +89,13 @@ void main() {
 
     test('dominantly large quad → move-away hint', () {
       final gates = CaptureQualityGates();
-      final results =
-          gates.evaluate(frame(quad: quadAt(2, 2, 636, 476)));
+      final results = gates.evaluate(frame(quad: quadAt(2, 2, 636, 476)));
 
       expect(resultFor(results, GateType.area).passed, isFalse);
-      expect(gates.hintFor(results), 'move away — sheet touches the frame edge');
+      expect(
+        gates.hintFor(results),
+        'move away — sheet touches the frame edge',
+      );
     });
   });
 
@@ -105,20 +105,22 @@ void main() {
       // Near edge 880 px, far edge 1120 px on a 1280×720 frame: a
       // stood-off-phone keystone. Cosine at tl ≈ 0.22, well over 0.085;
       // every other gate stays green (area 0.59, sharp, lit, resolved).
-      final results = gates.evaluate(GateInput(
-        frameWidth: 1280,
-        frameHeight: 720,
-        quad: [
-          const CvPointI(200, 120),
-          const CvPointI(1080, 120),
-          const CvPointI(1200, 660),
-          const CvPointI(80, 660),
-        ],
-        sharpness: 150,
-        exposureMean: 110,
-        stillShortSidePx: 3000,
-        requiredSheetPxOnStill: 1680,
-      ));
+      final results = gates.evaluate(
+        GateInput(
+          frameWidth: 1280,
+          frameHeight: 720,
+          quad: [
+            const CvPointI(200, 120),
+            const CvPointI(1080, 120),
+            const CvPointI(1200, 660),
+            const CvPointI(80, 660),
+          ],
+          sharpness: 150,
+          exposureMean: 110,
+          stillShortSidePx: 3000,
+          requiredSheetPxOnStill: 1680,
+        ),
+      );
 
       final angle = resultFor(results, GateType.angle);
       expect(angle.passed, isFalse);
@@ -139,18 +141,22 @@ void main() {
       expect(gates.hintFor(results), 'hold still — sheet is not sharp');
     });
 
-    test('strictness presets move the floor (100: normal pass, strict fail)', () {
-      final normal = CaptureQualityGates()
-          .evaluate(frame(sharpness: 100));
-      final strict = CaptureQualityGates(strictness: Strictness.strict)
-          .evaluate(frame(sharpness: 100));
-      final relaxed = CaptureQualityGates(strictness: Strictness.relaxed)
-          .evaluate(frame(sharpness: 60));
+    test(
+      'strictness presets move the floor (100: normal pass, strict fail)',
+      () {
+        final normal = CaptureQualityGates().evaluate(frame(sharpness: 100));
+        final strict = CaptureQualityGates(
+          strictness: Strictness.strict,
+        ).evaluate(frame(sharpness: 100));
+        final relaxed = CaptureQualityGates(
+          strictness: Strictness.relaxed,
+        ).evaluate(frame(sharpness: 60));
 
-      expect(resultFor(normal, GateType.blur).passed, isTrue);
-      expect(resultFor(strict, GateType.blur).passed, isFalse);
-      expect(resultFor(relaxed, GateType.blur).passed, isTrue);
-    });
+        expect(resultFor(normal, GateType.blur).passed, isTrue);
+        expect(resultFor(strict, GateType.blur).passed, isFalse);
+        expect(resultFor(relaxed, GateType.blur).passed, isTrue);
+      },
+    );
 
     test('hand tremor: sharp frame fails against its own recent norm', () {
       // The calibration-free core of the gate: 200-variance frames establish
@@ -159,13 +165,17 @@ void main() {
       final gates = CaptureQualityGates();
       for (var i = 0; i < 8; i++) {
         expect(
-          resultFor(gates.evaluate(frame(sharpness: 200)), GateType.blur)
-              .passed,
+          resultFor(
+            gates.evaluate(frame(sharpness: 200)),
+            GateType.blur,
+          ).passed,
           isTrue,
         );
       }
-      final tremor = resultFor(gates.evaluate(frame(sharpness: 100)),
-          GateType.blur);
+      final tremor = resultFor(
+        gates.evaluate(frame(sharpness: 100)),
+        GateType.blur,
+      );
       expect(tremor.passed, isFalse);
       expect(tremor.required, closeTo(110, 0.01)); // 0.55 × p75(200)
     });
@@ -179,15 +189,20 @@ void main() {
         gates.evaluate(frame(sharpness: 200));
       }
       var verdict = resultFor(
-          gates.evaluate(frame(sharpness: 100)), GateType.blur);
+        gates.evaluate(frame(sharpness: 100)),
+        GateType.blur,
+      );
       expect(verdict.passed, isFalse, reason: 'first dipped frame is a tremor');
 
       for (var i = 0; i < 19; i++) {
         gates.evaluate(frame(sharpness: 100));
       }
       verdict = resultFor(gates.evaluate(frame(sharpness: 100)), GateType.blur);
-      expect(verdict.passed, isTrue,
-          reason: 'a sustained soft scene becomes the norm');
+      expect(
+        verdict.passed,
+        isTrue,
+        reason: 'a sustained soft scene becomes the norm',
+      );
     });
 
     test('reset() forgets the norm — torch toggle, new session', () {
@@ -197,7 +212,9 @@ void main() {
       }
       gates.reset();
       final verdict = resultFor(
-          gates.evaluate(frame(sharpness: 100)), GateType.blur);
+        gates.evaluate(frame(sharpness: 100)),
+        GateType.blur,
+      );
       expect(verdict.passed, isTrue, reason: 'absolute floor only, no history');
     });
 
@@ -218,13 +235,16 @@ void main() {
       expect(gates.hintFor(dark), 'too dark — find brighter light');
       expect(resultFor(bright, GateType.exposure).passed, isFalse);
       expect(
-          gates.hintFor(bright), 'too bright — avoid direct light on the sheet');
+        gates.hintFor(bright),
+        'too bright — avoid direct light on the sheet',
+      );
     });
 
     test('unmeasurable exposure passes silently — not its call yet', () {
       final gates = CaptureQualityGates();
-      final results =
-          gates.evaluate(frame(quad: null, exposureMean: 40, sharpness: null));
+      final results = gates.evaluate(
+        frame(quad: null, exposureMean: 40, sharpness: null),
+      );
       expect(resultFor(results, GateType.exposure).passed, isTrue);
     });
   });
@@ -233,17 +253,21 @@ void main() {
     test('same framing passes once the still is big enough', () {
       final gates = CaptureQualityGates();
       final quad = quadAt(200, 160, 240, 280); // 240 px on the 480 px side
-      final smallStill =
-          gates.evaluate(frame(quad: quad, stillShortSidePx: 3000));
-      final bigStill =
-          gates.evaluate(frame(quad: quad, stillShortSidePx: 4000));
+      final smallStill = gates.evaluate(
+        frame(quad: quad, stillShortSidePx: 3000),
+      );
+      final bigStill = gates.evaluate(
+        frame(quad: quad, stillShortSidePx: 4000),
+      );
 
       // 1680 sheet-px need 0.56 of the short side; this quad covers 0.50.
       final fail = resultFor(smallStill, GateType.resolution);
       expect(fail.passed, isFalse);
       expect(fail.measured, closeTo(0.5, 0.001));
       expect(
-          gates.hintFor(smallStill), 'move closer — sheet too small in frame');
+        gates.hintFor(smallStill),
+        'move closer — sheet too small in frame',
+      );
 
       // Identical framing, bigger sensor: 0.50 ≥ 1680/4000 — the gate is
       // about delivered pixels, not framing.

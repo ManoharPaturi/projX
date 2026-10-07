@@ -6,8 +6,7 @@ import 'helpers.dart';
 void main() {
   const classifier = BubbleClassifier();
 
-  test('a clear single mark classifies filled with that option selected',
-      () {
+  test('a clear single mark classifies filled with that option selected', () {
     final reads = classifier.classify([
       sample('q1', 0, 'A', mean: 220),
       sample('q1', 1, 'B', mean: 110),
@@ -24,8 +23,7 @@ void main() {
 
   test('a row with no dark bubble is blank — never an argmax guess', () {
     final reads = classifier.classify([
-      for (var i = 0; i < 4; i++)
-        sample('q2', i, 'ABCD'[i], mean: 200 + i * 5),
+      for (var i = 0; i < 4; i++) sample('q2', i, 'ABCD'[i], mean: 200 + i * 5),
     ], thresholds());
 
     expect(reads.single.markClass, MarkClass.blank);

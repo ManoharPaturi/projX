@@ -81,9 +81,7 @@ class ThresholdConfig {
   final Strictness strictness;
 
   static const ThresholdConfig camera = ThresholdConfig();
-  static const ThresholdConfig scan = ThresholdConfig(
-    morphThresholdScan: 40,
-  );
+  static const ThresholdConfig scan = ThresholdConfig(morphThresholdScan: 40);
 
   ThresholdConfig copyWith({
     int? version,
@@ -102,70 +100,69 @@ class ThresholdConfig {
     double? untrustedStripStdRatio,
     double? reviewConfidenceFloor,
     Strictness? strictness,
-  }) =>
-      ThresholdConfig(
-        version: version ?? this.version,
-        minJump: minJump ?? this.minJump,
-        confidentSurplus: confidentSurplus ?? this.confidentSurplus,
-        minGap: minGap ?? this.minGap,
-        globalLooseness: globalLooseness ?? this.globalLooseness,
-        fallbackWhite: fallbackWhite ?? this.fallbackWhite,
-        fallbackBlack: fallbackBlack ?? this.fallbackBlack,
-        zoneBand: zoneBand ?? this.zoneBand,
-        overfillRatio: overfillRatio ?? this.overfillRatio,
-        strayPenalty: strayPenalty ?? this.strayPenalty,
-        morphThresholdCamera: morphThresholdCamera ?? this.morphThresholdCamera,
-        morphThresholdScan: morphThresholdScan ?? this.morphThresholdScan,
-        curlBubbleHeightFraction:
-            curlBubbleHeightFraction ?? this.curlBubbleHeightFraction,
-        untrustedStripStdRatio:
-            untrustedStripStdRatio ?? this.untrustedStripStdRatio,
-        reviewConfidenceFloor:
-            reviewConfidenceFloor ?? this.reviewConfidenceFloor,
-        strictness: strictness ?? this.strictness,
-      );
+  }) => ThresholdConfig(
+    version: version ?? this.version,
+    minJump: minJump ?? this.minJump,
+    confidentSurplus: confidentSurplus ?? this.confidentSurplus,
+    minGap: minGap ?? this.minGap,
+    globalLooseness: globalLooseness ?? this.globalLooseness,
+    fallbackWhite: fallbackWhite ?? this.fallbackWhite,
+    fallbackBlack: fallbackBlack ?? this.fallbackBlack,
+    zoneBand: zoneBand ?? this.zoneBand,
+    overfillRatio: overfillRatio ?? this.overfillRatio,
+    strayPenalty: strayPenalty ?? this.strayPenalty,
+    morphThresholdCamera: morphThresholdCamera ?? this.morphThresholdCamera,
+    morphThresholdScan: morphThresholdScan ?? this.morphThresholdScan,
+    curlBubbleHeightFraction:
+        curlBubbleHeightFraction ?? this.curlBubbleHeightFraction,
+    untrustedStripStdRatio:
+        untrustedStripStdRatio ?? this.untrustedStripStdRatio,
+    reviewConfidenceFloor: reviewConfidenceFloor ?? this.reviewConfidenceFloor,
+    strictness: strictness ?? this.strictness,
+  );
 
   Map<String, Object?> toJson() => {
-        'version': version,
-        'minJump': minJump,
-        'confidentSurplus': confidentSurplus,
-        'minGap': minGap,
-        'globalLooseness': globalLooseness,
-        'fallbackWhite': fallbackWhite,
-        'fallbackBlack': fallbackBlack,
-        'zoneBand': zoneBand,
-        'overfillRatio': overfillRatio,
-        'strayPenalty': strayPenalty,
-        'morphThresholdCamera': morphThresholdCamera,
-        'morphThresholdScan': morphThresholdScan,
-        'curlBubbleHeightFraction': curlBubbleHeightFraction,
-        'untrustedStripStdRatio': untrustedStripStdRatio,
-        'reviewConfidenceFloor': reviewConfidenceFloor,
-        'strictness': strictness.name,
-      };
+    'version': version,
+    'minJump': minJump,
+    'confidentSurplus': confidentSurplus,
+    'minGap': minGap,
+    'globalLooseness': globalLooseness,
+    'fallbackWhite': fallbackWhite,
+    'fallbackBlack': fallbackBlack,
+    'zoneBand': zoneBand,
+    'overfillRatio': overfillRatio,
+    'strayPenalty': strayPenalty,
+    'morphThresholdCamera': morphThresholdCamera,
+    'morphThresholdScan': morphThresholdScan,
+    'curlBubbleHeightFraction': curlBubbleHeightFraction,
+    'untrustedStripStdRatio': untrustedStripStdRatio,
+    'reviewConfidenceFloor': reviewConfidenceFloor,
+    'strictness': strictness.name,
+  };
 
   static ThresholdConfig fromJson(Map<String, Object?> j) => ThresholdConfig(
-        version: j['version'] as int? ?? 1,
-        minJump: (j['minJump'] as num?)?.toDouble() ?? 25,
-        confidentSurplus: (j['confidentSurplus'] as num?)?.toDouble() ?? 5,
-        minGap: (j['minGap'] as num?)?.toDouble() ?? 30,
-        globalLooseness: (j['globalLooseness'] as num?)?.toDouble() ?? 4,
-        fallbackWhite: (j['fallbackWhite'] as num?)?.toDouble() ?? 200,
-        fallbackBlack: (j['fallbackBlack'] as num?)?.toDouble() ?? 100,
-        zoneBand: (j['zoneBand'] as num?)?.toDouble() ?? 12,
-        overfillRatio: (j['overfillRatio'] as num?)?.toDouble() ?? 0.95,
-        strayPenalty: (j['strayPenalty'] as num?)?.toDouble() ?? 0.3,
-        morphThresholdCamera: j['morphThresholdCamera'] as int? ?? 60,
-        morphThresholdScan: j['morphThresholdScan'] as int? ?? 40,
-        curlBubbleHeightFraction:
-            (j['curlBubbleHeightFraction'] as num?)?.toDouble() ?? 0.30,
-        untrustedStripStdRatio:
-            (j['untrustedStripStdRatio'] as num?)?.toDouble() ?? 1.0,
-        reviewConfidenceFloor:
-            (j['reviewConfidenceFloor'] as num?)?.toDouble() ?? 0.90,
-        strictness:
-            Strictness.values.byName(j['strictness'] as String? ?? 'normal'),
-      );
+    version: j['version'] as int? ?? 1,
+    minJump: (j['minJump'] as num?)?.toDouble() ?? 25,
+    confidentSurplus: (j['confidentSurplus'] as num?)?.toDouble() ?? 5,
+    minGap: (j['minGap'] as num?)?.toDouble() ?? 30,
+    globalLooseness: (j['globalLooseness'] as num?)?.toDouble() ?? 4,
+    fallbackWhite: (j['fallbackWhite'] as num?)?.toDouble() ?? 200,
+    fallbackBlack: (j['fallbackBlack'] as num?)?.toDouble() ?? 100,
+    zoneBand: (j['zoneBand'] as num?)?.toDouble() ?? 12,
+    overfillRatio: (j['overfillRatio'] as num?)?.toDouble() ?? 0.95,
+    strayPenalty: (j['strayPenalty'] as num?)?.toDouble() ?? 0.3,
+    morphThresholdCamera: j['morphThresholdCamera'] as int? ?? 60,
+    morphThresholdScan: j['morphThresholdScan'] as int? ?? 40,
+    curlBubbleHeightFraction:
+        (j['curlBubbleHeightFraction'] as num?)?.toDouble() ?? 0.30,
+    untrustedStripStdRatio:
+        (j['untrustedStripStdRatio'] as num?)?.toDouble() ?? 1.0,
+    reviewConfidenceFloor:
+        (j['reviewConfidenceFloor'] as num?)?.toDouble() ?? 0.90,
+    strictness: Strictness.values.byName(
+      j['strictness'] as String? ?? 'normal',
+    ),
+  );
 
   String toJsonString() => jsonEncode(toJson());
 

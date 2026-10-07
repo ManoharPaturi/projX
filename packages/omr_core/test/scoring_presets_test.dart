@@ -35,21 +35,21 @@ void main() {
     );
   });
 
-  test('NEET / JEE-Main single correct is +4 / -1 / 0 with wrong multi-marks', () {
-    final ScoringRule rule = ScoringPresets.neetJeeMain;
-    final KeyEntry key = keyFor('q1', <OptionId>{'B'});
+  test(
+    'NEET / JEE-Main single correct is +4 / -1 / 0 with wrong multi-marks',
+    () {
+      final ScoringRule rule = ScoringPresets.neetJeeMain;
+      final KeyEntry key = keyFor('q1', <OptionId>{'B'});
 
-    QuestionOutcome score(Set<OptionId> chosen) =>
-        SingleCorrectStrategy().score(resp(chosen), key, rule);
+      QuestionOutcome score(Set<OptionId> chosen) =>
+          SingleCorrectStrategy().score(resp(chosen), key, rule);
 
-    expect(marksClose(score(<OptionId>{'B'}).marksAwarded, 4), isTrue);
-    expect(marksClose(score(<OptionId>{'C'}).marksAwarded, -1), isTrue);
-    expect(marksClose(score(<OptionId>{}).marksAwarded, 0), isTrue);
-    expect(
-      score(<OptionId>{'B', 'C'}).kind,
-      QuestionOutcomeKind.wrong,
-    );
-  });
+      expect(marksClose(score(<OptionId>{'B'}).marksAwarded, 4), isTrue);
+      expect(marksClose(score(<OptionId>{'C'}).marksAwarded, -1), isTrue);
+      expect(marksClose(score(<OptionId>{}).marksAwarded, 0), isTrue);
+      expect(score(<OptionId>{'B', 'C'}).kind, QuestionOutcomeKind.wrong);
+    },
+  );
 
   test('the integer preset scores a clean numeric answer', () {
     final KeyEntry key = keyFor('q1', <OptionId>{}, integer: 75);
@@ -70,7 +70,11 @@ void main() {
     expect(
       marksClose(
         strategy
-            .score(resp(<OptionId>{'A'}), key, ScoringPresets.jeeAdvMultiCorrect2026)
+            .score(
+              resp(<OptionId>{'A'}),
+              key,
+              ScoringPresets.jeeAdvMultiCorrect2026,
+            )
             .marksAwarded,
         1,
       ),
@@ -79,7 +83,11 @@ void main() {
     expect(
       marksClose(
         strategy
-            .score(resp(<OptionId>{'A'}), key, ScoringPresets.jeeAdvMultiCorrectLegacy)
+            .score(
+              resp(<OptionId>{'A'}),
+              key,
+              ScoringPresets.jeeAdvMultiCorrectLegacy,
+            )
             .marksAwarded,
         1,
       ),
@@ -132,16 +140,16 @@ void main() {
     });
 
     test('accepts string keys in a partial table, as JSON delivers them', () {
-      const ScoringParams p = ScoringParams(
-        <String, Object?>{'partialByCount': <String, Object?>{'1': 1, '2': 2}},
-      );
+      const ScoringParams p = ScoringParams(<String, Object?>{
+        'partialByCount': <String, Object?>{'1': 1, '2': 2},
+      });
       expect(p.marksByCount('partialByCount'), <int, double>{1: 1, 2: 2});
     });
 
     test('rejects a non-positive count in a partial table', () {
-      const ScoringParams p = ScoringParams(
-        <String, Object?>{'partialByCount': <int, int>{0: 1}},
-      );
+      const ScoringParams p = ScoringParams(<String, Object?>{
+        'partialByCount': <int, int>{0: 1},
+      });
       expect(() => p.marksByCount('partialByCount'), throwsArgumentError);
     });
 

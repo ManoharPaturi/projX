@@ -32,21 +32,23 @@ void main() {
     test("'03' and '3' decode to the same number", () {
       // Explicit leading zero over two columns vs a single marked column: the
       // block is right-aligned, so both are the number 3.
-      final IntegerDigitsRead explicit = IntegerDigitsCodec.decode(
-        <OptionId>{'0:0', '1:3'},
-      );
-      final IntegerDigitsRead single = IntegerDigitsCodec.decode(
-        <OptionId>{'1:3'},
-      );
+      final IntegerDigitsRead explicit = IntegerDigitsCodec.decode(<OptionId>{
+        '0:0',
+        '1:3',
+      });
+      final IntegerDigitsRead single = IntegerDigitsCodec.decode(<OptionId>{
+        '1:3',
+      });
       expect(explicit.value, 3);
       expect(single.value, 3);
       expect(explicit.ambiguous, isFalse);
     });
 
     test('a blank column inside the number is reported', () {
-      final IntegerDigitsRead read = IntegerDigitsCodec.decode(
-        <OptionId>{'0:1', '2:3'},
-      );
+      final IntegerDigitsRead read = IntegerDigitsCodec.decode(<OptionId>{
+        '0:1',
+        '2:3',
+      });
       expect(read.value, isNull);
       expect(read.ambiguous, isTrue);
       expect(read.issues, contains(IntegerDigitsIssue.interiorBlankColumn));
@@ -95,15 +97,21 @@ void main() {
     // ' 3' — the left column left blank, the right column marked 3.
     final Set<OptionId> blankLeading = <OptionId>{'1:3'};
 
-    test('is flagged as ambiguous even though it decodes to the same number', () {
-      final IntegerDigitsRead read = IntegerDigitsCodec.decode(blankLeading);
-      expect(read.value, 3);
-      expect(read.ambiguous, isTrue);
-      expect(read.issues, contains(IntegerDigitsIssue.leadingBlankColumn));
-    });
+    test(
+      'is flagged as ambiguous even though it decodes to the same number',
+      () {
+        final IntegerDigitsRead read = IntegerDigitsCodec.decode(blankLeading);
+        expect(read.value, 3);
+        expect(read.ambiguous, isTrue);
+        expect(read.issues, contains(IntegerDigitsIssue.leadingBlankColumn));
+      },
+    );
 
     test("ambiguousAction 'wrong' applies the penalty", () {
-      final QuestionOutcome o = score(blankLeading, intRule(ambiguousAction: 'wrong'));
+      final QuestionOutcome o = score(
+        blankLeading,
+        intRule(ambiguousAction: 'wrong'),
+      );
       expect(o.kind, QuestionOutcomeKind.wrong);
       expect(marksClose(o.marksAwarded, -1), isTrue);
       expect(o.reason, contains('leadingBlankColumn'));

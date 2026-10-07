@@ -24,12 +24,7 @@ import 'still_evaluator.dart';
 /// code path regardless of what fired it (dwell or the manual button):
 /// [SheetIntake.process] on the captured still.
 class CaptureScreen extends StatefulWidget {
-  const CaptureScreen({
-    super.key,
-    this.source,
-    this.analyze,
-    this.evaluator,
-  });
+  const CaptureScreen({super.key, this.source, this.analyze, this.evaluator});
 
   /// Test seam: a hand-driven source plus the frame script that turns its
   /// frames into scanner states. Injected sources are owned by the caller
@@ -64,9 +59,9 @@ class _CaptureScreenState extends State<CaptureScreen> {
   void initState() {
     super.initState();
     final state = context.read<AppState>();
-    state.db.examsDao
-        .forInstitute(state.tenantId, state.instituteId)
-        .then((exams) {
+    state.db.examsDao.forInstitute(state.tenantId, state.instituteId).then((
+      exams,
+    ) {
       if (!mounted) {
         return;
       }
@@ -77,8 +72,10 @@ class _CaptureScreenState extends State<CaptureScreen> {
       _syncAnalyzer();
     });
     if (widget.source != null) {
-      assert(widget.analyze != null,
-          'an injected source needs its analyze script');
+      assert(
+        widget.analyze != null,
+        'an injected source needs its analyze script',
+      );
       _analyze = widget.analyze;
       _cameraTried = true;
     } else {
@@ -161,11 +158,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       final captured = await SheetIntake(
         state.db,
         evaluator: widget.evaluator,
-      ).process(
-        tenantId: state.tenantId,
-        examId: exam.id,
-        stillBytes: still,
-      );
+      ).process(tenantId: state.tenantId, examId: exam.id, stillBytes: still);
       state.refresh();
       if (!mounted) {
         return;
@@ -195,13 +188,10 @@ class _CaptureScreenState extends State<CaptureScreen> {
       // Fixture stand-in for "point at the next sheet": the first roster
       // student without a scan in this exam.
       final roster = await db.studentsDao.rosterFor(state.instituteId);
-      final existing = await (db.select(db.scans)
-            ..where((Scans s) => s.examId.equals(_exam!.id)))
-          .get();
-      final takenRolls = existing
-          .map((s) => s.rollNoRead)
-          .nonNulls
-          .toSet();
+      final existing = await (db.select(
+        db.scans,
+      )..where((Scans s) => s.examId.equals(_exam!.id))).get();
+      final takenRolls = existing.map((s) => s.rollNoRead).nonNulls.toSet();
       final student = roster.firstWhere(
         (s) => !takenRolls.contains(s.rollNo),
         orElse: () =>
@@ -261,8 +251,9 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -278,7 +269,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
             DropdownButtonFormField<Exam>(
               decoration: const InputDecoration(labelText: 'Exam'),
               items: [
-                for (final exam in _exams!) DropdownMenuItem(value: exam, child: Text(exam.name)),
+                for (final exam in _exams!)
+                  DropdownMenuItem(value: exam, child: Text(exam.name)),
               ],
               initialValue: _exam,
               onChanged: (exam) {
@@ -309,10 +301,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 ),
               ),
             ),
-            if (_busy) const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: LinearProgressIndicator(),
-            ),
+            if (_busy)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(),
+              ),
           ] else if (_cameraTried) ...[
             Card(
               color: Theme.of(context).colorScheme.tertiaryContainer,
@@ -426,8 +419,8 @@ class _CapturedCard extends StatelessWidget {
               Text(
                 captured.reasons.join(' · '),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ],
             const SizedBox(height: 12),
@@ -465,16 +458,20 @@ class _CapturedCard extends StatelessWidget {
 
   Widget _confidenceChip(BuildContext context) {
     final review = captured.needsReview;
-    final color = review ? Colors.orange : Colors.green;
+    // Dark ink on a light tint of itself — the 500-shades (Colors.green /
+    // Colors.orange) fall under 3:1 on a light card; these clear WCAG AA.
+    final color = review
+        ? const Color(0xFF8B4000) // deep-orange-900 territory
+        : const Color(0xFF1B5E20); // green-900
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         review ? 'needs review' : 'auto-graded',
-        style: TextStyle(color: color, fontWeight: FontWeight.w600),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }

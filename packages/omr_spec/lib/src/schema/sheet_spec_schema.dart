@@ -14,7 +14,7 @@ class SpecValidationException implements Exception {
   String toString() => errors.length == 1
       ? 'Invalid sheet spec: ${errors.first}'
       : 'Invalid sheet spec (${errors.length} errors):\n'
-          '${errors.map((e) => '  - $e').join('\n')}';
+            '${errors.map((e) => '  - $e').join('\n')}';
 }
 
 /// Tunable layout physics, from the OMR literature + OMRChecker practice.
@@ -69,26 +69,35 @@ const defaultSpecLimits = SpecLimits();
 /// the check that rejects a block overflowing the content rect is what makes
 /// the additive-geometry format typo-resistant (a wrong pitch or origin
 /// produces a loud error, never a silently mis-printed sheet).
-void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) {
+void validateSheetSpec(
+  SheetSpec spec, {
+  SpecLimits limits = defaultSpecLimits,
+}) {
   final errors = <String>[];
 
   // ---- paper / margins -------------------------------------------------
   if (spec.marginMm < limits.minMarginMm) {
-    errors.add('marginMm ${spec.marginMm} < ${limits.minMarginMm} '
-        '(printable-area safety)');
+    errors.add(
+      'marginMm ${spec.marginMm} < ${limits.minMarginMm} '
+      '(printable-area safety)',
+    );
   }
   final content = spec.contentRect;
   if (content.w <= 0 || content.h <= 0) {
-    errors.add('content rect is empty: $content — headerHeightMm '
-        '${spec.headerHeightMm} leaves no room on '
-        '${spec.paperHeightMm}mm-tall paper');
+    errors.add(
+      'content rect is empty: $content — headerHeightMm '
+      '${spec.headerHeightMm} leaves no room on '
+      '${spec.paperHeightMm}mm-tall paper',
+    );
     // Nothing further is checkable on the content plane.
     _throwIfAny(errors);
     return;
   }
   if (spec.headerHeightMm < spec.marginMm) {
-    errors.add('headerHeightMm ${spec.headerHeightMm} < marginMm '
-        '${spec.marginMm} — the header band starts above the margin');
+    errors.add(
+      'headerHeightMm ${spec.headerHeightMm} < marginMm '
+      '${spec.marginMm} — the header band starts above the margin',
+    );
   }
 
   // ---- bubble style ----------------------------------------------------
@@ -98,37 +107,49 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
   // ---- fiducials -------------------------------------------------------
   final fid = spec.fiducials;
   if (fid.sizeMm < limits.minFiducialMm || fid.sizeMm > limits.maxFiducialMm) {
-    errors.add('fiducials.sizeMm ${fid.sizeMm} outside '
-        '[${limits.minFiducialMm}, ${limits.maxFiducialMm}] — too small to '
-        'template-match reliably, too large wastes corner space');
+    errors.add(
+      'fiducials.sizeMm ${fid.sizeMm} outside '
+      '[${limits.minFiducialMm}, ${limits.maxFiducialMm}] — too small to '
+      'template-match reliably, too large wastes corner space',
+    );
   }
   if (fid.whiteSurroundMm < limits.minWhiteSurroundMm) {
-    errors.add('fiducials.whiteSurroundMm ${fid.whiteSurroundMm} < '
-        '${limits.minWhiteSurroundMm}');
+    errors.add(
+      'fiducials.whiteSurroundMm ${fid.whiteSurroundMm} < '
+      '${limits.minWhiteSurroundMm}',
+    );
   }
   if (fid.sizeMm <= spec.bubbleStyle.majorAxisMm * 1.5) {
-    errors.add('fiducial ${fid.sizeMm}mm should be ~2.5-3x the bubble major '
-        'axis ${spec.bubbleStyle.majorAxisMm}mm for unambiguous matching '
-        '(got ${fid.sizeMm / spec.bubbleStyle.majorAxisMm}x)');
+    errors.add(
+      'fiducial ${fid.sizeMm}mm should be ~2.5-3x the bubble major '
+      'axis ${spec.bubbleStyle.majorAxisMm}mm for unambiguous matching '
+      '(got ${fid.sizeMm / spec.bubbleStyle.majorAxisMm}x)',
+    );
   }
   final corners = {'tl', 'tr', 'bl', 'br'};
   if (fid.squareCorners.toSet().intersection(corners).length !=
       fid.squareCorners.length) {
-    errors.add('fiducials.squareCorners ${fid.squareCorners} contains an '
-        'unknown corner (tl|tr|bl|br)');
+    errors.add(
+      'fiducials.squareCorners ${fid.squareCorners} contains an '
+      'unknown corner (tl|tr|bl|br)',
+    );
   }
   if (corners.difference(fid.squareCorners.toSet()).length != 1 ||
       !corners.contains(fid.altAnchorCorner) ||
       fid.squareCorners.contains(fid.altAnchorCorner)) {
-    errors.add('fiducials: exactly one corner must carry the L anchor and it '
-        'must not also be a square corner (squares=${fid.squareCorners}, '
-        'alt=${fid.altAnchorCorner})');
+    errors.add(
+      'fiducials: exactly one corner must carry the L anchor and it '
+      'must not also be a square corner (squares=${fid.squareCorners}, '
+      'alt=${fid.altAnchorCorner})',
+    );
   }
 
   // ---- QR zone ---------------------------------------------------------
   if (spec.qrZone.sizeMm < limits.minQrMm) {
-    errors.add('qrZone.sizeMm ${spec.qrZone.sizeMm} < ${limits.minQrMm} '
-        '(phone cameras need the modules large)');
+    errors.add(
+      'qrZone.sizeMm ${spec.qrZone.sizeMm} < ${limits.minQrMm} '
+      '(phone cameras need the modules large)',
+    );
   }
 
   final geo = LayoutGeometry.of(spec);
@@ -139,22 +160,28 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
         body.top < limits.minFiducialEdgeMm ||
         spec.paperWidthMm - body.right < limits.minFiducialEdgeMm ||
         spec.paperHeightMm - body.bottom < limits.minFiducialEdgeMm) {
-      errors.add('fiducial "${entry.key}" comes within '
-          '${limits.minFiducialEdgeMm}mm of the paper edge — most printers '
-          'cannot keep it solid ($body)');
+      errors.add(
+        'fiducial "${entry.key}" comes within '
+        '${limits.minFiducialEdgeMm}mm of the paper edge — most printers '
+        'cannot keep it solid ($body)',
+      );
     }
   }
 
   final qr = geo.qrRect;
   if (qr.x < spec.marginMm - 0.01) {
-    errors.add('qr zone does not fit: requested ${spec.qrZone.sizeMm}mm at '
-        'the top-right but the TR fiducial surround pushed it left of the '
-        'margin ($qr) — reduce qrZone.sizeMm or inset the fiducials');
+    errors.add(
+      'qr zone does not fit: requested ${spec.qrZone.sizeMm}mm at '
+      'the top-right but the TR fiducial surround pushed it left of the '
+      'margin ($qr) — reduce qrZone.sizeMm or inset the fiducials',
+    );
   }
   for (final entry in geo.fiducialCenters.entries) {
     if (geo.fiducialZone(entry.key).intersects(qr)) {
-      errors.add('qr zone $qr overlaps the white surround of fiducial '
-          '"${entry.key}"');
+      errors.add(
+        'qr zone $qr overlaps the white surround of fiducial '
+        '"${entry.key}"',
+      );
     }
   }
 
@@ -170,18 +197,25 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
     final prefix = 'block "${block.blockId}"';
 
     if (block.bubblePitchMm <= 0 || block.rowPitchMm <= 0) {
-      errors.add('$prefix: pitches must be positive '
-          '(bubble ${block.bubblePitchMm}, row ${block.rowPitchMm})');
+      errors.add(
+        '$prefix: pitches must be positive '
+        '(bubble ${block.bubblePitchMm}, row ${block.rowPitchMm})',
+      );
       continue;
     }
-    if (block.options < limits.minOptions || block.options > limits.maxOptions) {
-      errors.add('$prefix: options ${block.options} outside '
-          '[${limits.minOptions}, ${limits.maxOptions}]');
+    if (block.options < limits.minOptions ||
+        block.options > limits.maxOptions) {
+      errors.add(
+        '$prefix: options ${block.options} outside '
+        '[${limits.minOptions}, ${limits.maxOptions}]',
+      );
     }
     if (block.bubbleValues != null &&
         block.bubbleValues!.length != block.options) {
-      errors.add('$prefix: ${block.bubbleValues!.length} bubbleValues for '
-          '${block.options} options');
+      errors.add(
+        '$prefix: ${block.bubbleValues!.length} bubbleValues for '
+        '${block.options} options',
+      );
     }
 
     List<String> fields;
@@ -200,8 +234,10 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
     for (final f in fields) {
       final owner = seenFields[f];
       if (owner != null) {
-        errors.add('field key "$f" appears in both "$owner" and '
-            '"${block.blockId}" — field keys must be globally unique');
+        errors.add(
+          'field key "$f" appears in both "$owner" and '
+          '"${block.blockId}" — field keys must be globally unique',
+        );
       } else {
         seenFields[f] = block.blockId;
       }
@@ -212,34 +248,41 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
     final pitchAlongOptions = block.bubblePitchMm;
     final pitchAlongFields = block.rowPitchMm;
     if (pitchAlongOptions < limits.minPitchRatio * major) {
-      errors.add('$prefix: bubblePitchMm $pitchAlongOptions < '
-          '${limits.minPitchRatio} x $major (major axis) — filled marks will '
-          'bleed between neighbouring options');
+      errors.add(
+        '$prefix: bubblePitchMm $pitchAlongOptions < '
+        '${limits.minPitchRatio} x $major (major axis) — filled marks will '
+        'bleed between neighbouring options',
+      );
     }
     if (pitchAlongFields < limits.minPitchRatio * major) {
-      errors.add('$prefix: rowPitchMm $pitchAlongFields < '
-          '${limits.minPitchRatio} x $major (major axis) — rows are too tight '
-          'to separate');
+      errors.add(
+        '$prefix: rowPitchMm $pitchAlongFields < '
+        '${limits.minPitchRatio} x $major (major axis) — rows are too tight '
+        'to separate',
+      );
     }
 
     // Extent inside the content rect, with a bubble-to-edge gap.
-    final extent =
-        block.extentMm(bubbleW: bs.wMm, bubbleH: bs.hMm);
+    final extent = block.extentMm(bubbleW: bs.wMm, bubbleH: bs.hMm);
     final inner = content.inflate(-limits.minBubbleEdgeGapMm);
     if (extent.left < inner.left ||
         extent.right > inner.right ||
         extent.top < inner.top ||
         extent.bottom > inner.bottom) {
-      errors.add('$prefix: extent $extent overflows the content rect '
-          '$content (gap >= ${limits.minBubbleEdgeGapMm} required) — reduce '
-          'rows, tighten pitch, or shrink the bubble');
+      errors.add(
+        '$prefix: extent $extent overflows the content rect '
+        '$content (gap >= ${limits.minBubbleEdgeGapMm} required) — reduce '
+        'rows, tighten pitch, or shrink the bubble',
+      );
     }
 
     // Fiducial zones must stay clear of every block.
     for (final entry in geo.fiducialCenters.entries) {
       if (geo.fiducialZone(entry.key).intersects(extent)) {
-        errors.add('$prefix: extent $extent enters the white surround of '
-            'fiducial "${entry.key}"');
+        errors.add(
+          '$prefix: extent $extent enters the white surround of '
+          'fiducial "${entry.key}"',
+        );
       }
     }
     if (geo.qrRect.intersects(extent)) {
@@ -258,8 +301,10 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
   if (mcqBlocks.isNotEmpty) {
     final t = spec.timingTrack;
     if (t.barHMm >= mcqBlocks.first.rowPitchMm) {
-      errors.add('timingTrack.barHMm ${t.barHMm} must be smaller than the MCQ '
-          'row pitch ${mcqBlocks.first.rowPitchMm} or bars merge');
+      errors.add(
+        'timingTrack.barHMm ${t.barHMm} must be smaller than the MCQ '
+        'row pitch ${mcqBlocks.first.rowPitchMm} or bars merge',
+      );
     }
     if (t.barWMm <= 0 || t.barHMm <= 0) {
       errors.add('timingTrack bar dimensions must be positive');
@@ -268,25 +313,33 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
       final ref = firstMcq!;
       for (final b in mcqBlocks.skip(1)) {
         if ((b.rowPitchMm - ref.rowPitchMm).abs() > 0.01) {
-          errors.add('MCQ block "${b.blockId}" rowPitchMm ${b.rowPitchMm} '
-              'differs from "${ref.blockId}" ${ref.rowPitchMm} — the timing '
-              'track is derived from ONE shared row grid');
+          errors.add(
+            'MCQ block "${b.blockId}" rowPitchMm ${b.rowPitchMm} '
+            'differs from "${ref.blockId}" ${ref.rowPitchMm} — the timing '
+            'track is derived from ONE shared row grid',
+          );
         }
         if ((b.originMm.y - ref.originMm.y).abs() > 0.01) {
-          errors.add('MCQ block "${b.blockId}" origin y ${b.originMm.y} '
-              'differs from "${ref.blockId}" ${ref.originMm.y} — rows must '
-              'share the grid so one timing bar covers every column');
+          errors.add(
+            'MCQ block "${b.blockId}" origin y ${b.originMm.y} '
+            'differs from "${ref.blockId}" ${ref.originMm.y} — rows must '
+            'share the grid so one timing bar covers every column',
+          );
         }
       }
     }
     final trackZone = geo.timingTrackZone;
     if (trackZone != null) {
       for (final b in spec.fieldBlocks) {
-        final extent =
-            b.extentMm(bubbleW: spec.bubbleStyle.wMm, bubbleH: spec.bubbleStyle.hMm);
+        final extent = b.extentMm(
+          bubbleW: spec.bubbleStyle.wMm,
+          bubbleH: spec.bubbleStyle.hMm,
+        );
         if (extent.intersects(trackZone)) {
-          errors.add('block "${b.blockId}" extent $extent violates the timing '
-              'track clearance (zone $trackZone)');
+          errors.add(
+            'block "${b.blockId}" extent $extent violates the timing '
+            'track clearance (zone $trackZone)',
+          );
         }
       }
     }
@@ -299,23 +352,28 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
   if (roll == null) {
     errors.add('no rollDigits block — every sheet needs a roll-number field');
   } else {
-    final expected =
-        spec.rollDigits + (spec.rollChecksum ? 1 : 0);
+    final expected = spec.rollDigits + (spec.rollChecksum ? 1 : 0);
     if (roll.fields.length != expected) {
-      errors.add('roll block has ${roll.fields.length} columns; rollDigits '
-          '${spec.rollDigits} + checksum ${spec.rollChecksum ? 1 : 0} = '
-          '$expected expected');
+      errors.add(
+        'roll block has ${roll.fields.length} columns; rollDigits '
+        '${spec.rollDigits} + checksum ${spec.rollChecksum ? 1 : 0} = '
+        '$expected expected',
+      );
     }
     if (roll.direction != BlockDirection.horizontal) {
-      errors.add('roll block must be horizontal (digit columns advancing '
-          'right, 0-9 stacked vertically)');
+      errors.add(
+        'roll block must be horizontal (digit columns advancing '
+        'right, 0-9 stacked vertically)',
+      );
     }
     if (roll.options != 10) {
       errors.add('roll block must offer digits 0-9 (options=${roll.options})');
     }
     if (roll.originMm.y < content.top) {
-      errors.add('roll block origin y ${roll.originMm.y} above content top '
-          '${content.top}');
+      errors.add(
+        'roll block origin y ${roll.originMm.y} above content top '
+        '${content.top}',
+      );
     }
   }
 
@@ -324,20 +382,22 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
     errors.add('no setCode block — sheet-to-set binding is required');
   } else {
     if (setBlock.fields.length != 1) {
-      errors.add('set block must have exactly one field '
-          '(${setBlock.fields.length} given)');
+      errors.add(
+        'set block must have exactly one field '
+        '(${setBlock.fields.length} given)',
+      );
     }
     if (setBlock.bubbleValues == null ||
         !_listsEqual(setBlock.bubbleValues!, spec.setValues)) {
-      errors.add('set block bubbleValues ${setBlock.bubbleValues} != '
-          'setValues ${spec.setValues}');
+      errors.add(
+        'set block bubbleValues ${setBlock.bubbleValues} != '
+        'setValues ${spec.setValues}',
+      );
     }
   }
 
   // ---- sections cover exactly the MCQ questions --------------------------
-  final mcqFields = <String>{
-    for (final b in mcqBlocks) ...b.fields,
-  };
+  final mcqFields = <String>{for (final b in mcqBlocks) ...b.fields};
   final sectionFields = <String>{};
   for (final s in spec.sections) {
     List<String> labels;
@@ -354,43 +414,60 @@ void validateSheetSpec(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) 
       sectionFields.add(q);
     }
     if (s.maxCounted != null && s.maxCounted! > labels.length) {
-      errors.add('section "${s.id}": maxCounted ${s.maxCounted} > '
-          '${labels.length} questions');
+      errors.add(
+        'section "${s.id}": maxCounted ${s.maxCounted} > '
+        '${labels.length} questions',
+      );
     }
   }
   final missing = mcqFields.difference(sectionFields).toList()..sort();
   final extra = sectionFields.difference(mcqFields).toList()..sort();
   if (missing.isNotEmpty) {
-    errors.add('questions not covered by any section: '
-        '${_summarize(missing)}');
+    errors.add(
+      'questions not covered by any section: '
+      '${_summarize(missing)}',
+    );
   }
   if (extra.isNotEmpty) {
-    errors.add('sections reference non-existent questions: '
-        '${_summarize(extra)}');
+    errors.add(
+      'sections reference non-existent questions: '
+      '${_summarize(extra)}',
+    );
   }
 
   _throwIfAny(errors);
 }
 
-void _validateBubbleStyle(BubbleStyle bs, SpecLimits limits,
-    List<String> errors) {
+void _validateBubbleStyle(
+  BubbleStyle bs,
+  SpecLimits limits,
+  List<String> errors,
+) {
   if (bs.wMm < limits.minBubbleMm || bs.wMm > limits.maxBubbleMm) {
-    errors.add('bubbleStyle.wMm ${bs.wMm} outside '
-        '[${limits.minBubbleMm}, ${limits.maxBubbleMm}] — below 3mm phone '
-        'photos cannot segment, above 6mm sheets get sparse');
+    errors.add(
+      'bubbleStyle.wMm ${bs.wMm} outside '
+      '[${limits.minBubbleMm}, ${limits.maxBubbleMm}] — below 3mm phone '
+      'photos cannot segment, above 6mm sheets get sparse',
+    );
   }
   if (bs.hMm < limits.minBubbleMm || bs.hMm > limits.maxBubbleMm) {
-    errors.add('bubbleStyle.hMm ${bs.hMm} outside '
-        '[${limits.minBubbleMm}, ${limits.maxBubbleMm}]');
+    errors.add(
+      'bubbleStyle.hMm ${bs.hMm} outside '
+      '[${limits.minBubbleMm}, ${limits.maxBubbleMm}]',
+    );
   }
   if (bs.hMm > bs.wMm) {
-    errors.add('bubbleStyle.hMm ${bs.hMm} > wMm ${bs.wMm} — the oval major '
-        'axis must be horizontal for the vertical-strip reader');
+    errors.add(
+      'bubbleStyle.hMm ${bs.hMm} > wMm ${bs.wMm} — the oval major '
+      'axis must be horizontal for the vertical-strip reader',
+    );
   }
   if (bs.strokeMm < limits.minStrokeMm || bs.strokeMm > limits.maxStrokeMm) {
-    errors.add('bubbleStyle.strokeMm ${bs.strokeMm} outside '
-        '[${limits.minStrokeMm}, ${limits.maxStrokeMm}] — thin enough to '
-        'drop out, thick enough to photocopy');
+    errors.add(
+      'bubbleStyle.strokeMm ${bs.strokeMm} outside '
+      '[${limits.minStrokeMm}, ${limits.maxStrokeMm}] — thin enough to '
+      'drop out, thick enough to photocopy',
+    );
   }
 }
 
@@ -412,7 +489,10 @@ void _throwIfAny(List<String> errors) {
 }
 
 /// Convenience: validate-and-return for builder chains.
-SheetSpec validateOrThrow(SheetSpec spec, {SpecLimits limits = defaultSpecLimits}) {
+SheetSpec validateOrThrow(
+  SheetSpec spec, {
+  SpecLimits limits = defaultSpecLimits,
+}) {
   validateSheetSpec(spec, limits: limits);
   return spec;
 }

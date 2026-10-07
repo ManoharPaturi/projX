@@ -83,9 +83,7 @@ class ThresholdEngine {
   /// [strips] maps fieldKey → option means in option-axis order. One pass
   /// over every bubble on the sheet.
   ThresholdResult compute(Map<String, List<double>> strips) {
-    final pooled = <double>[
-      for (final values in strips.values) ...values,
-    ];
+    final pooled = <double>[for (final values in strips.values) ...values];
     final global = _global(pooled);
     final globalStd = _std(pooled);
 
@@ -135,11 +133,7 @@ class ThresholdEngine {
     );
   }
 
-  StripThreshold _strip(
-    List<double> values,
-    double global,
-    double globalStd,
-  ) {
+  StripThreshold _strip(List<double> values, double global, double globalStd) {
     if (values.length < 3) {
       return StripThreshold(
         threshold: global,
@@ -150,7 +144,8 @@ class ThresholdEngine {
       );
     }
     final spread =
-        values.reduce((a, b) => a > b ? a : b) - values.reduce((a, b) => a < b ? a : b);
+        values.reduce((a, b) => a > b ? a : b) -
+        values.reduce((a, b) => a < b ? a : b);
     if (spread <= config.minGap) {
       return StripThreshold(
         threshold: global,

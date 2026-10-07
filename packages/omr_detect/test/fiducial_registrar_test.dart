@@ -17,17 +17,17 @@ void main() {
   const imgW = 1200, imgH = 1600;
   const qx0 = 130.0, qy0 = 140.0, qx1 = 1070.0, qy1 = 1460.0;
 
-  DetectionTemplate template() =>
-      compileDetectionTemplate(buildStandard90());
+  DetectionTemplate template() => compileDetectionTemplate(buildStandard90());
 
   ({double x, double y}) canvasToImage(double cx, double cy) => (
-        x: qx0 + cx / template().canvasWidth * (qx1 - qx0),
-        y: qy0 + cy / template().canvasHeight * (qy1 - qy0),
-      );
+    x: qx0 + cx / template().canvasWidth * (qx1 - qx0),
+    y: qy0 + cy / template().canvasHeight * (qy1 - qy0),
+  );
 
   /// Photo with the sheet, anchors, and (optionally) one anchor missing.
-  ({Uint8List bytes, List<({double x, double y})> centers}) photo(
-      {String? dropCorner}) {
+  ({Uint8List bytes, List<({double x, double y})> centers}) photo({
+    String? dropCorner,
+  }) {
     final bytes = Uint8List(imgW * imgH);
     bytes.fillRange(0, bytes.length, 60); // dark desk
     final centers = <({double x, double y})>[];
@@ -58,19 +58,34 @@ void main() {
     addTearDown(() => cv.dispose(gray));
 
     final plan = fiducialSearchPlan(t, imgW, imgH);
-    final report = FiducialRegistrar().register(cv, gray, plan, imageWidth: imgW);
+    final report = FiducialRegistrar().register(
+      cv,
+      gray,
+      plan,
+      imageWidth: imgW,
+    );
 
-    expect(report.ok, isTrue,
-        reason: 'clean anchors must all be accepted '
-            '(scores: ${report.matches.map((m) => m?.score.toStringAsFixed(2))})');
+    expect(
+      report.ok,
+      isTrue,
+      reason:
+          'clean anchors must all be accepted '
+          '(scores: ${report.matches.map((m) => m?.score.toStringAsFixed(2))})',
+    );
     expect(report.accepted.length, t.fiducials.length);
     for (var i = 0; i < report.matches.length; i++) {
       final m = report.matches[i]!;
       final want = p.centers[i];
-      expect((m.center.x - want.x).abs(), lessThan(10),
-          reason: 'anchor $i x: ${m.center.x} vs ${want.x.toStringAsFixed(1)}');
-      expect((m.center.y - want.y).abs(), lessThan(10),
-          reason: 'anchor $i y: ${m.center.y} vs ${want.y.toStringAsFixed(1)}');
+      expect(
+        (m.center.x - want.x).abs(),
+        lessThan(10),
+        reason: 'anchor $i x: ${m.center.x} vs ${want.x.toStringAsFixed(1)}',
+      );
+      expect(
+        (m.center.y - want.y).abs(),
+        lessThan(10),
+        reason: 'anchor $i y: ${m.center.y} vs ${want.y.toStringAsFixed(1)}',
+      );
     }
   });
 
@@ -81,17 +96,28 @@ void main() {
     addTearDown(() => cv.dispose(gray));
 
     final plan = fiducialSearchPlan(t, imgW, imgH);
-    final report = FiducialRegistrar().register(cv, gray, plan, imageWidth: imgW);
+    final report = FiducialRegistrar().register(
+      cv,
+      gray,
+      plan,
+      imageWidth: imgW,
+    );
 
     // The missing anchor's quadrant has nothing better than desk texture:
     // either its score collapses (deviation gate) or it never clears
     // acceptScore. Either way the report must NOT claim all four.
-    expect(report.ok, isFalse,
-        reason: 'a missing anchor must not fabricate a match '
-            '(scores: ${report.matches.map((m) => m?.score.toStringAsFixed(2))})');
-    expect(report.accepted, isNot(contains(t.fiducials.indexWhere(
-            (f) => f.corner == 'br'))),
-        reason: 'the occluded quadrant specifically must be rejected');
+    expect(
+      report.ok,
+      isFalse,
+      reason:
+          'a missing anchor must not fabricate a match '
+          '(scores: ${report.matches.map((m) => m?.score.toStringAsFixed(2))})',
+    );
+    expect(
+      report.accepted,
+      isNot(contains(t.fiducials.indexWhere((f) => f.corner == 'br'))),
+      reason: 'the occluded quadrant specifically must be rejected',
+    );
   });
 
   test('the search plan keeps each anchor inside its own quadrant', () {
@@ -103,13 +129,18 @@ void main() {
       // crosses the far midline.
       expect(s.quadrant.width, lessThanOrEqualTo(imgW ~/ 2 + imgW * 0.08));
       final c = canvasToImage(s.canvasX, s.canvasY);
-      final inside = c.x >= s.quadrant.x &&
+      final inside =
+          c.x >= s.quadrant.x &&
           c.x < s.quadrant.x + s.quadrant.width &&
           c.y >= s.quadrant.y &&
           c.y < s.quadrant.y + s.quadrant.height;
-      expect(inside, isTrue,
-          reason: '${s.corner} anchor at (${c.x.toStringAsFixed(0)}, '
-              '${c.y.toStringAsFixed(0)}) escapes rect ${s.quadrant}');
+      expect(
+        inside,
+        isTrue,
+        reason:
+            '${s.corner} anchor at (${c.x.toStringAsFixed(0)}, '
+            '${c.y.toStringAsFixed(0)}) escapes rect ${s.quadrant}',
+      );
     }
   });
 }

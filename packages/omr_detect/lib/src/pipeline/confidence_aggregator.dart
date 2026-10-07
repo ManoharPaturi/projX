@@ -123,11 +123,9 @@ class ConfidenceAggregator {
   /// 0 at the band edge, 1 one band-width beyond it; stray marks multiply by
   /// the stray penalty.
   double bubbleConfidence(BubbleRead bubble) {
-    final distance =
-        (bubble.sample.meanIntensity - bubble.thresholdUsed).abs();
+    final distance = (bubble.sample.meanIntensity - bubble.thresholdUsed).abs();
     final base = _clamp01((distance - config.zoneBand) / config.zoneBand);
-    final stray =
-        bubble.sample.strayMark ? 1 - config.strayPenalty : 1.0;
+    final stray = bubble.sample.strayMark ? 1 - config.strayPenalty : 1.0;
     return _clamp01(base * stray);
   }
 

@@ -6,11 +6,11 @@ import 'package:omr_detect/omr_detect.dart';
 /// misses reset progress only after the third, and the trigger is one-shot.
 void main() {
   List<CvPointI> quadAt(int x, int y, int w, int h) => [
-        CvPointI(x, y),
-        CvPointI(x + w, y),
-        CvPointI(x + w, y + h),
-        CvPointI(x, y + h),
-      ];
+    CvPointI(x, y),
+    CvPointI(x + w, y),
+    CvPointI(x + w, y + h),
+    CvPointI(x, y + h),
+  ];
 
   final sheet = quadAt(60, 40, 520, 400);
 
@@ -32,8 +32,11 @@ void main() {
     // on them — the shutter fires on update 36.
     expect(firedAt, 36, reason: 'dwell must be ~35 stable passes, not instant');
     expect(fired!.progress, 0, reason: 'the trigger consumes the counter');
-    expect(fired.consensusQuad, sheet,
-        reason: 'the shutter instant still knows where the sheet is');
+    expect(
+      fired.consensusQuad,
+      sheet,
+      reason: 'the shutter instant still knows where the sheet is',
+    );
 
     // One-shot: the next identical frame starts a fresh window, not another
     // trigger — the session owns the shutter consequence.
@@ -53,8 +56,11 @@ void main() {
     expect(last.stableCount, 34);
     expect(last.progress, closeTo(34 / 35, 0.001));
     expect(last.triggered, isFalse);
-    expect(last.consensusQuad, isNotNull,
-        reason: 'a locked-on overlay needs the averaged quad');
+    expect(
+      last.consensusQuad,
+      isNotNull,
+      reason: 'a locked-on overlay needs the averaged quad',
+    );
   });
 
   test('a jiggling phone never triggers', () {
@@ -66,8 +72,11 @@ void main() {
     for (var i = 0; i < 200; i++) {
       final s = hyst.update(i.isEven ? a : b);
       triggered |= s.triggered;
-      expect(s.stableCount, 1,
-          reason: 'every frame disagrees with the recent window');
+      expect(
+        s.stableCount,
+        1,
+        reason: 'every frame disagrees with the recent window',
+      );
     }
     expect(triggered, isFalse);
   });
@@ -80,9 +89,7 @@ void main() {
     final hyst = QuadHysteresis();
     var triggered = false;
     for (var i = 0; i < 100; i++) {
-      triggered |= hyst
-          .update(quadAt(60 + i, 40 + i, 520, 400))
-          .triggered;
+      triggered |= hyst.update(quadAt(60 + i, 40 + i, 520, 400)).triggered;
     }
     expect(triggered, isTrue);
   });
@@ -109,7 +116,11 @@ void main() {
       }
       final s = hyst.update(null);
       expect(s.tracking, isFalse);
-      expect(s.stableCount, 9, reason: 'dwell survives transient detector loss');
+      expect(
+        s.stableCount,
+        9,
+        reason: 'dwell survives transient detector loss',
+      );
     });
 
     test('three consecutive misses reset the dwell entirely', () {
@@ -128,8 +139,11 @@ void main() {
       // And the next sighting starts from warm-up, not from the old window.
       final fresh = hyst.update(sheet);
       expect(fresh.stableCount, 1);
-      expect(fresh.consensusQuad, isNotNull,
-          reason: 'a single quad is its own overlay candidate');
+      expect(
+        fresh.consensusQuad,
+        isNotNull,
+        reason: 'a single quad is its own overlay candidate',
+      );
     });
 
     test('a malformed quad counts as a miss, not as agreement', () {

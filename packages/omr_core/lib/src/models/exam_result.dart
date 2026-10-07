@@ -35,7 +35,8 @@ final class ExamResult {
     required ExamResultStatus status,
   }) {
     final Map<QuestionOutcomeKind, int> counts = <QuestionOutcomeKind, int>{
-      for (final QuestionOutcomeKind kind in QuestionOutcomeKind.values) kind: 0,
+      for (final QuestionOutcomeKind kind in QuestionOutcomeKind.values)
+        kind: 0,
     };
     double total = 0;
     for (final QuestionOutcome o in outcomes) {

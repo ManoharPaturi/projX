@@ -16,26 +16,28 @@ void main() {
 
   tearDown(() => db.close());
 
-  test('imports new rolls and reports existing ones without updating them',
-      () async {
-    await db.studentsDao.importRoster(kTenantId, instituteId, const [
-      RosterEntry(rollNo: 'R001', name: 'First'),
-    ]);
+  test(
+    'imports new rolls and reports existing ones without updating them',
+    () async {
+      await db.studentsDao.importRoster(kTenantId, instituteId, const [
+        RosterEntry(rollNo: 'R001', name: 'First'),
+      ]);
 
-    final second = await db.studentsDao.importRoster(kTenantId, instituteId, [
-      const RosterEntry(rollNo: 'R001', name: 'Imposter'),
-      const RosterEntry(rollNo: 'R002'),
-    ]);
+      final second = await db.studentsDao.importRoster(kTenantId, instituteId, [
+        const RosterEntry(rollNo: 'R001', name: 'Imposter'),
+        const RosterEntry(rollNo: 'R002'),
+      ]);
 
-    expect(second.imported, 1);
-    expect(second.existingRolls, ['R001']);
-    expect(second.clean, isFalse);
+      expect(second.imported, 1);
+      expect(second.existingRolls, ['R001']);
+      expect(second.clean, isFalse);
 
-    // An import must never rewrite an enrolled student's name.
-    final roster = await db.studentsDao.rosterFor(instituteId);
-    expect(roster.singleWhere((s) => s.rollNo == 'R001').name, 'First');
-    expect(roster.map((s) => s.rollNo), ['R001', 'R002']);
-  });
+      // An import must never rewrite an enrolled student's name.
+      final roster = await db.studentsDao.rosterFor(instituteId);
+      expect(roster.singleWhere((s) => s.rollNo == 'R001').name, 'First');
+      expect(roster.map((s) => s.rollNo), ['R001', 'R002']);
+    },
+  );
 
   test('repeats inside one file keep only the first copy', () async {
     final result = await db.studentsDao.importRoster(kTenantId, instituteId, [
@@ -47,10 +49,7 @@ void main() {
     expect(result.imported, 1);
     expect(result.duplicatesInFile, ['R001', 'R001']);
     expect(await db.studentsDao.count(instituteId), 1);
-    expect(
-      (await db.studentsDao.rosterFor(instituteId)).single.name,
-      'Winner',
-    );
+    expect((await db.studentsDao.rosterFor(instituteId)).single.name, 'Winner');
   });
 
   test('blank rolls are refused before touching the table', () async {
@@ -86,13 +85,17 @@ void main() {
         RosterEntry(rollNo: roll),
     ]);
 
+    expect((await db.studentsDao.rosterFor(instituteId)).map((s) => s.rollNo), [
+      'A001',
+      'A002',
+      'R010',
+      'R011',
+    ]);
     expect(
-      (await db.studentsDao.rosterFor(instituteId)).map((s) => s.rollNo),
-      ['A001', 'A002', 'R010', 'R011'],
-    );
-    expect(
-      (await db.studentsDao.rosterFor(instituteId, query: 'r01'))
-          .map((s) => s.rollNo),
+      (await db.studentsDao.rosterFor(
+        instituteId,
+        query: 'r01',
+      )).map((s) => s.rollNo),
       ['R010', 'R011'],
       reason: 'case-insensitive roll filter for the search box',
     );

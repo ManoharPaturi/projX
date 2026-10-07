@@ -247,7 +247,8 @@ final class ExamGrader {
     final Map<String, ExamResult> results = <String, ExamResult>{};
     final Map<QuestionId, List<QuestionOutcome>> byQuestion =
         <QuestionId, List<QuestionOutcome>>{
-          for (final QuestionId q in request.questionOrder) q: <QuestionOutcome>[],
+          for (final QuestionId q in request.questionOrder)
+            q: <QuestionOutcome>[],
         };
 
     for (final MapEntry<String, SheetRead> entry in request.reads.entries) {
@@ -256,7 +257,11 @@ final class ExamGrader {
       final List<QuestionOutcome> outcomes = <QuestionOutcome>[];
       final Map<SubjectId, double> subjectTotals = <SubjectId, double>{};
 
-      final Set<QuestionId> beyondCap = _questionsBeyondCap(request, prepared, read);
+      final Set<QuestionId> beyondCap = _questionsBeyondCap(
+        request,
+        prepared,
+        read,
+      );
 
       for (final QuestionId q in request.questionOrder) {
         final KeyEntry keyEntry = request.key[q]!;
@@ -273,7 +278,8 @@ final class ExamGrader {
         outcomes.add(outcome);
         byQuestion[q]!.add(outcome);
         final SubjectId bucket = section?.subjectKey ?? _unsectioned;
-        subjectTotals[bucket] = (subjectTotals[bucket] ?? 0) + outcome.marksAwarded;
+        subjectTotals[bucket] =
+            (subjectTotals[bucket] ?? 0) + outcome.marksAwarded;
       }
 
       final bool doubtful =
@@ -317,11 +323,9 @@ final class ExamGrader {
         request.examDefaultRuleId;
     final ScoringRule rule = prepared.rulesById[ruleId]!;
     final MarkedResponse response = read.responseFor(questionId);
-    final QuestionOutcome base = ScoringStrategies.forRule(rule).score(
-      response,
-      keyEntry,
+    final QuestionOutcome base = ScoringStrategies.forRule(
       rule,
-    );
+    ).score(response, keyEntry, rule);
 
     // Cap first: an overflow response is void, so there is nothing for a key
     // correction to revise.
@@ -407,8 +411,7 @@ final class ExamGrader {
       }
       final List<QuestionId> ordered = section.questionIds.toList()
         ..sort(
-          (QuestionId a, QuestionId b) =>
-              ordinal[a]!.compareTo(ordinal[b]!),
+          (QuestionId a, QuestionId b) => ordinal[a]!.compareTo(ordinal[b]!),
         );
       for (final QuestionId q in section.questionIds) {
         if (!ordinal.containsKey(q)) {
@@ -440,8 +443,10 @@ final class ExamGrader {
     _keyCorrection.validate(request.keyCorrectionRule);
     for (final String id in <String>{
       request.examDefaultRuleId,
-      for (final SectionSpec s in request.sections) if (s.defaultRuleId != null) s.defaultRuleId!,
-      for (final KeyEntry k in request.key.values) if (k.scoringRuleId != null) k.scoringRuleId!,
+      for (final SectionSpec s in request.sections)
+        if (s.defaultRuleId != null) s.defaultRuleId!,
+      for (final KeyEntry k in request.key.values)
+        if (k.scoringRuleId != null) k.scoringRuleId!,
     }) {
       final ScoringRule? rule = rulesById[id];
       if (rule == null) {
@@ -465,22 +470,37 @@ final class ExamGrader {
     final List<double> multiMarkRates = <double>[];
 
     for (final QuestionId q in request.questionOrder) {
-      final List<QuestionOutcome> outcomes = byQuestion[q] ?? const <QuestionOutcome>[];
-      int correct = 0, partial = 0, wrong = 0, unattempted = 0, invalidated = 0, bonus = 0;
+      final List<QuestionOutcome> outcomes =
+          byQuestion[q] ?? const <QuestionOutcome>[];
+      int correct = 0,
+          partial = 0,
+          wrong = 0,
+          unattempted = 0,
+          invalidated = 0,
+          bonus = 0;
       double marks = 0;
       for (final QuestionOutcome o in outcomes) {
         marks += o.marksAwarded;
         switch (o.kind) {
-          case QuestionOutcomeKind.correct: correct++;
-          case QuestionOutcomeKind.partial: partial++;
-          case QuestionOutcomeKind.wrong: wrong++;
-          case QuestionOutcomeKind.unattempted: unattempted++;
-          case QuestionOutcomeKind.invalidated: invalidated++;
-          case QuestionOutcomeKind.bonus: bonus++;
+          case QuestionOutcomeKind.correct:
+            correct++;
+          case QuestionOutcomeKind.partial:
+            partial++;
+          case QuestionOutcomeKind.wrong:
+            wrong++;
+          case QuestionOutcomeKind.unattempted:
+            unattempted++;
+          case QuestionOutcomeKind.invalidated:
+            invalidated++;
+          case QuestionOutcomeKind.bonus:
+            bonus++;
         }
       }
       final int multiMarked = request.reads.values
-          .where((SheetRead r) => r.responses[q]?.validity == ResponseValidity.multiMarked)
+          .where(
+            (SheetRead r) =>
+                r.responses[q]?.validity == ResponseValidity.multiMarked,
+          )
           .length;
       final SectionSpec? section = prepared.sectionOf[q];
       final int attempted = outcomes.length - unattempted;

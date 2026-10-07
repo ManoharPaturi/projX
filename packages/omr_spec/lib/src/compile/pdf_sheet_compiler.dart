@@ -9,6 +9,22 @@ import '../models/units.dart';
 import '../schema/sheet_spec_schema.dart';
 import 'layout_geometry.dart';
 
+/// Print-only interior fill for one field's bubbles — the calibration
+/// sheet's reference ink levels (plan §9). Gray is 0=black..255=white.
+///
+/// Deliberately NOT part of [SheetSpec] or its JSON: fills are ink, not
+/// geometry — they neither enter `specHash` nor bump `layoutVersion`, and
+/// detection never knows they existed.
+class BubbleFill {
+  const BubbleFill({required this.optionIndexes, required this.gray});
+
+  /// Which option indexes of the field carry the fill.
+  final List<int> optionIndexes;
+
+  /// Printed gray level.
+  final int gray;
+}
+
 /// Compiles a validated [SheetSpec] to a print-ready, vector PDF.
 ///
 /// The ONLY other consumer of the spec's mm geometry is the detection
@@ -18,9 +34,13 @@ import 'layout_geometry.dart';
 /// Ink discipline: everything a student writes near (bubble outlines, option
 /// letters, question numbers, labels) prints in the drop-out colour; only the
 /// registration marks (fiducials, timing bars, QR) print black.
+///
+/// [bubbleFills] is the calibration-sheet escape hatch: interior gray fills
+/// keyed by field key. Production sheets pass nothing.
 Future<Uint8List> compileSheetPdf(
   SheetSpec spec, {
   String? examTitle,
+  Map<String, BubbleFill>? bubbleFills,
 }) {
   validateSheetSpec(spec);
 
@@ -39,6 +59,7 @@ Future<Uint8List> compileSheetPdf(
     format: format,
     font: PdfFont.helvetica(doc),
     boldFont: PdfFont.helveticaBold(doc),
+    bubbleFills: bubbleFills ?? const {},
   ).paint(examTitle);
 
   return doc.save();
@@ -52,6 +73,7 @@ class _SheetPainter {
     required this.format,
     required this.font,
     required this.boldFont,
+    this.bubbleFills = const {},
   });
 
   final SheetSpec spec;
@@ -60,6 +82,7 @@ class _SheetPainter {
   final PdfPageFormat format;
   final PdfFont font;
   final PdfFont boldFont;
+  final Map<String, BubbleFill> bubbleFills;
 
   static const double _mm = PdfPageFormat.mm;
 
@@ -102,10 +125,12 @@ class _SheetPainter {
       top,
       color: _ink,
     );
-    final sub = '${spec.layoutId} v${spec.layoutVersion}'
-        // '·' (U+00B7) is Latin-1 safe; Helvetica here has no Unicode
-        // support and anything beyond Latin-1 throws at measure time.
-        '  ·  ${spec.instructionText}'.trim();
+    final sub =
+        '${spec.layoutId} v${spec.layoutVersion}'
+                // '·' (U+00B7) is Latin-1 safe; Helvetica here has no Unicode
+                // support and anything beyond Latin-1 throws at measure time.
+                '  ·  ${spec.instructionText}'
+            .trim();
     _drawTextCentered(
       font,
       7,
@@ -183,12 +208,14 @@ class _SheetPainter {
     for (var row = 0; row < n; row++) {
       for (var col = 0; col < n; col++) {
         if (!image.isDark(row, col)) continue;
-        _fillRect(MmRect(
-          rect.x + (quiet + col) * moduleMm,
-          rect.y + (quiet + row) * moduleMm,
-          moduleMm,
-          moduleMm,
-        ));
+        _fillRect(
+          MmRect(
+            rect.x + (quiet + col) * moduleMm,
+            rect.y + (quiet + row) * moduleMm,
+            moduleMm,
+            moduleMm,
+          ),
+        );
       }
     }
   }
@@ -292,14 +319,7 @@ class _SheetPainter {
     final topMm = _horizontalGridTopMm(block);
     for (var f = 0; f < block.fields.length; f++) {
       final c = block.bubbleCenter(f, 0);
-      _drawTextCentered(
-        font,
-        6,
-        '${f + 1}',
-        c.x,
-        topMm - 1.2,
-        color: _dropout,
-      );
+      _drawTextCentered(font, 6, '${f + 1}', c.x, topMm - 1.2, color: _dropout);
       for (var o = 0; o < 10; o++) {
         _paintBubble(block, f, o, label: '$o', sizePt: 6.5);
       }
@@ -328,16 +348,30 @@ class _SheetPainter {
   }) {
     final bs = spec.bubbleStyle;
     final c = block.bubbleCenter(fieldIndex, optionIndex);
+    final fieldKey = block.fields[fieldIndex];
+    final fill = bubbleFills[fieldKey];
 
     canvas.setStrokeColor(_dropout);
     canvas.setLineWidth(bs.strokeMm * _mm);
-    canvas.drawEllipse(
-      _x(c.x),
-      _y(c.y),
-      bs.wMm / 2 * _mm,
-      bs.hMm / 2 * _mm,
-    );
+    canvas.drawEllipse(_x(c.x), _y(c.y), bs.wMm / 2 * _mm, bs.hMm / 2 * _mm);
     canvas.strokePath();
+
+    // Calibration reference ink: an interior ellipse at the level's gray,
+    // inset past the 0.25mm stroke so the drop-out rim stays visible to the
+    // operator (detection never reads the rim either way).
+    if (fill != null && fill.optionIndexes.contains(optionIndex)) {
+      final g = fill.gray / 255;
+      canvas.setFillColor(PdfColor(g, g, g));
+      // Inset 20% of the radii — well inside the stroke, still covering the
+      // reader's inner-70% sample window.
+      canvas.drawEllipse(
+        _x(c.x),
+        _y(c.y),
+        bs.wMm / 2 * _mm * 0.8,
+        bs.hMm / 2 * _mm * 0.8,
+      );
+      canvas.fillPath();
+    }
 
     // Option letter/digit printed INSIDE the bubble in drop-out ink: the
     // reader samples the inner 70% where the mark sits, and the letter
@@ -348,7 +382,10 @@ class _SheetPainter {
       label,
       c.x,
       c.y,
-      color: _dropout,
+      color: fill != null && fill.optionIndexes.contains(optionIndex)
+          ? PdfColors
+                .white // letter over reference ink, for the operator
+          : _dropout,
     );
   }
 

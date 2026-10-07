@@ -43,12 +43,14 @@ final class TemplateCommand extends Command<int> {
     final template = compileDetectionTemplate(preset.build());
 
     if (argResults!['summary'] as bool) {
-      stdout.writeln('${template.layoutId} v${template.layoutVersion}: '
-          'canvas ${template.canvasWidth}x${template.canvasHeight}px, '
-          '${template.bubbles.length} bubbles, '
-          '${template.fiducials.length} anchors, '
-          '${template.timingBars.length} timing bars, '
-          'capture floor ${template.minPxPerMmOnCapture.toStringAsFixed(1)} px/mm');
+      stdout.writeln(
+        '${template.layoutId} v${template.layoutVersion}: '
+        'canvas ${template.canvasWidth}x${template.canvasHeight}px, '
+        '${template.bubbles.length} bubbles, '
+        '${template.fiducials.length} anchors, '
+        '${template.timingBars.length} timing bars, '
+        'capture floor ${template.minPxPerMmOnCapture.toStringAsFixed(1)} px/mm',
+      );
       return 0;
     }
 
@@ -59,8 +61,10 @@ final class TemplateCommand extends Command<int> {
       final file = File(out);
       await file.parent.create(recursive: true);
       await file.writeAsString(json, flush: true);
-      stdout.writeln('wrote $out (${template.bubbles.length} bubbles, '
-          'specHash ${template.specHash.substring(0, 12)}…)');
+      stdout.writeln(
+        'wrote $out (${template.bubbles.length} bubbles, '
+        'specHash ${template.specHash.substring(0, 12)}…)',
+      );
     }
     // Touch the decoder so a template that cannot round-trip fails loudly at
     // emit time, not on a phone.

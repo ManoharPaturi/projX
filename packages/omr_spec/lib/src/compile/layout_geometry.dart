@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-
 import '../models/sheet_spec.dart';
 import '../models/units.dart';
 
@@ -59,8 +58,12 @@ class LayoutGeometry {
       }
     }
 
-    return LayoutGeometry._(spec,
-        fiducialCenters: centers, qrRect: qrRect, timingBars: bars);
+    return LayoutGeometry._(
+      spec,
+      fiducialCenters: centers,
+      qrRect: qrRect,
+      timingBars: bars,
+    );
   }
 
   final SheetSpec spec;
@@ -71,11 +74,11 @@ class LayoutGeometry {
   /// The anchors used for the primary homography, in canvas-corner order
   /// tl, tr, br, bl.
   List<MmPoint> get orderedFiducialCenters => [
-        fiducialCenters['tl']!,
-        fiducialCenters['tr']!,
-        fiducialCenters['br']!,
-        fiducialCenters['bl']!,
-      ];
+    fiducialCenters['tl']!,
+    fiducialCenters['tr']!,
+    fiducialCenters['br']!,
+    fiducialCenters['bl']!,
+  ];
 
   /// Body rect of the fiducial at [corner] (solid square / L bounding box).
   MmRect fiducialRect(String corner) {
@@ -95,7 +98,11 @@ class LayoutGeometry {
     if (timingBars.isEmpty) return null;
     final first = timingBars.first;
     final last = timingBars.last;
-    return MmRect(first.x, first.y, first.w, last.bottom - first.y)
-        .inflate(spec.timingTrack.clearanceMm);
+    return MmRect(
+      first.x,
+      first.y,
+      first.w,
+      last.bottom - first.y,
+    ).inflate(spec.timingTrack.clearanceMm);
   }
 }

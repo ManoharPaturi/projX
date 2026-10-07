@@ -80,7 +80,10 @@ void main() {
 
   test('per-student totals match the hand-worked marks', () {
     final GradingReport report = grade();
-    expect(report.resultsByStudent.keys, containsAll(<String>['s1', 's2', 's3']));
+    expect(
+      report.resultsByStudent.keys,
+      containsAll(<String>['s1', 's2', 's3']),
+    );
     expect(marksClose(report.resultsByStudent['s1']!.totalMarks, 11), isTrue);
     expect(marksClose(report.resultsByStudent['s2']!.totalMarks, 10), isTrue);
     expect(marksClose(report.resultsByStudent['s3']!.totalMarks, -5), isTrue);
@@ -145,7 +148,10 @@ void main() {
     final GradingReport report = grade(
       withReads: <String, SheetRead>{
         's1': sheet(<QuestionId, MarkedResponse>{
-          'q1': resp(<OptionId>{'A', 'B'}, validity: ResponseValidity.multiMarked),
+          'q1': resp(<OptionId>{
+            'A',
+            'B',
+          }, validity: ResponseValidity.multiMarked),
           'q2': resp(<OptionId>{'B'}),
         }),
         's2': sheet(<QuestionId, MarkedResponse>{
@@ -160,8 +166,16 @@ void main() {
   });
 
   test('rule resolution: question override beats section and exam defaults', () {
-    final ScoringRule generous = singleRule(id: 'generous', correct: 10, wrong: 0);
-    final ScoringRule sectionWide = singleRule(id: 'section-wide', correct: 2, wrong: 0);
+    final ScoringRule generous = singleRule(
+      id: 'generous',
+      correct: 10,
+      wrong: 0,
+    );
+    final ScoringRule sectionWide = singleRule(
+      id: 'section-wide',
+      correct: 2,
+      wrong: 0,
+    );
 
     final GradingReport report = ExamGrader().grade(
       GradingRequest(
@@ -198,14 +212,29 @@ void main() {
 
     final Map<String, ExamResult> results = report.resultsByStudent;
     // q1 uses the question override (+10 / 0).
-    expect(marksClose(results['s1']!.outcomeFor('q1')!.marksAwarded, 10), isTrue);
+    expect(
+      marksClose(results['s1']!.outcomeFor('q1')!.marksAwarded, 10),
+      isTrue,
+    );
     // q2, q3 inherit the section default (+2 / 0).
-    expect(marksClose(results['s1']!.outcomeFor('q2')!.marksAwarded, 0), isTrue);
-    expect(marksClose(results['s1']!.outcomeFor('q3')!.marksAwarded, 2), isTrue);
+    expect(
+      marksClose(results['s1']!.outcomeFor('q2')!.marksAwarded, 0),
+      isTrue,
+    );
+    expect(
+      marksClose(results['s1']!.outcomeFor('q3')!.marksAwarded, 2),
+      isTrue,
+    );
     // q4 overrides its own section's default with +2; q5 falls back to the exam
     // default (+4 / -1).
-    expect(marksClose(results['s1']!.outcomeFor('q4')!.marksAwarded, 2), isTrue);
-    expect(marksClose(results['s1']!.outcomeFor('q5')!.marksAwarded, 0), isTrue);
+    expect(
+      marksClose(results['s1']!.outcomeFor('q4')!.marksAwarded, 2),
+      isTrue,
+    );
+    expect(
+      marksClose(results['s1']!.outcomeFor('q5')!.marksAwarded, 0),
+      isTrue,
+    );
   });
 
   test('a dangling rule id fails the run up front', () {
@@ -245,7 +274,9 @@ void main() {
     final GradingReport flagged = grade(
       withReads: <String, SheetRead>{
         's1': sheet(
-          <QuestionId, MarkedResponse>{'q1': resp(<OptionId>{'A'})},
+          <QuestionId, MarkedResponse>{
+            'q1': resp(<OptionId>{'A'}),
+          },
           flags: <SheetReadFlag>{SheetReadFlag.rollChecksumMismatch},
         ),
       },
@@ -254,10 +285,9 @@ void main() {
 
     final GradingReport faint = grade(
       withReads: <String, SheetRead>{
-        's1': sheet(
-          <QuestionId, MarkedResponse>{'q1': resp(<OptionId>{'A'})},
-          confidence: 0.72,
-        ),
+        's1': sheet(<QuestionId, MarkedResponse>{
+          'q1': resp(<OptionId>{'A'}),
+        }, confidence: 0.72),
       },
     );
     expect(faint.resultsByStudent['s1']!.status, ExamResultStatus.doubtful);

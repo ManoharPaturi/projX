@@ -44,8 +44,7 @@ class SimulatedCaptureSource implements CaptureSource {
   @override
   final Size analysisSize;
 
-  final StreamController<LiveFrame> _controller =
-      StreamController.broadcast();
+  final StreamController<LiveFrame> _controller = StreamController.broadcast();
   Uint8List? _armedStill;
 
   @override
@@ -88,13 +87,12 @@ class CameraCaptureSource implements CaptureSource {
   final int analysisHeight;
 
   CameraController? _controller;
-  final StreamController<LiveFrame> _frames =
-      StreamController.broadcast();
+  final StreamController<LiveFrame> _frames = StreamController.broadcast();
   bool _streaming = false;
 
   @override
-  Size get analysisSize => Size(analysisWidth.toDouble(),
-      analysisHeight.toDouble());
+  Size get analysisSize =>
+      Size(analysisWidth.toDouble(), analysisHeight.toDouble());
 
   /// Finds and initialises the back camera. False when there is none to use
   /// (desktop/emulator) — callers fall back to the fixture path.

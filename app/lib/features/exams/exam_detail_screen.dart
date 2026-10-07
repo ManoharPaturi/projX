@@ -125,11 +125,13 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Dark ink on the 15% tint of itself — 500-shade blue/green/purple
+    // text on a near-white chip fell under WCAG AA.
     final color = switch (status) {
-      ExamStatus.draft => Colors.grey,
-      ExamStatus.active => Colors.blue,
-      ExamStatus.graded => Colors.green,
-      ExamStatus.published => Colors.deepPurple,
+      ExamStatus.draft => const Color(0xFF5F6368),
+      ExamStatus.active => const Color(0xFF1565C0),
+      ExamStatus.graded => const Color(0xFF1B5E20),
+      ExamStatus.published => const Color(0xFF4A148C),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -172,14 +174,18 @@ class _ScanCountsCard extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    _countChip('scanned', counts.values.fold(0, (a, b) => a + b)),
+                    _countChip(
+                      'scanned',
+                      counts.values.fold(0, (a, b) => a + b),
+                    ),
                     _countChip('graded', of(ScanStatus.graded)),
                     _countChip(
                       'needs review',
                       of(ScanStatus.needsReview),
-                      color: counts[ScanStatus.needsReview] != null &&
+                      color:
+                          counts[ScanStatus.needsReview] != null &&
                               counts[ScanStatus.needsReview]! > 0
-                          ? Colors.orange
+                          ? const Color(0xFF8B4000)
                           : null,
                     ),
                     _countChip('reviewed', of(ScanStatus.reviewed)),
@@ -197,7 +203,8 @@ class _ScanCountsCard extends StatelessWidget {
   Widget _countChip(String label, int count, {Color? color}) {
     return Chip(
       avatar: CircleAvatar(
-        backgroundColor: color ?? Colors.grey,
+        // White-on-dark counts: grey/orange 500 failed contrast.
+        backgroundColor: color ?? const Color(0xFF5F6368),
         child: Text(
           '$count',
           style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -226,10 +233,7 @@ class _ActionsCard extends StatelessWidget {
               title: const Text('Activate exam'),
               subtitle: const Text('Unlock scanning for this exam'),
               onTap: () async {
-                await state.db.examsDao.setStatus(
-                  exam.id,
-                  ExamStatus.active,
-                );
+                await state.db.examsDao.setStatus(exam.id, ExamStatus.active);
                 state.refresh();
               },
             ),

@@ -66,9 +66,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             for (final version in _versions!)
               DropdownMenuItem(
                 value: version.id,
-                child: Text(
-                  'v${version.version} (${version.status.name})',
-                ),
+                child: Text('v${version.version} (${version.status.name})'),
               ),
           ],
           initialValue: _keyVersionId,
@@ -78,7 +76,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _ReportCard(
           icon: Icons.picture_as_pdf,
           title: 'Consolidated class PDF',
-          subtitle: 'Every student, ranks, repeating header — paginates to 500 '
+          subtitle:
+              'Every student, ranks, repeating header — paginates to 500 '
               'pages for large cohorts',
           onGenerate: () => _generate(
             type: ReportJobType.consolidated,
@@ -89,7 +88,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         _ReportCard(
           icon: Icons.grid_on,
           title: 'Excel workbook',
-          subtitle: 'Summary with live percentile formulas + per-question '
+          subtitle:
+              'Summary with live percentile formulas + per-question '
               'matrix sheet',
           onGenerate: () => _generate(
             type: ReportJobType.excel,
@@ -233,11 +233,13 @@ class _JobsList extends StatelessWidget {
                         : job.status == ReportJobStatus.failed
                         ? Icons.error_outline
                         : Icons.hourglass_empty,
+                    // 800/900 shades: the status icon must hold 3:1 on a
+                    // light card (500 green/orange did not).
                     color: job.status == ReportJobStatus.done
-                        ? Colors.green
+                        ? const Color(0xFF1B5E20)
                         : job.status == ReportJobStatus.failed
-                        ? Colors.red
-                        : Colors.orange,
+                        ? const Color(0xFFB3261E)
+                        : const Color(0xFF8B4000),
                   ),
                   title: Text('${job.type.name}.${job.format}'),
                   subtitle: Text(

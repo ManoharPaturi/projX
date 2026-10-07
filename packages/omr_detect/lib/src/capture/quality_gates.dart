@@ -24,7 +24,8 @@ class GateResult {
   final double? required;
 
   @override
-  String toString() => '${type.name}: ${passed ? 'pass' : 'FAIL'} '
+  String toString() =>
+      '${type.name}: ${passed ? 'pass' : 'FAIL'} '
       '(${measured?.toStringAsFixed(1)} vs ${required?.toStringAsFixed(1)})';
 }
 
@@ -161,8 +162,7 @@ class CaptureQualityGates {
 
   /// Whether every gate passed — the auto-capture precondition stacked on
   /// hysteresis stability.
-  bool allPassed(List<GateResult> results) =>
-      results.every((r) => r.passed);
+  bool allPassed(List<GateResult> results) => results.every((r) => r.passed);
 
   /// Clears the blur history (new capture session, or torch toggled).
   void reset() => _blurWindow.clear();
@@ -180,11 +180,13 @@ class CaptureQualityGates {
     }
     final frameArea = input.frameWidth * input.frameHeight;
     final fraction = _polygonArea(quad) / frameArea;
-    final clipped = quad.any((p) =>
-        p.x < edgeMarginPx ||
-        p.y < edgeMarginPx ||
-        p.x > input.frameWidth - edgeMarginPx ||
-        p.y > input.frameHeight - edgeMarginPx);
+    final clipped = quad.any(
+      (p) =>
+          p.x < edgeMarginPx ||
+          p.y < edgeMarginPx ||
+          p.x > input.frameWidth - edgeMarginPx ||
+          p.y > input.frameHeight - edgeMarginPx,
+    );
     final passed =
         fraction >= minAreaFraction && fraction <= maxAreaFraction && !clipped;
     return GateResult(
@@ -193,8 +195,8 @@ class CaptureQualityGates {
       hint: fraction < minAreaFraction
           ? 'move closer — sheet too small in frame'
           : (fraction > 0.75 || clipped)
-              ? 'move away — sheet touches the frame edge'
-              : GateType.area.hint,
+          ? 'move away — sheet touches the frame edge'
+          : GateType.area.hint,
       measured: fraction,
       required: minAreaFraction,
     );
@@ -269,14 +271,18 @@ class CaptureQualityGates {
     final quad = input.quad;
     final still = input.stillShortSidePx;
     final requiredPx = input.requiredSheetPxOnStill;
-    if (quad == null || quad.length != 4 || still == null || requiredPx == null) {
+    if (quad == null ||
+        quad.length != 4 ||
+        still == null ||
+        requiredPx == null) {
       return GateResult(type: GateType.resolution, passed: true, hint: '');
     }
     // The sheet's share of the frame is the same in the still as in the
     // analysis stream (plan §3: quadShortSidePx / analysisShortSide ≥
     // requiredPxPerSheetShortSide / stillShortSide).
-    final analysisShort =
-        math.min(input.frameWidth, input.frameHeight).toDouble();
+    final analysisShort = math
+        .min(input.frameWidth, input.frameHeight)
+        .toDouble();
     final fractionOfFrame = _shortSide(quad) / analysisShort;
     final requiredFraction = requiredPx / still;
     return GateResult(
@@ -326,8 +332,9 @@ class CaptureQualityGates {
     for (var i = 0; i < 4; i++) {
       final a = quad[i];
       final b = quad[(i + 1) % 4];
-      final len = math
-          .sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+      final len = math.sqrt(
+        (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y),
+      );
       if (len < min) min = len;
     }
     return min;

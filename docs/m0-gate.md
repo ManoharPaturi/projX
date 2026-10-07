@@ -24,14 +24,31 @@ build time — which is exactly why each call must be exercised, not just compil
       `app/integration_test/smoke_test.dart` — it runs the SAME `runCvSmokeProbe` the host suite
       runs, so the criteria cannot drift. Needs a physical phone:
       `flutter test integration_test/smoke_test.dart -d <device-id>`.
+- [x] **`integration_test` smoke on an arm64 Android EMULATOR** (Pixel 7 AVD, API 35,
+      `emu64a`, 2026-09-02): all five probe families PASS on-device — `cvtColor+mean`,
+      `matchTemplate`, `getPerspectiveTransform+warpPerspective`, `Laplacian variance`,
+      `detectQuad` (worst corner error 2.0 px) — with **quad-detect at 1834 µs/frame** at
+      640×480 (~17× inside the 32 ms budget; emulator timing, not the low-end-device number).
+      Driver: `flutter test integration_test/smoke_test.dart -d emulator-5554`. The
+      real low-end physical device leg remains the final word on the 32 ms budget.
 - [x] **Debug APK builds with the NDK-compiled OpenCV bundled** — `flutter build apk --debug
       --target-platform android-arm64` → `lib/arm64-v8a/libdartcv.so` (11.5 MB) alongside
       libflutter/libsqlite3 (2026-08-31).
+- [x] **App installs, launches, and renders on-emulator** with no Flutter errors in logcat
+      (2026-09-02); boot path exercised incl. the retention sweep.
 - [x] **`zipalign -c -P 16` passes** on that APK; `libdartcv.so` and `libflutter.so` both
       verified OK at 16 KB page alignment (NDK r28c default, confirmed not assumed).
 - [ ] Native-fallback decision recorded: any missing symbol, >32 ms timed frame on the low-end
       device ⇒ keep Flutter UI/spec/reports, port the live quad loop to a Kotlin platform channel
       behind `EdgeAnalyzer` (opencv_dart continues to serve the still pipeline).
+
+## Known build caveat: x86_64 ABI
+
+`flutter build apk --debug` (all ABIs) **fails in the dartcv4/OpenCV native build on x86_64**:
+libjpeg-turbo's `simd/x86_64/jsimdcpu.asm` fails to assemble under NDK 28 (`ninja: build
+stopped: subcommand failed`). arm64-v8a builds cleanly and is all an arm64 emulator/phone
+needs — build with `--target-platform android-arm64` until this is fixed upstream in
+dartcv4/libjpeg-turbo. Android-x86_64 *emulator images* are therefore unsupported for now.
 
 ## Toolchain notes (how the native build was made to work here)
 
@@ -98,3 +115,29 @@ resolve a DIFFERENT hash for the same macos-arm64 target. Seeding one does not s
 new `.dart_tool/hooks_runner/shared/dartcv4/build/<hash>` needs the same seeding (the exact
 invocation — toolchain file, `-DPLATFORM=MAC_ARM64`, module toggles — is printed by
 `dart run --verbose`; only `-B` and `-DCMAKE_INSTALL_PREFIX` change with the hash).
+
+## KleidiCV download (arm64 targets) — 2026-10-06
+
+OpenCV 4.13 fetches **KleidiCV 0.7.0** from `gitlab.arm.com` during configure for
+every arm64 target (macOS arm64 host tests and Android arm64-v8a). The Android
+SDK's **CMake 3.22.1** bundles a curl that now fails the TLS handshake with that
+host (`A bad protocol version was encountered`), and on failure OpenCV leaves a
+**zero-byte** tarball in its download cache, so configure loops until killed.
+
+- **Local fix (no toolchain change):** seed the exact file OpenCV asks for — it is
+  md5-verified before use, so a wrong file is rejected, never built:
+
+  ```sh
+  F=e8f94e427bd78a745afa5c8cd073b416-kleidicv-0.7.0.tar.gz
+  for d in .dart_tool/hooks_runner/shared/dartcv4/build/*/_deps/opencv-src/.cache; do
+    mkdir -p "$d/kleidicv"
+    curl -sSL -o "$d/kleidicv/$F" \
+      https://gitlab.arm.com/kleidi/kleidicv/-/archive/0.7.0/kleidicv-0.7.0.tar.gz
+  done
+  ```
+
+  (`OPENCV_DOWNLOAD_PATH` would be the clean knob, but the hooks runner strips
+  every environment variable outside its allowlist before CMake sees it.)
+- **CI fix:** the Android job installs SDK `cmake;3.31.6`; the hook resolves the
+  newest `<sdk>/cmake/*`, whose curl negotiates fine. Linux x86_64 host builds
+  never fetch KleidiCV.

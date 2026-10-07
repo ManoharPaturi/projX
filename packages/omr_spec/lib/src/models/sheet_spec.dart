@@ -86,11 +86,11 @@ class SheetSpec {
   /// The rectangle all field blocks must stay inside: inside the margin,
   /// below the header, above the bottom serial strip.
   MmRect get contentRect => MmRect(
-        marginMm,
-        headerHeightMm,
-        paperWidthMm - 2 * marginMm,
-        paperHeightMm - headerHeightMm - marginMm,
-      );
+    marginMm,
+    headerHeightMm,
+    paperWidthMm - 2 * marginMm,
+    paperHeightMm - headerHeightMm - marginMm,
+  );
 
   /// The roll block, if present.
   FieldBlock? get rollBlock {
@@ -144,24 +144,24 @@ class SheetSpec {
   String specHash(String Function(String) hash) => hash(canonicalJson());
 
   Map<String, Object?> toJson() => _withoutNulls({
-        'specVersion': specVersion,
-        'layoutId': layoutId,
-        'layoutVersion': layoutVersion,
-        'paperSizeMm': [paperWidthMm, paperHeightMm],
-        'marginMm': marginMm,
-        'headerHeightMm': headerHeightMm,
-        'bubbleStyle': bubbleStyle.toJson(),
-        'fiducials': fiducials.toJson(),
-        'timingTrack': timingTrack.toJson(),
-        'qrZone': qrZone.toJson(),
-        'rollDigits': rollDigits,
-        'rollChecksum': rollChecksum,
-        'setValues': setValues,
-        'serialText': serialText,
-        'instructionText': instructionText,
-        'fieldBlocks': [for (final b in fieldBlocks) b.toJson()],
-        'sections': [for (final s in sections) s.toJson()],
-      });
+    'specVersion': specVersion,
+    'layoutId': layoutId,
+    'layoutVersion': layoutVersion,
+    'paperSizeMm': [paperWidthMm, paperHeightMm],
+    'marginMm': marginMm,
+    'headerHeightMm': headerHeightMm,
+    'bubbleStyle': bubbleStyle.toJson(),
+    'fiducials': fiducials.toJson(),
+    'timingTrack': timingTrack.toJson(),
+    'qrZone': qrZone.toJson(),
+    'rollDigits': rollDigits,
+    'rollChecksum': rollChecksum,
+    'setValues': setValues,
+    'serialText': serialText,
+    'instructionText': instructionText,
+    'fieldBlocks': [for (final b in fieldBlocks) b.toJson()],
+    'sections': [for (final s in sections) s.toJson()],
+  });
 
   static SheetSpec fromJson(Map<String, Object?> j) {
     final paper = (j['paperSizeMm']! as List<Object?>)
@@ -174,14 +174,21 @@ class SheetSpec {
       paperSizeMm: (paper[0], paper[1]),
       marginMm: (j['marginMm']! as num).toDouble(),
       headerHeightMm: (j['headerHeightMm']! as num).toDouble(),
-      bubbleStyle: BubbleStyle.fromJson(j['bubbleStyle']! as Map<String, Object?>),
-      fiducials: FiducialLayout.fromJson(j['fiducials']! as Map<String, Object?>),
-      timingTrack: TimingTrack.fromJson(j['timingTrack']! as Map<String, Object?>),
+      bubbleStyle: BubbleStyle.fromJson(
+        j['bubbleStyle']! as Map<String, Object?>,
+      ),
+      fiducials: FiducialLayout.fromJson(
+        j['fiducials']! as Map<String, Object?>,
+      ),
+      timingTrack: TimingTrack.fromJson(
+        j['timingTrack']! as Map<String, Object?>,
+      ),
       qrZone: QrZone.fromJson(j['qrZone']! as Map<String, Object?>),
       rollDigits: j['rollDigits'] as int? ?? 7,
       rollChecksum: j['rollChecksum'] as bool? ?? true,
-      setValues: (j['setValues'] as List<Object?>? ?? const ['A', 'B', 'C', 'D'])
-          .cast<String>(),
+      setValues:
+          (j['setValues'] as List<Object?>? ?? const ['A', 'B', 'C', 'D'])
+              .cast<String>(),
       serialText: j['serialText'] as String? ?? '',
       instructionText: j['instructionText'] as String? ?? '',
       fieldBlocks: [
@@ -215,26 +222,25 @@ class SheetSpec {
     List<String>? setValues,
     String? serialText,
     String? instructionText,
-  }) =>
-      SheetSpec(
-        specVersion: specVersion ?? this.specVersion,
-        layoutId: layoutId ?? this.layoutId,
-        layoutVersion: layoutVersion ?? this.layoutVersion,
-        paperSizeMm: paperSizeMm ?? this.paperSizeMm,
-        marginMm: marginMm ?? this.marginMm,
-        headerHeightMm: headerHeightMm ?? this.headerHeightMm,
-        bubbleStyle: bubbleStyle ?? this.bubbleStyle,
-        fiducials: fiducials ?? this.fiducials,
-        timingTrack: timingTrack ?? this.timingTrack,
-        qrZone: qrZone ?? this.qrZone,
-        fieldBlocks: fieldBlocks ?? this.fieldBlocks,
-        sections: sections ?? this.sections,
-        rollDigits: rollDigits ?? this.rollDigits,
-        rollChecksum: rollChecksum ?? this.rollChecksum,
-        setValues: setValues ?? this.setValues,
-        serialText: serialText ?? this.serialText,
-        instructionText: instructionText ?? this.instructionText,
-      );
+  }) => SheetSpec(
+    specVersion: specVersion ?? this.specVersion,
+    layoutId: layoutId ?? this.layoutId,
+    layoutVersion: layoutVersion ?? this.layoutVersion,
+    paperSizeMm: paperSizeMm ?? this.paperSizeMm,
+    marginMm: marginMm ?? this.marginMm,
+    headerHeightMm: headerHeightMm ?? this.headerHeightMm,
+    bubbleStyle: bubbleStyle ?? this.bubbleStyle,
+    fiducials: fiducials ?? this.fiducials,
+    timingTrack: timingTrack ?? this.timingTrack,
+    qrZone: qrZone ?? this.qrZone,
+    fieldBlocks: fieldBlocks ?? this.fieldBlocks,
+    sections: sections ?? this.sections,
+    rollDigits: rollDigits ?? this.rollDigits,
+    rollChecksum: rollChecksum ?? this.rollChecksum,
+    setValues: setValues ?? this.setValues,
+    serialText: serialText ?? this.serialText,
+    instructionText: instructionText ?? this.instructionText,
+  );
 
   /// Compact canonical writer: sorted keys, no whitespace, ints stay ints,
   /// doubles printed via their shortest round-trip form.
@@ -273,7 +279,7 @@ class SheetSpec {
   }
 
   static Map<String, Object?> _withoutNulls(Map<String, Object?> m) => {
-        for (final e in m.entries)
-          if (e.value != null) e.key: e.value,
-      };
+    for (final e in m.entries)
+      if (e.value != null) e.key: e.value,
+  };
 }

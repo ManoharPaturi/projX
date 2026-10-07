@@ -36,6 +36,13 @@ class ReportRunner {
       await artifact.parent.create(recursive: true);
       await artifact.writeAsBytes(bytes, flush: true);
       await db.reportJobsDao.complete(jobId, artifact.path);
+      await AuditLogService(db).record(
+        tenantId: tenantId,
+        entity: 'report_jobs',
+        entityId: jobId,
+        action: 'generate_report',
+        after: {'type': type.name, 'format': format, 'path': artifact.path},
+      );
       return artifact.path;
     } catch (e) {
       await db.reportJobsDao.fail(jobId, e.toString());

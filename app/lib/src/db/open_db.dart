@@ -18,12 +18,7 @@ const String kTenantId = 'tenant-mvp';
 /// `<app-documents>/omr.db`.
 Future<AppDb> openAppDb({String? path}) async {
   final file = path == null
-      ? File(
-          p.join(
-            (await getApplicationDocumentsDirectory()).path,
-            'omr.db',
-          ),
-        )
+      ? File(p.join((await getApplicationDocumentsDirectory()).path, 'omr.db'))
       : File(path);
   // createInBackground: drift runs queries on a background isolate, so the
   // UI thread never blocks on a grading-sized write.
@@ -50,10 +45,9 @@ Future<String> seedFirstRun(AppDb db) async {
         mode: InsertMode.insertOrIgnore,
       );
 
-  var institutes =
-      await (db.select(
-        db.institutes,
-      )..where((Institutes i) => i.tenantId.equals(kTenantId))).get();
+  var institutes = await (db.select(
+    db.institutes,
+  )..where((Institutes i) => i.tenantId.equals(kTenantId))).get();
   if (institutes.isEmpty) {
     final created = await db
         .into(db.institutes)
@@ -67,14 +61,8 @@ Future<String> seedFirstRun(AppDb db) async {
     institutes = [created];
   }
 
-  await db.layoutsDao.upsertSpec(
-    tenantId: kTenantId,
-    spec: buildStandard90(),
-  );
-  await db.layoutsDao.upsertSpec(
-    tenantId: kTenantId,
-    spec: buildNeet180(),
-  );
+  await db.layoutsDao.upsertSpec(tenantId: kTenantId, spec: buildStandard90());
+  await db.layoutsDao.upsertSpec(tenantId: kTenantId, spec: buildNeet180());
 
   return institutes.first.id;
 }
@@ -83,4 +71,39 @@ Future<String> seedFirstRun(AppDb db) async {
 Future<String> reportsDirectory(String examId) async {
   final docs = await getApplicationDocumentsDirectory();
   return p.joinAll([docs.path, 'reports', examId]);
+}
+
+/// The M4 retention sweep (plan risk #9), run at boot: drop capture
+/// originals whose grace window closed, keep warped + annotated images.
+///
+/// The deleter resolves every path under the app-documents root and throws
+/// on anything outside it — a stray absolute path in `original_path` fails
+/// the sweep closed instead of deleting an arbitrary file (the injected-
+/// deleter contract [RetentionService] documents).
+Future<RetentionReport> runRetentionSweep(
+  AppDb db, {
+  String? documentsRoot,
+}) async {
+  final root = documentsRoot ?? (await getApplicationDocumentsDirectory()).path;
+  final settings = await SettingsDao(db).settingsFor(kTenantId);
+  return RetentionService(
+    db,
+    deleteFile: (path) async {
+      final resolved = p.normalize(
+        p.isAbsolute(path) ? path : p.join(root, path),
+      );
+      if (!p.isWithin(root, resolved)) {
+        throw StateError(
+          'retention: refusing path outside app documents: '
+          '$path',
+        );
+      }
+      try {
+        await File(resolved).delete();
+        return true;
+      } on FileSystemException {
+        return false; // already gone — the sweep still clears the column
+      }
+    },
+  ).run(tenantId: kTenantId, graceDays: settings.retentionGraceDays);
 }

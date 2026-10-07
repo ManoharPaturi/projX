@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../app_db.dart';
 import '../converters.dart';
 import '../enums.dart';
+import '../services/audit_log_service.dart';
 import '../tables/bubble_reads.dart';
 import '../tables/review_queue.dart';
 import '../tables/scans.dart';
@@ -126,6 +127,18 @@ class ReviewDao extends DatabaseAccessor<AppDb> with _$ReviewDaoMixin {
         await (update(scans)..where((Scans s) => s.id.equals(item.scanId)))
             .write(ScansCompanion(status: Value(status)));
       }
+      await AuditLogService(attachedDatabase).record(
+        tenantId: item.tenantId,
+        entity: 'review_queue',
+        entityId: reviewId,
+        action: 'resolve',
+        after: {
+          'outcome': outcome.name,
+          'corrections': corrections.length,
+          'scanId': item.scanId,
+        },
+        byUser: resolvedBy,
+      );
     });
   }
 }

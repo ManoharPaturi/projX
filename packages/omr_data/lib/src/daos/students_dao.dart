@@ -54,10 +54,7 @@ class StudentsDao extends DatabaseAccessor<AppDb> with _$StudentsDaoMixin {
 
   /// The roster in roll order, optionally filtered by a prefix/substring of
   /// the roll (what a search box sends).
-  Future<List<Student>> rosterFor(
-    String instituteId, {
-    String? query,
-  }) async {
+  Future<List<Student>> rosterFor(String instituteId, {String? query}) async {
     final q = (query == null || query.isEmpty) ? null : query.trim();
     return (select(students)
           ..where(
@@ -71,11 +68,12 @@ class StudentsDao extends DatabaseAccessor<AppDb> with _$StudentsDaoMixin {
 
   Future<int> count(String instituteId) async {
     final count = countAll();
-    final rows = await (selectOnly(students)
-          ..addColumns([count])
-          // selectOnly's where takes a direct expression, no table lambda.
-          ..where(students.instituteId.equals(instituteId)))
-        .getSingle();
+    final rows =
+        await (selectOnly(students)
+              ..addColumns([count])
+              // selectOnly's where takes a direct expression, no table lambda.
+              ..where(students.instituteId.equals(instituteId)))
+            .getSingle();
     return rows.read(count) ?? 0;
   }
 
@@ -116,13 +114,13 @@ class StudentsDao extends DatabaseAccessor<AppDb> with _$StudentsDaoMixin {
     if (acceptedRolls.isEmpty) {
       alreadyEnrolled = const <String>{};
     } else {
-      final enrolled = await (select(students)
-            ..where(
-              (Students s) =>
-                  s.instituteId.equals(instituteId) &
-                  s.rollNo.isIn(acceptedRolls),
-            ))
-          .get();
+      final enrolled =
+          await (select(students)..where(
+                (Students s) =>
+                    s.instituteId.equals(instituteId) &
+                    s.rollNo.isIn(acceptedRolls),
+              ))
+              .get();
       alreadyEnrolled = enrolled.map((s) => s.rollNo).toSet();
     }
 

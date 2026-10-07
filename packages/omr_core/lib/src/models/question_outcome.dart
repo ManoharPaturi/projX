@@ -40,7 +40,8 @@ final class QuestionOutcome {
     this.kind,
     this.marksAwarded,
     this.reason,
-  ) : baseKind = null, baseMarksAwarded = null;
+  ) : baseKind = null,
+      baseMarksAwarded = null;
 
   /// The question this outcome belongs to.
   final QuestionId questionId;

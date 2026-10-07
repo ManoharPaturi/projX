@@ -17,7 +17,9 @@ int exifOrientationOf(Uint8List jpeg) {
     if (jpeg[i] != 0xff) return 1; // desynced — not a segment walk we trust
     final marker = jpeg[i + 1];
     // Standalone markers without a length field (restart markers, fill bytes).
-    if (marker == 0xd8 || (marker >= 0xd0 && marker <= 0xd7) || marker == 0x01) {
+    if (marker == 0xd8 ||
+        (marker >= 0xd0 && marker <= 0xd7) ||
+        marker == 0x01) {
       i += 2;
       continue;
     }
@@ -29,9 +31,12 @@ int exifOrientationOf(Uint8List jpeg) {
 
     if (marker == 0xe1 && // APP1
         i + 4 + 6 <= jpeg.length &&
-        jpeg[i + 4] == 0x45 && jpeg[i + 5] == 0x78 && // 'E','x'
-        jpeg[i + 6] == 0x69 && jpeg[i + 7] == 0x66 && // 'i','f'
-        jpeg[i + 8] == 0x00 && jpeg[i + 9] == 0x00) {
+        jpeg[i + 4] == 0x45 &&
+        jpeg[i + 5] == 0x78 && // 'E','x'
+        jpeg[i + 6] == 0x69 &&
+        jpeg[i + 7] == 0x66 && // 'i','f'
+        jpeg[i + 8] == 0x00 &&
+        jpeg[i + 9] == 0x00) {
       return _orientationFromTiff(jpeg, i + 4 + 6) ?? 1;
     }
     i += 2 + segmentLength;
@@ -47,9 +52,8 @@ int? _orientationFromTiff(Uint8List b, int tiff) {
   final bigEndian = b[tiff] == 0x4d && b[tiff + 1] == 0x4d;
   if (!littleEndian && !bigEndian) return null;
 
-  int u16(int at) => littleEndian
-      ? b[at] | (b[at + 1] << 8)
-      : (b[at] << 8) | b[at + 1];
+  int u16(int at) =>
+      littleEndian ? b[at] | (b[at + 1] << 8) : (b[at] << 8) | b[at + 1];
   int u32(int at) => littleEndian
       ? b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24)
       : (b[at] << 24) | (b[at + 1] << 16) | (b[at + 2] << 8) | b[at + 3];
@@ -85,9 +89,11 @@ Uint8List withExifOrientation(Uint8List jpeg, int orientation) {
     0x45, 0x78, 0x69, 0x66, 0x00, 0x00, // 'Exif\0\0'
     ...tiff,
   ];
-  return Uint8List.fromList(
-    [...jpeg.sublist(0, 2), ...app1, ...jpeg.sublist(2)],
-  );
+  return Uint8List.fromList([
+    ...jpeg.sublist(0, 2),
+    ...app1,
+    ...jpeg.sublist(2),
+  ]);
 }
 
 List<int> _u16be(int v) => [(v >> 8) & 0xff, v & 0xff];

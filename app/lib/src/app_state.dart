@@ -33,11 +33,14 @@ class AppState extends ChangeNotifier {
       db.institutes,
     )..where((Institutes i) => i.tenantId.equals(kTenantId))).get();
     final row = rows.single;
-    return AppState(
-      db: db,
-      instituteId: row.id,
-      instituteName: row.name,
-    );
+    // Sweep now: originals past the grace window (a previous session's
+    // captures) go before the operator touches anything. A failure must not
+    // block boot — the next launch sweeps again.
+    await runRetentionSweep(db).catchError((Object error) {
+      debugPrint('retention sweep skipped: $error');
+      return RetentionReport(purged: const [], missing: const []);
+    });
+    return AppState(db: db, instituteId: row.id, instituteName: row.name);
   }
 
   /// Signal "data changed" to every listening screen.
@@ -48,11 +51,9 @@ class AppState extends ChangeNotifier {
 
   /// Full grading pass over (exam, key version) + the change signal.
   Future<void> grade(String examId, String keyVersionId) async {
-    await GradingService(db).gradeExam(
-      tenantId: tenantId,
-      examId: examId,
-      keyVersionId: keyVersionId,
-    );
+    await GradingService(
+      db,
+    ).gradeExam(tenantId: tenantId, examId: examId, keyVersionId: keyVersionId);
     refresh();
   }
 }

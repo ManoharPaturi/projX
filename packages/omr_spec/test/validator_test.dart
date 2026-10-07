@@ -65,8 +65,10 @@ void main() {
     });
 
     test('margin below 10mm', () {
-      _expectReject(buildStandard90().copyWith(marginMm: 8),
-          contains('marginMm 8.0 < 10.0'));
+      _expectReject(
+        buildStandard90().copyWith(marginMm: 8),
+        contains('marginMm 8.0 < 10.0'),
+      );
     });
 
     test('QR smaller than 15mm', () {
@@ -80,9 +82,7 @@ void main() {
     test('fiducial too small relative to the bubble', () {
       final base = buildStandard90();
       _expectReject(
-        base.copyWith(
-          fiducials: base.fiducials.copyWith(sizeMm: 7.0),
-        ),
+        base.copyWith(fiducials: base.fiducials.copyWith(sizeMm: 7.0)),
         anyOf(contains('outside [6.0, 12.0]'), contains('2.5-3x')),
       );
     });
@@ -104,19 +104,26 @@ void main() {
           fieldLabels: ['q1..q30'], // collides with mcq_c1
         );
       }).toList();
-      _expectReject(base.copyWith(fieldBlocks: dup),
-          contains('globally unique'));
+      _expectReject(
+        base.copyWith(fieldBlocks: dup),
+        contains('globally unique'),
+      );
     });
 
     test('section coverage gap', () {
       final base = buildStandard90();
       final sections = [
         SectionSpec(
-            id: 'only', name: 'Only', subject: 'X',
-            questionLabels: ['q1..q45']), // q46..q90 uncovered
+          id: 'only',
+          name: 'Only',
+          subject: 'X',
+          questionLabels: ['q1..q45'],
+        ), // q46..q90 uncovered
       ];
-      _expectReject(base.copyWith(sections: sections),
-          contains('not covered by any section'));
+      _expectReject(
+        base.copyWith(sections: sections),
+        contains('not covered by any section'),
+      );
     });
 
     test('section references a non-existent question', () {
@@ -124,11 +131,16 @@ void main() {
       final sections = [
         ...base.sections,
         SectionSpec(
-            id: 'ghost', name: 'Ghost', subject: 'X',
-            questionLabels: ['q91..q95']),
+          id: 'ghost',
+          name: 'Ghost',
+          subject: 'X',
+          questionLabels: ['q91..q95'],
+        ),
       ];
-      _expectReject(base.copyWith(sections: sections),
-          contains('non-existent questions'));
+      _expectReject(
+        base.copyWith(sections: sections),
+        contains('non-existent questions'),
+      );
     });
 
     test('roll column count disagrees with rollDigits+checksum', () {
@@ -161,7 +173,9 @@ void main() {
         );
       }).toList();
       _expectReject(
-          base.copyWith(fieldBlocks: shifted), contains('share the grid'));
+        base.copyWith(fieldBlocks: shifted),
+        contains('share the grid'),
+      );
     });
 
     test('block invading a fiducial white surround', () {
@@ -179,8 +193,10 @@ void main() {
           fieldLabels: ['q1..q1'],
         );
       }).toList();
-      _expectReject(base.copyWith(fieldBlocks: invading),
-          anyOf(contains('white surround'), contains('timing')));
+      _expectReject(
+        base.copyWith(fieldBlocks: invading),
+        anyOf(contains('white surround'), contains('timing')),
+      );
     });
 
     test('block violating timing-track clearance', () {
@@ -198,8 +214,10 @@ void main() {
           fieldLabels: b.fieldLabels,
         );
       }).toList();
-      _expectReject(base.copyWith(fieldBlocks: tooClose),
-          anyOf(contains('timing track'), contains('timing')));
+      _expectReject(
+        base.copyWith(fieldBlocks: tooClose),
+        anyOf(contains('timing track'), contains('timing')),
+      );
     });
   });
 
@@ -208,10 +226,9 @@ void main() {
       final base = buildStandard90();
       late SpecValidationException ex;
       try {
-        validateSheetSpec(base.copyWith(
-          marginMm: 5,
-          qrZone: const QrZone(sizeMm: 10),
-        ));
+        validateSheetSpec(
+          base.copyWith(marginMm: 5, qrZone: const QrZone(sizeMm: 10)),
+        );
         fail('expected SpecValidationException');
       } on SpecValidationException catch (e) {
         ex = e;
@@ -226,11 +243,13 @@ void main() {
 void _expectReject(SheetSpec spec, dynamic matcher) {
   expect(
     () => validateSheetSpec(spec),
-    throwsA(isA<SpecValidationException>().having(
-      (e) => e.toString(),
-      'message',
-      matcher,
-    )),
+    throwsA(
+      isA<SpecValidationException>().having(
+        (e) => e.toString(),
+        'message',
+        matcher,
+      ),
+    ),
     reason: 'spec should be rejected',
   );
 }

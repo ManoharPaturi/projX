@@ -72,11 +72,8 @@ final class MatrixMatchStrategy extends ScoringStrategy {
 
     final Map<int, Set<String>> keyedRows = _columnsByRow(keyed);
     final Map<int, Set<String>> chosenRows = _columnsByRow(chosen);
-    final List<int> orderedRows = keyedRows.keys
-        .toSet()
-        .union(chosenRows.keys.toSet())
-        .toList()
-      ..sort();
+    final List<int> orderedRows =
+        keyedRows.keys.toSet().union(chosenRows.keys.toSet()).toList()..sort();
 
     int correctRows = 0;
     int attemptedRows = 0;
@@ -105,23 +102,17 @@ final class MatrixMatchStrategy extends ScoringStrategy {
         'unattempted',
       );
     }
-    final QuestionOutcomeKind kind =
-        correctRows == rowCount
-            ? QuestionOutcomeKind.correct
-            : correctRows > 0
-            ? QuestionOutcomeKind.partial
-            : QuestionOutcomeKind.wrong;
-    return QuestionOutcome.of(
-      questionId,
-      kind,
-      marks,
-      switch (kind) {
-        QuestionOutcomeKind.correct => 'correct: all $rowCount rows matched',
-        QuestionOutcomeKind.partial =>
-          'partial: $correctRows of $rowCount rows correct',
-        _ => 'wrong: $correctRows of $rowCount rows correct',
-      },
-    );
+    final QuestionOutcomeKind kind = correctRows == rowCount
+        ? QuestionOutcomeKind.correct
+        : correctRows > 0
+        ? QuestionOutcomeKind.partial
+        : QuestionOutcomeKind.wrong;
+    return QuestionOutcome.of(questionId, kind, marks, switch (kind) {
+      QuestionOutcomeKind.correct => 'correct: all $rowCount rows matched',
+      QuestionOutcomeKind.partial =>
+        'partial: $correctRows of $rowCount rows correct',
+      _ => 'wrong: $correctRows of $rowCount rows correct',
+    });
   }
 
   @override
@@ -141,12 +132,15 @@ final class MatrixMatchStrategy extends ScoringStrategy {
       false || null => false,
       'true' => true,
       'false' => false,
-      _ => throw ArgumentError('param "$key" must be a bool, got ${v.runtimeType}'),
+      _ => throw ArgumentError(
+        'param "$key" must be a bool, got ${v.runtimeType}',
+      ),
     };
   }
 
   /// Distinct row indices present in a `row:col` option set.
-  static Set<int> _rowsOf(Set<String> options) => _columnsByRow(options).keys.toSet();
+  static Set<int> _rowsOf(Set<String> options) =>
+      _columnsByRow(options).keys.toSet();
 
   /// Groups `row:col` options by row, mapping row → set of columns.
   ///

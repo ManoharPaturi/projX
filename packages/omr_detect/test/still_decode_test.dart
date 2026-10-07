@@ -18,17 +18,17 @@ void main() {
 
   /// A checker pattern: survives JPEG, differs under any transform.
   Uint8List pattern(int width, int height) => Uint8List.fromList([
-        for (var y = 0; y < height; y++)
-          for (var x = 0; x < width; x++)
-            ((x + y) % 2 == 0 ? 40 : 215) + (y * 3) % 60,
-      ]);
+    for (var y = 0; y < height; y++)
+      for (var x = 0; x < width; x++)
+        ((x + y) % 2 == 0 ? 40 : 215) + (y * 3) % 60,
+  ]);
 
   group('exifOrientationOf (fixture tooling)', () {
     Uint8List jpegWithApp1(List<int> app1Payload) => Uint8List.fromList([
-          0xff, 0xd8, // SOI
-          0xff, 0xe1, ..._u16be(app1Payload.length), ...app1Payload,
-          0xff, 0xd9, // EOI
-        ]);
+      0xff, 0xd8, // SOI
+      0xff, 0xe1, ..._u16be(app1Payload.length), ...app1Payload,
+      0xff, 0xd9, // EOI
+    ]);
 
     List<int> exifSegment({required int orientation, bool bigEndian = false}) {
       List<int> u16(int v) =>
@@ -86,8 +86,11 @@ void main() {
       // JPEG is lossy — assert the pattern's contrast survived, not exact.
       final bright = decoded.gray.where((v) => v > 150).length;
       final dark = decoded.gray.where((v) => v < 110).length;
-      expect(bright + dark, greaterThan(decoded.gray.length ~/ 2),
-          reason: 'contrast survived');
+      expect(
+        bright + dark,
+        greaterThan(decoded.gray.length ~/ 2),
+        reason: 'contrast survived',
+      );
     });
 
     test('undecodable bytes throw, not zero-fill', () {
@@ -101,7 +104,7 @@ void main() {
       // A 33×17 (landscape) frame tagged as each orientation: the side-
       // swapping values must come back transposed, the others unchanged.
       // This pins the codec behaviour the pipeline leans on; a codec bump
-        // that drops EXIF fails here instead of registering tipped sheets.
+      // that drops EXIF fails here instead of registering tipped sheets.
       const w = 33, h = 17;
       final base = cv.encodeGrayJpeg(w, h, pattern(w, h));
 

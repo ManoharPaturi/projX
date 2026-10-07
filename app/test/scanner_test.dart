@@ -39,11 +39,8 @@ void main() {
     bool tracking = false,
     bool triggered = false,
   }) {
-    GateResult gate(GateType type) => GateResult(
-          type: type,
-          passed: failHint == null,
-          hint: failHint ?? '',
-        );
+    GateResult gate(GateType type) =>
+        GateResult(type: type, passed: failHint == null, hint: failHint ?? '');
 
     return ScannerTick(
       quad: null,
@@ -67,17 +64,16 @@ void main() {
     CaptureSource source,
     FrameAnalyzerFn analyze, {
     StillEvaluator? evaluator,
-  }) =>
-      ChangeNotifierProvider<AppState>.value(
-        value: state,
-        child: MaterialApp(
-          home: CaptureScreen(
-            source: source,
-            analyze: analyze,
-            evaluator: evaluator,
-          ),
-        ),
-      );
+  }) => ChangeNotifierProvider<AppState>.value(
+    value: state,
+    child: MaterialApp(
+      home: CaptureScreen(
+        source: source,
+        analyze: analyze,
+        evaluator: evaluator,
+      ),
+    ),
+  );
 
   /// Screen up, exam dropdown loaded, scanner mounted and subscribed —
   /// frames pushed before this would drop on the floor (broadcast stream,
@@ -87,43 +83,38 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-
   /// One gray frame — content irrelevant, the script supplies the verdict.
-  LiveFrame blankFrame() => LiveFrame(
-        width: 640,
-        height: 480,
-        gray: Uint8List(640 * 480),
-      );
+  LiveFrame blankFrame() =>
+      LiveFrame(width: 640, height: 480, gray: Uint8List(640 * 480));
 
   /// Canned still reads, one per capture: each shutter consumes the next
   /// roll, so the "scan next sheet" flow advances students as on device.
   /// Empty fields = nothing flagged; the intake persists the scan, grades
   /// it all-unattempted, and the card shows the read roll.
   _ScriptedEvaluator fakeEvaluator(List<String> rolls) => _ScriptedEvaluator([
-        for (final roll in rolls)
-          () => StillEvaluation(
-                read: core.SheetRead(
-                  responses: const {},
-                  sheetConfidence: 0.95,
-                  rollNoRead: roll,
-                  setCodeRead: 'A',
-                ),
-                fields: const [],
-                registrationPath: RegistrationPath.fiducialQuadrant,
-                trace: const [],
-              ),
-      ]);
+    for (final roll in rolls)
+      () => StillEvaluation(
+        read: core.SheetRead(
+          responses: const {},
+          sheetConfidence: 0.95,
+          rollNoRead: roll,
+          setCodeRead: 'A',
+        ),
+        fields: const [],
+        registrationPath: RegistrationPath.fiducialQuadrant,
+        trace: const [],
+      ),
+  ]);
 
-  testWidgets('failing gate coaches its hint; dwell stays empty', (tester) async {
+  testWidgets('failing gate coaches its hint; dwell stays empty', (
+    tester,
+  ) async {
     final source = SimulatedCaptureSource();
     final ticks = <ScannerTick>[
       tick(failHint: 'move closer — sheet too small in frame'),
     ];
     var index = 0;
-    await tester.pumpWidget(host(
-      source,
-      (frame) => ticks[index++],
-    ));
+    await tester.pumpWidget(host(source, (frame) => ticks[index++]));
     await mounted(tester);
 
     source.push(blankFrame());
@@ -132,8 +123,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('move closer — sheet too small in frame'),
-        findsOneWidget);
+    expect(find.text('move closer — sheet too small in frame'), findsOneWidget);
     // The ring only exists once the dwell moves; a starved dwell builds no
     // indicator at all.
     expect(
@@ -145,22 +135,24 @@ void main() {
     );
   });
 
-  testWidgets('dwell completes → auto-shutter → post-capture card',
-      (tester) async {
+  testWidgets('dwell completes → auto-shutter → post-capture card', (
+    tester,
+  ) async {
     final source = SimulatedCaptureSource();
     source.armStill(Uint8List.fromList([1, 2, 3]));
 
     // 35 clean ticks ramping the ring, then the trigger.
     final script = <ScannerTick>[
-      for (var i = 1; i <= 35; i++)
-        tick(progress: i / 35, tracking: i >= 3),
+      for (var i = 1; i <= 35; i++) tick(progress: i / 35, tracking: i >= 3),
       tick(progress: 0, tracking: true, triggered: true),
     ];
     var index = 0;
-    await tester.pumpWidget(host(source, (frame) {
-      // Clamp: never run off the script while the card settles.
-      return script[index < script.length ? index++ : script.length - 1];
-    }, evaluator: fakeEvaluator(['R001'])));
+    await tester.pumpWidget(
+      host(source, (frame) {
+        // Clamp: never run off the script while the card settles.
+        return script[index < script.length ? index++ : script.length - 1];
+      }, evaluator: fakeEvaluator(['R001'])),
+    );
     await mounted(tester);
 
     for (var i = 0; i < 36; i++) {
@@ -182,11 +174,13 @@ void main() {
     final source = SimulatedCaptureSource();
     source.armStill(Uint8List.fromList([9]));
 
-    await tester.pumpWidget(host(
-      source,
-      (frame) => tick(progress: 0.2, tracking: true),
-      evaluator: fakeEvaluator(['R001']),
-    ));
+    await tester.pumpWidget(
+      host(
+        source,
+        (frame) => tick(progress: 0.2, tracking: true),
+        evaluator: fakeEvaluator(['R001']),
+      ),
+    );
     await mounted(tester);
 
     source.push(blankFrame());
@@ -202,20 +196,22 @@ void main() {
     expect(find.text('auto-graded', skipOffstage: false), findsOneWidget);
   });
 
-  testWidgets('scan next sheet re-arms the scanner for the following student',
-      (tester) async {
+  testWidgets('scan next sheet re-arms the scanner for the following student', (
+    tester,
+  ) async {
     final source = SimulatedCaptureSource();
     source.armStill(Uint8List.fromList([1]));
 
     final script = <ScannerTick>[
-      for (var i = 1; i <= 35; i++)
-        tick(progress: i / 35, tracking: i >= 3),
+      for (var i = 1; i <= 35; i++) tick(progress: i / 35, tracking: i >= 3),
       tick(progress: 0, tracking: true, triggered: true),
     ];
     var index = 0;
-    await tester.pumpWidget(host(source, (frame) {
-      return script[index < script.length ? index++ : script.length - 1];
-    }, evaluator: fakeEvaluator(['R001', 'R002'])));
+    await tester.pumpWidget(
+      host(source, (frame) {
+        return script[index < script.length ? index++ : script.length - 1];
+      }, evaluator: fakeEvaluator(['R001', 'R002'])),
+    );
     await mounted(tester);
 
     // First capture.

@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same PR/branch supersedes the running checks.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Pinned to the toolchain the workspace is developed and verified on
+  # (Dart 3.13 satisfies the >=3.10 workspace + native-assets floor).
+  FLUTTER_VERSION: '3.47.2'
+
+jobs:
+  analyze:
+    name: Format + analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Check formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          app/lib app/test app/integration_test
+          packages/*/lib packages/*/test tools/omr_cli
+      - name: Analyze workspace
+        run: flutter analyze --no-fatal-infos
+
+  dart-packages:
+    # Pure-Dart engines: no Flutter, no OpenCV — these run in seconds.
+    name: Test ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [omr_spec, omr_core, omr_data, omr_reports]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: dart test
+        working-directory: packages/${{ matrix.package }}
+        run: dart test --reporter expanded
+
+  flutter-tests:
+    # omr_detect + the app both pull dartcv4, whose build hook compiles
+    # OpenCV from source on first use. One job so both suites share the
+    # (cached) native build.
+    name: Test omr_detect + app
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Native build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build cmake
+      - name: Cache native-assets builds (OpenCV)
+        uses: actions/cache@v4
+        with:
+          path: |
+            .dart_tool/hooks_runner
+            packages/omr_detect/.dart_tool/hooks_runner
+            app/.dart_tool/hooks_runner
+          key: hooks-linux-${{ hashFiles('pubspec.lock', 'pubspec.yaml') }}
+          restore-keys: hooks-linux-
+      - run: flutter pub get
+      - name: omr_detect (incl. OpenCV smoke probe)
+        working-directory: packages/omr_detect
+        run: flutter test --reporter expanded
+      - name: App widget + flow tests
+        working-directory: app
+        run: flutter test --reporter expanded
+
+  android-build:
+    # Plan risk #10: every bundled .so must be 16 KB page-aligned for
+    # Play (API 35+). arm64 only — see docs/m0-gate.md for the x86_64
+    # libjpeg-turbo caveat.
+    name: Android APK (arm64) + 16KB alignment
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    needs: [analyze]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Point the dartcv4 hook's android_home at the runner SDK
+        # The workspace pubspec pins the dev machine's SDK path (see
+        # docs/m0-gate.md); mirror it onto the runner's SDK.
+        run: |
+          sudo mkdir -p /opt/homebrew/share
+          sudo ln -sfn "$ANDROID_HOME" /opt/homebrew/share/android-commandlinetools
+      - name: Install a modern SDK CMake
+        # The hook picks the newest <sdk>/cmake/*; CMake 3.22's bundled curl
+        # fails the TLS handshake with gitlab.arm.com, where OpenCV fetches
+        # KleidiCV for arm64 (docs/m0-gate.md, "KleidiCV download").
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "cmake;3.31.6" > /dev/null
+      - name: Cache native-assets builds (OpenCV, Android)
+        uses: actions/cache@v4
+        with:
+          path: |
+            .dart_tool/hooks_runner
+            app/.dart_tool/hooks_runner
+          key: hooks-android-${{ hashFiles('pubspec.lock', 'pubspec.yaml') }}
+          restore-keys: hooks-android-
+      - run: flutter pub get
+      - name: Build debug APK
+        working-directory: app
+        run: flutter build apk --debug --target-platform android-arm64
+      - name: zipalign -c -P 16
+        run: |
+          ZIPALIGN=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)zipalign
+          "$ZIPALIGN" -c -P 16 -v 4 app/build/app/outputs/flutter-apk/app-debug.apk | tail -5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-arm64
+          path: app/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7

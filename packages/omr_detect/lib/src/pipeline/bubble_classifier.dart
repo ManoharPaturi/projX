@@ -66,11 +66,9 @@ class BubbleClassifier {
       final zone = _zone(sample.meanIntensity, threshold);
       if (zone == BubbleZone.filled) filledCount++;
       if (zone == BubbleZone.probable) probableCount++;
-      bubbles.add(BubbleRead(
-        sample: sample,
-        thresholdUsed: threshold,
-        zone: zone,
-      ));
+      bubbles.add(
+        BubbleRead(sample: sample, thresholdUsed: threshold, zone: zone),
+      );
     }
 
     MarkClass markClass;
@@ -83,8 +81,7 @@ class BubbleClassifier {
         // a faint second mark — neither is safe to auto-resolve.
         markClass = MarkClass.probable;
       } else {
-        final index =
-            bubbles.indexWhere((b) => b.zone == BubbleZone.filled);
+        final index = bubbles.indexWhere((b) => b.zone == BubbleZone.filled);
         final read = bubbles[index];
         selected = index;
         markClass = read.sample.fillRatio >= config.overfillRatio

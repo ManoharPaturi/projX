@@ -49,7 +49,7 @@ class ReviewQueueScreen extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
-                  '${row.reasonCode}'
+                  '${_reasonLabel(row.reasonCode)}'
                   '${row.setCodeRead == null ? '' : ' · set ${row.setCodeRead}'}'
                   ' · ${(row.sheetConfidence ?? 0).toStringAsFixed(2)}',
                 ),
@@ -69,6 +69,22 @@ class ReviewQueueScreen extends StatelessWidget {
   }
 }
 
+/// The intake's machine reason code, said the way an operator would. Kept
+/// beside the queue because the code itself stays the storage key — only
+/// the display is human.
+String _reasonLabel(String code) => switch (code) {
+  'NO_MARKER_ERR' => 'sheet not detected',
+  'ROLL_CHECKSUM_ERR' => 'roll number failed its check digit',
+  'ROLL_NOT_ON_ROSTER' => 'roll number not on the roster',
+  'ROLL_AMBIGUOUS' => 'a roll digit was ambiguous',
+  'SET_BLANK' => 'set code left blank',
+  'SET_MULTI' => 'set code marked twice',
+  'MULTI_BUBBLE_WARN' => 'a question has two marks',
+  'PROBABLE_BUBBLE' => 'some bubbles read faintly',
+  'CURL_WARN' => 'sheet looked curved',
+  _ => code,
+};
+
 class _SeverityBadge extends StatelessWidget {
   const _SeverityBadge({required this.severity});
 
@@ -76,17 +92,27 @@ class _SeverityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Dark-filled badges with white bold text: every pair clears WCAG AA
+    // (the Material 500 amber/orange shades were under 3:1). The severity
+    // is never conveyed by color alone — the label is right there.
     final (color, label) = switch (severity) {
-      ReviewSeverity.mandatory => (Colors.red, 'MUST'),
-      ReviewSeverity.high => (Colors.orange, 'HIGH'),
-      ReviewSeverity.medium => (Colors.amber, 'MED'),
-      ReviewSeverity.low => (Colors.blueGrey, 'LOW'),
+      ReviewSeverity.mandatory => (const Color(0xFFB3261E), 'MUST'),
+      ReviewSeverity.high => (const Color(0xFF8B4000), 'HIGH'),
+      ReviewSeverity.medium => (const Color(0xFF7A5900), 'MED'),
+      ReviewSeverity.low => (const Color(0xFF44474E), 'LOW'),
     };
-    return CircleAvatar(
-      backgroundColor: color,
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 10),
+    return Semantics(
+      label: 'Severity: ${severity.name}',
+      child: CircleAvatar(
+        backgroundColor: color,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }

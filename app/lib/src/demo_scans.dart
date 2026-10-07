@@ -30,8 +30,7 @@ Future<String> insertDemoScan({
     // The flagged variant force-attempts its flagged question so the
     // multi-mark actually lands on the field the review item points at.
     final attempted =
-        (flaggedForReview && i == 4) ||
-        ((i * 7 + studentIndex * 13) % 10) < 6;
+        (flaggedForReview && i == 4) || ((i * 7 + studentIndex * 13) % 10) < 6;
     final option = (i + studentIndex) % optionCount;
     // Every bubble of every question gets a read — the same shape stage 6-8
     // of the real pipeline persists — so review sees the full row, not just
@@ -39,7 +38,8 @@ Future<String> insertDemoScan({
     for (var o = 0; o < optionCount; o++) {
       final filled =
           attempted &&
-          (o == option || (flaggedForReview && i == 4 && o == (option + 1) % optionCount));
+          (o == option ||
+              (flaggedForReview && i == 4 && o == (option + 1) % optionCount));
       reads.add(
         BubbleReadInput(
           fieldKey: fieldKey,

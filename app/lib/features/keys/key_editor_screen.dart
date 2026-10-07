@@ -61,9 +61,9 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
     if (versions.isNotEmpty) {
       final entries = await db.keysDao.entriesFor(versions.first.id);
       for (final entry in entries) {
-        final options = decodeJsonList(entry.correctOptionsJson)
-            .cast<int>()
-            .toList(growable: false);
+        final options = decodeJsonList(
+          entry.correctOptionsJson,
+        ).cast<int>().toList(growable: false);
         if (options.isNotEmpty) {
           _draft[entry.setCode]?[entry.questionId] = options.first;
         }
@@ -107,7 +107,11 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
       createdBy: 'app',
       supersedesId: active?.id,
     );
-    await db.keysDao.addEntries(keyVersionId, tenantId: state.tenantId, entries: entries);
+    await db.keysDao.addEntries(
+      keyVersionId,
+      tenantId: state.tenantId,
+      entries: entries,
+    );
     await db.keysDao.finalizeVersion(keyVersionId);
     await _load();
     state.refresh();
@@ -139,9 +143,7 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
               ],
             ),
           ),
-        Expanded(
-          child: _setGrid(_sets[_setTabs.index]),
-        ),
+        Expanded(child: _setGrid(_sets[_setTabs.index])),
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -199,7 +201,8 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
         final section = _sectionOf(questionId);
         final previous = index > 0 ? _questionOrder[index - 1] : null;
         final showHeader =
-            section != null && (previous == null || _sectionOf(previous) != section);
+            section != null &&
+            (previous == null || _sectionOf(previous) != section);
         final optionCount = _optionsByField[questionId]?.length ?? 4;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,35 +242,42 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
     final letter = String.fromCharCode(65 + option);
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        onTap: () => setState(() {
-          if (selected) {
-            _draft[set]?.remove(questionId);
-          } else {
-            _draft[set]?[questionId] = option;
-          }
-        }),
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label:
+            'Option $letter for question '
+            '${questionId.replaceAll(RegExp(r'^q'), '')}',
+        child: InkWell(
+          onTap: () => setState(() {
+            if (selected) {
+              _draft[set]?.remove(questionId);
+            } else {
+              _draft[set]?[questionId] = option;
+            }
+          }),
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey.shade700,
+                width: selected ? 3 : 2,
+              ),
               color: selected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey,
-              width: selected ? 3 : 1.5,
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+                  : null,
             ),
-            color: selected
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
-                : null,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            letter,
-            style: TextStyle(
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            alignment: Alignment.center,
+            child: Text(
+              letter,
+              style: TextStyle(
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ),
         ),

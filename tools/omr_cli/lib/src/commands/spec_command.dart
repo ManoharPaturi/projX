@@ -25,7 +25,8 @@ final class SpecCommand extends Command<int> {
   String get name => 'spec';
 
   @override
-  String get description => 'Print a preset sheet spec (canonical JSON + hash).';
+  String get description =>
+      'Print a preset sheet spec (canonical JSON + hash).';
 
   @override
   Future<int> run() async {
@@ -39,14 +40,18 @@ final class SpecCommand extends Command<int> {
     }
 
     stdout.writeln('# ${preset.label} — ${preset.description}');
-    stdout.writeln('# layoutId=${spec.layoutId} '
-        'layoutVersion=${spec.layoutVersion} '
-        'qr=${spec.qrPayload}');
+    stdout.writeln(
+      '# layoutId=${spec.layoutId} '
+      'layoutVersion=${spec.layoutVersion} '
+      'qr=${spec.qrPayload}',
+    );
     stdout.writeln('# specHash=${specSha256(spec)}');
-    stdout.writeln('# fields: '
-        '${spec.questionFieldKeysFor()} questions, '
-        'roll ${spec.rollDigits}+${spec.rollChecksum ? 1 : 0}, '
-        'set ${spec.setValues.join('/')}');
+    stdout.writeln(
+      '# fields: '
+      '${spec.questionFieldKeysFor()} questions, '
+      'roll ${spec.rollDigits}+${spec.rollChecksum ? 1 : 0}, '
+      'set ${spec.setValues.join('/')}',
+    );
     stdout.writeln(const JsonEncoder.withIndent('  ').convert(spec.toJson()));
     return 0;
   }

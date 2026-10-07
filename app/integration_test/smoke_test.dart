@@ -36,7 +36,8 @@ void main() {
     expect(
       report.quadDetectUsPerFrame,
       lessThan(32000),
-      reason: 'live-loop frame budget exceeded — see docs/m0-gate.md '
+      reason:
+          'live-loop frame budget exceeded — see docs/m0-gate.md '
           'native-fallback decision',
     );
   });

@@ -437,7 +437,10 @@ List<FiducialSearch> fiducialSearchPlan(
         // worth closing if a preset ever deviates from the 2.5 mm default
         // the PDF compiler prints); the sweep absorbs small mismatches.
         lArmPx: f.isAltAnchor
-            ? f.size * imageWidth / template.canvasWidth * (2.5 / (f.size / 8.0))
+            ? f.size *
+                  imageWidth /
+                  template.canvasWidth *
+                  (2.5 / (f.size / 8.0))
             : 0,
       ),
   ];

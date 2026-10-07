@@ -15,14 +15,12 @@ class OpencvDartImpl implements OpencvService {
   cv.Mat _mat(CvMat m) => m.inner as cv.Mat;
 
   @override
-  CvMat grayFromBytes(int width, int height, Uint8List bytes) => CvMat(
-        cv.Mat.fromList(height, width, cv.MatType.CV_8UC1, bytes),
-      );
+  CvMat grayFromBytes(int width, int height, Uint8List bytes) =>
+      CvMat(cv.Mat.fromList(height, width, cv.MatType.CV_8UC1, bytes));
 
   @override
-  CvMat bgrFromBytes(int width, int height, Uint8List bytes) => CvMat(
-        cv.Mat.fromList(height, width, cv.MatType.CV_8UC3, bytes),
-      );
+  CvMat bgrFromBytes(int width, int height, Uint8List bytes) =>
+      CvMat(cv.Mat.fromList(height, width, cv.MatType.CV_8UC3, bytes));
 
   @override
   DecodedStill decodeStill(Uint8List bytes) {
@@ -84,13 +82,11 @@ class OpencvDartImpl implements OpencvService {
   }
 
   @override
-  CvMat toGray(CvMat bgr) =>
-      CvMat(cv.cvtColor(_mat(bgr), cv.COLOR_BGR2GRAY));
+  CvMat toGray(CvMat bgr) => CvMat(cv.cvtColor(_mat(bgr), cv.COLOR_BGR2GRAY));
 
   @override
-  CvMat gaussianBlur(CvMat src, int ksize) => CvMat(
-        cv.gaussianBlur(_mat(src), (ksize, ksize), 0),
-      );
+  CvMat gaussianBlur(CvMat src, int ksize) =>
+      CvMat(cv.gaussianBlur(_mat(src), (ksize, ksize), 0));
 
   @override
   CvMatch matchTemplate(
@@ -102,15 +98,15 @@ class OpencvDartImpl implements OpencvService {
     // Restrict the search to the quadrant first — a match must not be able
     // to straddle a sheet midline (plan §3, stage 2).
     final search = crop(image, roi);
-    final result =
-        cv.matchTemplate(_mat(search), _mat(templ), cv.TM_CCOEFF_NORMED);
+    final result = cv.matchTemplate(
+      _mat(search),
+      _mat(templ),
+      cv.TM_CCOEFF_NORMED,
+    );
     try {
       _suppress(result, roi, templ, exclude);
       final (_, maxVal, _, maxLoc) = cv.minMaxLoc(result);
-      return CvMatch(
-        maxVal,
-        CvPointI(roi.x + maxLoc.x, roi.y + maxLoc.y),
-      );
+      return CvMatch(maxVal, CvPointI(roi.x + maxLoc.x, roi.y + maxLoc.y));
     } finally {
       result.dispose();
       dispose(search);
@@ -157,17 +153,12 @@ class OpencvDartImpl implements OpencvService {
   @override
   CvMat warpToCanvas(CvMat src, List<CvPointI> corners, CvSizeI canvas) {
     // The canonical detection canvas corners, clockwise from top-left.
-    return warp(
-      src,
-      corners,
-      [
-        CvPointI(0, 0),
-        CvPointI(canvas.width - 1, 0),
-        CvPointI(canvas.width - 1, canvas.height - 1),
-        CvPointI(0, canvas.height - 1),
-      ],
-      canvas,
-    );
+    return warp(src, corners, [
+      CvPointI(0, 0),
+      CvPointI(canvas.width - 1, 0),
+      CvPointI(canvas.width - 1, canvas.height - 1),
+      CvPointI(0, canvas.height - 1),
+    ], canvas);
   }
 
   @override
@@ -185,8 +176,10 @@ class OpencvDartImpl implements OpencvService {
     ]);
     final homography = cv.getPerspectiveTransform(srcPts, dst);
     try {
-      final warped =
-          cv.warpPerspective(_mat(src), homography, (canvas.width, canvas.height));
+      final warped = cv.warpPerspective(_mat(src), homography, (
+        canvas.width,
+        canvas.height,
+      ));
       return CvMat(warped);
     } finally {
       homography.dispose();
@@ -264,8 +257,11 @@ class OpencvDartImpl implements OpencvService {
     final edges = cv.canny(blurred, 85, 185);
     final kernel = cv.getStructuringElement(cv.MORPH_RECT, (10, 10));
     final closed = cv.morphologyEx(edges, cv.MORPH_CLOSE, kernel);
-    final (contours, _) = cv.findContours(closed, cv.RETR_EXTERNAL,
-        cv.CHAIN_APPROX_SIMPLE);
+    final (contours, _) = cv.findContours(
+      closed,
+      cv.RETR_EXTERNAL,
+      cv.CHAIN_APPROX_SIMPLE,
+    );
     try {
       cv.Contour? best;
       var bestArea = 0.0;
@@ -287,9 +283,7 @@ class OpencvDartImpl implements OpencvService {
       final approx = cv.approxPolyDP(best, 0.02 * perimeter, true);
       try {
         if (approx.length != 4) return null;
-        final quad = <CvPointI>[
-          for (final p in approx) CvPointI(p.x, p.y),
-        ];
+        final quad = <CvPointI>[for (final p in approx) CvPointI(p.x, p.y)];
         return _orderCorners(quad);
       } finally {
         approx.dispose();

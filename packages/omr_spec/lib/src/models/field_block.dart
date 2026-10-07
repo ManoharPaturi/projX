@@ -71,13 +71,14 @@ class FieldBlock {
   final List<String> fieldLabels;
 
   /// Expanded option values for this block's type.
-  List<String> get optionValues => bubbleValues ??
+  List<String> get optionValues =>
+      bubbleValues ??
       switch (blockType) {
-        BlockType.mcq ||
-        BlockType.setCode ||
-        BlockType.matrix =>
-          [for (var i = 0; i < options; i++) String.fromCharCode(65 + i)],
-        BlockType.intDigits || BlockType.rollDigits => [for (var i = 0; i < 10; i++) '$i'],
+        BlockType.mcq || BlockType.setCode || BlockType.matrix => [
+          for (var i = 0; i < options; i++) String.fromCharCode(65 + i),
+        ],
+        BlockType.intDigits ||
+        BlockType.rollDigits => [for (var i = 0; i < 10; i++) '$i'],
       };
 
   /// Expanded field labels — also each field's global key (q17, roll3, set).
@@ -85,15 +86,15 @@ class FieldBlock {
 
   /// Centre of the bubble for [fieldIndex], [optionIndex], in mm.
   MmPoint bubbleCenter(int fieldIndex, int optionIndex) => switch (direction) {
-        BlockDirection.vertical => MmPoint(
-            originMm.x + optionIndex * bubblePitchMm,
-            originMm.y + fieldIndex * rowPitchMm,
-          ),
-        BlockDirection.horizontal => MmPoint(
-            originMm.x + fieldIndex * rowPitchMm,
-            originMm.y + optionIndex * bubblePitchMm,
-          ),
-      };
+    BlockDirection.vertical => MmPoint(
+      originMm.x + optionIndex * bubblePitchMm,
+      originMm.y + fieldIndex * rowPitchMm,
+    ),
+    BlockDirection.horizontal => MmPoint(
+      originMm.x + fieldIndex * rowPitchMm,
+      originMm.y + optionIndex * bubblePitchMm,
+    ),
+  };
 
   /// Full extent covering every bubble outline (bubble half-sizes included).
   /// [bubbleW]/[bubbleH] come from the sheet's BubbleStyle.
@@ -102,56 +103,56 @@ class FieldBlock {
     final nOptions = options;
     final (spanFields, spanOptions) = switch (direction) {
       BlockDirection.vertical => (
-          (nFields - 1) * rowPitchMm + bubbleH,
-          (nOptions - 1) * bubblePitchMm + bubbleW
-        ),
+        (nFields - 1) * rowPitchMm + bubbleH,
+        (nOptions - 1) * bubblePitchMm + bubbleW,
+      ),
       BlockDirection.horizontal => (
-          (nFields - 1) * rowPitchMm + bubbleW,
-          (nOptions - 1) * bubblePitchMm + bubbleH
-        ),
+        (nFields - 1) * rowPitchMm + bubbleW,
+        (nOptions - 1) * bubblePitchMm + bubbleH,
+      ),
     };
     return switch (direction) {
       BlockDirection.vertical => MmRect(
-          originMm.x - bubbleW / 2,
-          originMm.y - bubbleH / 2,
-          spanOptions,
-          spanFields,
-        ),
+        originMm.x - bubbleW / 2,
+        originMm.y - bubbleH / 2,
+        spanOptions,
+        spanFields,
+      ),
       BlockDirection.horizontal => MmRect(
-          originMm.x - bubbleW / 2,
-          originMm.y - bubbleH / 2,
-          spanFields,
-          spanOptions,
-        ),
+        originMm.x - bubbleW / 2,
+        originMm.y - bubbleH / 2,
+        spanFields,
+        spanOptions,
+      ),
     };
   }
 
   Map<String, Object?> toJson() => {
-        'blockId': blockId,
-        'blockType': blockType.name,
-        'originMm': [originMm.x, originMm.y],
-        'bubblePitchMm': bubblePitchMm,
-        'rowPitchMm': rowPitchMm,
-        'direction': direction.name,
-        'options': options,
-        if (bubbleValues != null) 'bubbleValues': bubbleValues,
-        'fieldLabels': fieldLabels,
-      };
+    'blockId': blockId,
+    'blockType': blockType.name,
+    'originMm': [originMm.x, originMm.y],
+    'bubblePitchMm': bubblePitchMm,
+    'rowPitchMm': rowPitchMm,
+    'direction': direction.name,
+    'options': options,
+    if (bubbleValues != null) 'bubbleValues': bubbleValues,
+    'fieldLabels': fieldLabels,
+  };
 
   static FieldBlock fromJson(Map<String, Object?> j) => FieldBlock(
-        blockId: j['blockId']! as String,
-        blockType: BlockType.values.byName(j['blockType']! as String),
-        originMm: MmPoint(
-          ((j['originMm']! as List).first as num).toDouble(),
-          ((j['originMm']! as List).last as num).toDouble(),
-        ),
-        bubblePitchMm: (j['bubblePitchMm']! as num).toDouble(),
-        rowPitchMm: (j['rowPitchMm']! as num).toDouble(),
-        direction: BlockDirection.values.byName(j['direction']! as String),
-        options: j['options'] as int? ?? 4,
-        bubbleValues: (j['bubbleValues'] as List<Object?>?)?.cast<String>(),
-        fieldLabels: (j['fieldLabels']! as List<Object?>).cast<String>(),
-      );
+    blockId: j['blockId']! as String,
+    blockType: BlockType.values.byName(j['blockType']! as String),
+    originMm: MmPoint(
+      ((j['originMm']! as List).first as num).toDouble(),
+      ((j['originMm']! as List).last as num).toDouble(),
+    ),
+    bubblePitchMm: (j['bubblePitchMm']! as num).toDouble(),
+    rowPitchMm: (j['rowPitchMm']! as num).toDouble(),
+    direction: BlockDirection.values.byName(j['direction']! as String),
+    options: j['options'] as int? ?? 4,
+    bubbleValues: (j['bubbleValues'] as List<Object?>?)?.cast<String>(),
+    fieldLabels: (j['fieldLabels']! as List<Object?>).cast<String>(),
+  );
 }
 
 /// Expands label ranges: 'q1..q30' -> q1..q30 (numeric zero-padded to the

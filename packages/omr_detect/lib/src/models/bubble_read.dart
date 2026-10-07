@@ -95,11 +95,11 @@ class BubbleRead {
   final double confidence;
 
   BubbleRead copyWith({BubbleZone? zone, double? confidence}) => BubbleRead(
-        sample: sample,
-        thresholdUsed: thresholdUsed,
-        zone: zone ?? this.zone,
-        confidence: confidence ?? this.confidence,
-      );
+    sample: sample,
+    thresholdUsed: thresholdUsed,
+    zone: zone ?? this.zone,
+    confidence: confidence ?? this.confidence,
+  );
 
   @override
   String toString() =>
@@ -148,16 +148,15 @@ class FieldRead {
     MarkClass? markClass,
     int? selectedOptionIndex,
     double? confidence,
-  }) =>
-      FieldRead(
-        fieldKey: fieldKey,
-        blockId: blockId,
-        blockType: blockType,
-        bubbles: bubbles ?? this.bubbles,
-        markClass: markClass ?? this.markClass,
-        selectedOptionIndex: selectedOptionIndex ?? this.selectedOptionIndex,
-        confidence: confidence ?? this.confidence,
-      );
+  }) => FieldRead(
+    fieldKey: fieldKey,
+    blockId: blockId,
+    blockType: blockType,
+    bubbles: bubbles ?? this.bubbles,
+    markClass: markClass ?? this.markClass,
+    selectedOptionIndex: selectedOptionIndex ?? this.selectedOptionIndex,
+    confidence: confidence ?? this.confidence,
+  );
 
   @override
   String toString() =>

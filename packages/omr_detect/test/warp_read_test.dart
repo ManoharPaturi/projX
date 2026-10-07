@@ -19,8 +19,10 @@ void main() {
   const imgW = 1200, imgH = 1600;
   const qx0 = 130.0, qy0 = 140.0, qx1 = 1070.0, qy1 = 1460.0;
 
-  double ix(double canvasX) => qx0 + canvasX / template.canvasWidth * (qx1 - qx0);
-  double iy(double canvasY) => qy0 + canvasY / template.canvasHeight * (qy1 - qy0);
+  double ix(double canvasX) =>
+      qx0 + canvasX / template.canvasWidth * (qx1 - qx0);
+  double iy(double canvasY) =>
+      qy0 + canvasY / template.canvasHeight * (qy1 - qy0);
 
   /// Desk + sheet + anchors + ink marks for [marks] (canvas-space ROIs).
   Uint8List photo(List<({int x, int y, int w, int h})> marks) {
@@ -34,13 +36,15 @@ void main() {
     for (final f in template.fiducials) {
       final cx = ix(f.centerX).round(), cy = iy(f.centerY).round();
       for (var y = cy - edge ~/ 2; y < cy + edge ~/ 2 + edge % 2; y++) {
-        bytes.fillRange(y * imgW + cx - edge ~/ 2,
-            y * imgW + cx - edge ~/ 2 + edge, 0);
+        bytes.fillRange(
+          y * imgW + cx - edge ~/ 2,
+          y * imgW + cx - edge ~/ 2 + edge,
+          0,
+        );
       }
     }
     for (final m in marks) {
-      final x0 = ix(m.x.toDouble()).round(),
-          y0 = iy(m.y.toDouble()).round();
+      final x0 = ix(m.x.toDouble()).round(), y0 = iy(m.y.toDouble()).round();
       final wPx = (m.w / template.canvasWidth * (qx1 - qx0)).round();
       final hPx = (m.h / template.canvasHeight * (qy1 - qy0)).round();
       for (var y = y0; y < y0 + hPx; y++) {
@@ -55,11 +59,14 @@ void main() {
     final marks = <({int x, int y, int w, int h})>[
       for (final entry in [
         (template.bubbles.firstWhere(
-            (b) => b.fieldKey == 'q1' && b.optionValue == 'C')),
+          (b) => b.fieldKey == 'q1' && b.optionValue == 'C',
+        )),
         (template.bubbles.firstWhere(
-            (b) => b.fieldKey == 'roll1' && b.optionValue == '7')),
+          (b) => b.fieldKey == 'roll1' && b.optionValue == '7',
+        )),
         (template.bubbles.firstWhere(
-            (b) => b.fieldKey == 'roll2' && b.optionValue == '3')),
+          (b) => b.fieldKey == 'roll2' && b.optionValue == '3',
+        )),
       ])
         entry.roi(fraction: 0.72),
     ];
@@ -67,11 +74,14 @@ void main() {
     addTearDown(() => cv.dispose(gray));
 
     final plan = fiducialSearchPlan(template, imgW, imgH);
-    final reg =
-        FiducialRegistrar().register(cv, gray, plan, imageWidth: imgW);
-    expect(reg.ok, isTrue,
-        reason: 'spine needs all four anchors; got '
-            '${reg.matches.map((m) => m?.score.toStringAsFixed(2))}');
+    final reg = FiducialRegistrar().register(cv, gray, plan, imageWidth: imgW);
+    expect(
+      reg.ok,
+      isTrue,
+      reason:
+          'spine needs all four anchors; got '
+          '${reg.matches.map((m) => m?.score.toStringAsFixed(2))}',
+    );
 
     final warped = HomographyWarper().warp(cv, gray, reg, plan, template);
     addTearDown(() => cv.dispose(warped));
@@ -88,22 +98,32 @@ void main() {
           (2 * r).round(),
         ),
       );
-      expect(mean, lessThan(90),
-          reason: 'anchor ${f.corner} must land dark at its canvas position '
-              '(mean=${mean.toStringAsFixed(1)})');
+      expect(
+        mean,
+        lessThan(90),
+        reason:
+            'anchor ${f.corner} must land dark at its canvas position '
+            '(mean=${mean.toStringAsFixed(1)})',
+      );
     }
 
     final samples = BubbleReader().read(cv, warped, template);
     double meanOf(String key, String value) => samples
         .firstWhere((s) => s.fieldKey == key && s.optionValue == value)
         .meanIntensity;
-    expect(meanOf('q1', 'C'), lessThan(60),
-        reason: 'inked option must survive the warp dark');
+    expect(
+      meanOf('q1', 'C'),
+      lessThan(60),
+      reason: 'inked option must survive the warp dark',
+    );
     expect(meanOf('q1', 'A'), greaterThan(190));
     expect(meanOf('roll1', '7'), lessThan(60));
     expect(meanOf('roll2', '3'), lessThan(60));
-    expect(meanOf('roll1', '3'), greaterThan(190),
-        reason: 'same digit, different column: must stay bright');
+    expect(
+      meanOf('roll1', '3'),
+      greaterThan(190),
+      reason: 'same digit, different column: must stay bright',
+    );
   });
 
   test('warp refuses a partial registration', () {

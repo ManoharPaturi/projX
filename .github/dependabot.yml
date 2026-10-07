@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  # Dart/Flutter deps are pinned exactly on purpose (opencv_dart, drift, pdf
+  # — see plan §1 risk #2); dependabot only proposes, CI must prove.
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5

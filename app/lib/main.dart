@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'features/calibration/calibration_screen.dart';
 import 'features/capture/capture_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/exams/exam_create_screen.dart';
@@ -37,17 +38,21 @@ class OmrApp extends StatelessWidget {
           ReviewQueueScreen.routeName: (_) => const ReviewQueueScreen(),
           CaptureScreen.routeName: (_) => const CaptureScreen(),
           SettingsScreen.routeName: (_) => const SettingsScreen(),
+          CalibrationScreen.routeName: (_) => const CalibrationScreen(),
         },
       ),
     );
   }
 
   /// M3 with the sheet's drop-out orange as the brand seed — the same ink
-  /// the operator sees printed on every sheet.
+  /// the operator sees printed on every sheet. Comfortable density + padded
+  /// tap targets: this app is used standing, all day, often one-handed.
   ThemeData _theme() {
     final scheme = ColorScheme.fromSeed(seedColor: const Color(0xFFD64000));
     return ThemeData(
       colorScheme: scheme,
+      visualDensity: VisualDensity.comfortable,
+      materialTapTargetSize: MaterialTapTargetSize.padded,
       inputDecorationTheme: const InputDecorationTheme(
         border: OutlineInputBorder(),
       ),

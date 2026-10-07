@@ -12,17 +12,16 @@ BubbleSample sample(
   bool stray = false,
   String blockId = 'mcq_c1',
   BlockType blockType = BlockType.mcq,
-}) =>
-    BubbleSample(
-      fieldKey: fieldKey,
-      blockId: blockId,
-      blockType: blockType,
-      optionIndex: optionIndex,
-      optionValue: optionValue,
-      meanIntensity: mean,
-      fillRatio: fill,
-      strayMark: stray,
-    );
+}) => BubbleSample(
+  fieldKey: fieldKey,
+  blockId: blockId,
+  blockType: blockType,
+  optionIndex: optionIndex,
+  optionValue: optionValue,
+  meanIntensity: mean,
+  fillRatio: fill,
+  strayMark: stray,
+);
 
 /// A [ThresholdResult] with hand-set thresholds so tests control the
 /// decision boundary directly instead of going through the engine (which
@@ -30,23 +29,22 @@ BubbleSample sample(
 ThresholdResult thresholds({
   double global = 170,
   Map<String, double> perField = const {},
-}) =>
-    ThresholdResult(
-      globalThreshold: global,
-      globalLargestGap: 100,
-      globalUsedFallback: false,
-      globalStd: 30,
-      strips: {
-        for (final e in perField.entries)
-          e.key: StripThreshold(
-            threshold: e.value,
-            largestGap: 100,
-            confident: true,
-            fromGlobal: false,
-            distrusted: false,
-          ),
-      },
-    );
+}) => ThresholdResult(
+  globalThreshold: global,
+  globalLargestGap: 100,
+  globalUsedFallback: false,
+  globalStd: 30,
+  strips: {
+    for (final e in perField.entries)
+      e.key: StripThreshold(
+        threshold: e.value,
+        largestGap: 100,
+        confident: true,
+        fromGlobal: false,
+        distrusted: false,
+      ),
+  },
+);
 
 /// Builds a post-classification [FieldRead] for decoder/aggregator tests.
 ///
@@ -96,10 +94,10 @@ const digitValues = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 /// One roll-digit column, bubbled with [digit] (or blank when `null`).
 FieldRead rollColumn(String fieldKey, String? digit) => fieldRead(
-      fieldKey,
-      markClass: digit == null ? MarkClass.blank : MarkClass.filled,
-      selected: digit == null ? null : digitValues.indexOf(digit),
-      blockId: 'roll',
-      blockType: BlockType.rollDigits,
-      values: digitValues,
-    );
+  fieldKey,
+  markClass: digit == null ? MarkClass.blank : MarkClass.filled,
+  selected: digit == null ? null : digitValues.indexOf(digit),
+  blockId: 'roll',
+  blockType: BlockType.rollDigits,
+  values: digitValues,
+);

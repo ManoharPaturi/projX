@@ -13,13 +13,14 @@ import 'package:omr_cli/src/commands/template_command.dart';
 ///   omr_cli template --preset A --out std90.template.json
 /// ```
 Future<void> main(List<String> arguments) async {
-  final runner = CommandRunner<int>(
-    'omr_cli',
-    'Render OMR sheet PDFs and detection templates; golden-corpus harness.',
-  )
-    ..addCommand(SpecCommand())
-    ..addCommand(PdfCommand())
-    ..addCommand(TemplateCommand());
+  final runner =
+      CommandRunner<int>(
+          'omr_cli',
+          'Render OMR sheet PDFs and detection templates; golden-corpus harness.',
+        )
+        ..addCommand(SpecCommand())
+        ..addCommand(PdfCommand())
+        ..addCommand(TemplateCommand());
 
   try {
     final code = await runner.run(arguments) ?? 0;
