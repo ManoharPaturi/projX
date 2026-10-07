@@ -39,4 +39,22 @@ void main() {
     expect(find.text('1 of 5 done — tap a step to do it.'), findsOneWidget);
     expect(state.instituteName, 'Sunrise Coaching');
   });
+
+  testWidgets('menu destinations open over Home, so back returns home', (
+    tester,
+  ) async {
+    final state = await seededAppState();
+    await tester.pumpWidget(OmrApp(state: state));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('How to use'));
+    await tester.pumpAndSettle();
+    expect(find.text('The whole job in 7 steps'), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('getting-started')), findsOneWidget);
+  });
 }

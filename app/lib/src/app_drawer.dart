@@ -64,8 +64,14 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
+  /// Every destination opens on top of Home, so the back arrow (and the
+  /// phone's back button) always leads home instead of closing the app.
   void _replace(BuildContext context, String routeName) {
     Navigator.pop(context); // close the drawer first, always
-    Navigator.pushReplacementNamed(context, routeName);
+    final navigator = Navigator.of(context);
+    navigator.popUntil((route) => route.isFirst);
+    if (routeName != DashboardScreen.routeName) {
+      navigator.pushNamed(routeName);
+    }
   }
 }
