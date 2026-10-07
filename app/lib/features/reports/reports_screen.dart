@@ -71,7 +71,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             for (final version in _versions!)
               DropdownMenuItem(
                 value: version.id,
-                child: Text('v${version.version} (${version.status.name})'),
+                child: Text(keyVersionLabel(version.version, version.status)),
               ),
           ],
           initialValue: _keyVersionId,

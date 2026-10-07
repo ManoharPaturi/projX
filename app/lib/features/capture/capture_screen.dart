@@ -506,7 +506,7 @@ class _CapturedCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        review ? 'needs review' : 'auto-graded',
+        review ? 'needs a check' : 'marked',
         style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );

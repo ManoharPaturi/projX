@@ -12,9 +12,9 @@ import '../keys/key_editor_screen.dart';
 /// Grading presets offered at exam setup (ids from `ScoringPresets`; the
 /// engine resolves params from its registry — marking is data, not code).
 const List<({String id, String label})> kGradingPresets = [
-  (id: 'neet-jee-main-4n1p', label: 'NEET / JEE Main — +4 / −1 / 0'),
-  (id: 'jee-adv-multi-2026', label: 'JEE Adv multi-correct 2026 — partial, −1'),
-  (id: 'jee-adv-multi-legacy', label: 'JEE Adv multi-correct (legacy) — −2'),
+  (id: 'neet-jee-main-4n1p', label: 'NEET / JEE Main: +4 right, −1 wrong'),
+  (id: 'jee-adv-multi-2026', label: 'JEE Advanced: part marks, −1 wrong'),
+  (id: 'jee-adv-multi-legacy', label: 'JEE Advanced (older): part marks, −2'),
 ];
 
 /// Plan §6 screen 2 — pick a layout from the generated spec library, bind a
@@ -48,7 +48,10 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
       }
       setState(() {
         _layouts = rows;
-        _layout = rows.isNotEmpty ? rows.first : null;
+        // The standard sheet suits most exams; NEET-density is opt-in.
+        _layout =
+            rows.where((r) => r.layoutId == 'std90').firstOrNull ??
+            rows.firstOrNull;
       });
     });
   }
@@ -157,7 +160,7 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
                 for (final row in _layouts ?? <SheetLayout>[])
                   DropdownMenuItem(
                     value: row,
-                    child: Text('${row.layoutId} v${row.layoutVersion}'),
+                    child: Text(layoutLabel(row.layoutId)),
                   ),
               ],
               initialValue: _layout,
