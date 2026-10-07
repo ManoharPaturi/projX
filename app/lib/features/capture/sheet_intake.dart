@@ -38,6 +38,10 @@ class SheetIntake {
       throw StateError('unknown exam $examId');
     }
 
+    if (exam.status == ExamStatus.draft) {
+      // The first scanned sheet is what starts an exam.
+      await db.examsDao.setStatus(examId, ExamStatus.active);
+    }
     final evaluation = await evaluator.evaluate(examId, stillBytes);
     final read = evaluation.read;
     final layoutVersion = (await GradingService(

@@ -63,6 +63,11 @@ void main() {
     final second = (await tester.runAsync(scan))!;
 
     expect(first.needsReview, isFalse);
+    // The first scanned sheet starts the exam.
+    expect(
+      (await state.db.examsDao.byId(seeded.examId))!.status.name,
+      'active',
+    );
     expect(second.needsReview, isTrue);
     expect(second.reasons, ['DUPLICATE_SHEET']);
 

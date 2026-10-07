@@ -403,4 +403,44 @@ void main() {
     expect(find.text('Set B (8/90)'), findsOneWidget);
     expect(find.textContaining('Finish or clear set B'), findsOneWidget);
   });
+
+  testWidgets('calculate marks with nothing scanned says so, stays unmarked', (
+    tester,
+  ) async {
+    final seeded = await seedExamWithRoster(state, students: 1);
+    await tester.pumpWidget(
+      wrapForTest(ExamDetailScreen(examId: seeded.examId), state),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Calculate marks'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('No scanned sheets yet — scan them first.'),
+      findsOneWidget,
+    );
+    final exam = await state.db.examsDao.byId(seeded.examId);
+    expect(exam!.status, isNot(ExamStatus.graded));
+  });
+
+  testWidgets('pasting rolls that cannot be bubbled warns in the summary', (
+    tester,
+  ) async {
+    await tester.pumpWidget(wrapForTest(const RosterScreen(), state));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Paste a list'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).last,
+      'roll,name\n1001,Asha\nAB12,Ravi',
+    );
+    await tester.tap(find.text('Import'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Import finished'), findsOneWidget);
+    expect(find.textContaining('cannot be filled in'), findsOneWidget);
+    expect(find.textContaining('digits only, up to 7): AB12'), findsOneWidget);
+  });
 }

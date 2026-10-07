@@ -162,4 +162,25 @@ void main() {
       'strict',
     );
   });
+
+  testWidgets('retention refuses 0 days with a message', (tester) async {
+    await tester.pumpWidget(
+      wrapForTest(const SettingsScreen(key: Key('settings')), state),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Keep full-size photos for'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const Key('retention-days-field')), '0');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter a number of days from 1 to 365'), findsOneWidget);
+    expect(
+      (await SettingsDao(
+        state.db,
+      ).settingsFor(state.tenantId)).retentionGraceDays,
+      7,
+    );
+  });
 }

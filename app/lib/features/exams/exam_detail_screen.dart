@@ -332,23 +332,32 @@ class _ActionsCard extends StatelessWidget {
       );
       return;
     }
-    if (exam.status == ExamStatus.draft) {
-      // Scanning or grading an exam is what starts it; no separate step.
-      await state.db.examsDao.setStatus(exam.id, ExamStatus.active);
-    }
     final report = await GradingService(state.db).gradeExam(
       tenantId: state.tenantId,
       examId: exam.id,
       keyVersionId: keyVersion.id,
     );
-    await state.db.examsDao.setStatus(exam.id, ExamStatus.graded);
+    final marked = report.resultsByStudent.length;
+    // Nothing marked is not "Marked"; and re-marking shared results must
+    // not demote them back from "Results shared".
+    if (marked > 0 && exam.status != ExamStatus.published) {
+      await state.db.examsDao.setStatus(exam.id, ExamStatus.graded);
+    }
     state.refresh();
+    final pending = (await state.db.scansDao.pendingReview(
+      examId: exam.id,
+    )).length;
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          'Marks ready for ${report.resultsByStudent.length} '
-          'student${report.resultsByStudent.length == 1 ? '' : 's'} — see the '
-          'Results tab',
+          marked == 0
+              ? (pending == 0
+                    ? 'No scanned sheets yet — scan them first.'
+                    : 'No sheets ready yet — $pending waiting in "Sheets to '
+                          'check".')
+              : 'Marks ready for $marked student${marked == 1 ? '' : 's'} — '
+                    'see the Results tab'
+                    '${pending == 0 ? '' : ' ($pending still to check)'}',
         ),
       ),
     );
