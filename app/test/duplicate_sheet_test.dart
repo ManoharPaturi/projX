@@ -7,15 +7,17 @@ import 'package:omr_app/features/capture/still_evaluator.dart';
 import 'package:omr_app/features/review/review_queue_screen.dart';
 import 'package:omr_app/src/app_state.dart';
 import 'package:omr_core/omr_core.dart' as core;
+import 'package:omr_data/omr_data.dart';
 import 'package:omr_detect/omr_detect.dart' as detect;
 import 'package:omr_reports/omr_reports.dart';
 
 import 'helpers.dart';
 
 class _CleanRead implements StillEvaluator {
-  _CleanRead(this.roll);
+  _CleanRead(this.roll, {this.set = 'A'});
 
   final String roll;
+  final String set;
 
   @override
   Future<detect.StillEvaluation> evaluate(
@@ -26,7 +28,7 @@ class _CleanRead implements StillEvaluator {
       responses: const {},
       sheetConfidence: 0.97,
       rollNoRead: roll,
-      setCodeRead: 'A',
+      setCodeRead: set,
     ),
     fields: const [],
     registrationPath: detect.RegistrationPath.fiducialQuadrant,
@@ -90,5 +92,41 @@ void main() {
       keyVersionId: seeded.keyVersionId,
     ).rows();
     expect(rows.single.scanId, second.scanId);
+  });
+
+  test('two keyed sets: a sheet marked with an unkeyed set goes to review, '
+      'not a crash', () async {
+    final db = state.db;
+    final layout = await GradingService(db).layoutContextFor(seeded.examId);
+    final v2 = await db.keysDao.createVersion(
+      tenantId: state.tenantId,
+      examId: seeded.examId,
+      version: 2,
+      createdBy: 'test',
+    );
+    await db.keysDao.addEntries(
+      v2,
+      tenantId: state.tenantId,
+      entries: [
+        for (final set in ['A', 'B'])
+          for (final q in layout.questionOrder)
+            KeyEntryInput(setCode: set, questionId: q, correctOptions: [0]),
+      ],
+    );
+    await db.keysDao.finalizeVersion(v2);
+
+    final sheet =
+        await SheetIntake(
+          db,
+          evaluator: _CleanRead(seeded.rollNoByIndex.first, set: 'C'),
+        ).process(
+          tenantId: state.tenantId,
+          examId: seeded.examId,
+          stillBytes: Uint8List(0),
+        );
+
+    expect(sheet.needsReview, isTrue);
+    expect(sheet.reasons, contains('SET_NO_KEY'));
+    expect(sheet.result, isNull);
   });
 }

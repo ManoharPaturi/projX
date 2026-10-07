@@ -56,8 +56,24 @@ class SheetIntake {
         ? null
         : (await db.studentsDao.findByRoll(exam.instituteId, roll))?.id;
 
+    // With several keyed sets, a sheet must name one of them to be marked.
+    final activeKey = await db.keysDao.activeVersion(examId);
+    final keyedSets = activeKey == null
+        ? const <String>{}
+        : (await GradingService(db).keysBySet(activeKey.id)).keys.toSet();
+    final setUnmarkable =
+        keyedSets.isNotEmpty &&
+        effectiveSetFor(read.setCodeRead, keyedSets) == null;
     final reasons = [
       ...reviewReasonsFor(evaluation),
+      if (setUnmarkable &&
+          !read.flags.contains(core.SheetReadFlag.setCodeBlank) &&
+          !read.flags.contains(core.SheetReadFlag.setCodeMulti))
+        (
+          code: 'SET_NO_KEY',
+          severity: ReviewSeverity.mandatory,
+          fieldRefs: const <String>['set'],
+        ),
       // A second sheet for the same student is either a rescan or another
       // student who bubbled this roll. Never decide silently: a human does.
       if (studentId != null &&
@@ -111,9 +127,14 @@ class SheetIntake {
         examId: examId,
         keyVersionId: keyVersion.id,
       );
-      result = await GradingService(
-        db,
-      ).gradeScan(examId: examId, keyVersionId: keyVersion.id, scanId: scanId);
+      // No card score for a sheet whose set has no key: it is in review.
+      if (!setUnmarkable) {
+        result = await GradingService(db).gradeScan(
+          examId: examId,
+          keyVersionId: keyVersion.id,
+          scanId: scanId,
+        );
+      }
     }
 
     return CapturedSheet(
@@ -205,12 +226,14 @@ reviewReasonsFor(detect.StillEvaluation evaluation) {
         core.SheetReadFlag.setCodeBlank => (
           code: 'SET_BLANK',
           severity: ReviewSeverity.medium,
-          fieldRefs: const <String>[],
+          // The review screen shows the set bubbles to correct.
+          fieldRefs: const <String>['set'],
         ),
         core.SheetReadFlag.setCodeMulti => (
           code: 'SET_MULTI',
           severity: ReviewSeverity.medium,
-          fieldRefs: const <String>[],
+          // The review screen shows the set bubbles to correct.
+          fieldRefs: const <String>['set'],
         ),
         core.SheetReadFlag.multiMarkedField => (
           code: 'MULTI_BUBBLE_WARN',
