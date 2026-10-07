@@ -279,4 +279,93 @@ void main() {
       expect(rows.single.result.unattempted, 90);
     },
   );
+
+  group('question-paper sets', () {
+    // q1 is keyed A in set A and B in set B; every other question is A.
+    Future<String> twoSetKey() async {
+      final v = await seedKeyVersion(db, examId, version: 2);
+      await seedKeyEntries(db, v, {
+        'q1': [0],
+        for (var i = 2; i <= 90; i++) 'q$i': [0],
+      });
+      await seedKeyEntries(db, v, setCode: 'B', {
+        'q1': [1],
+        for (var i = 2; i <= 90; i++) 'q$i': [0],
+      });
+      return v;
+    }
+
+    BubbleReadInput fill(String field, int option) => BubbleReadInput(
+      fieldKey: field,
+      optionIndex: option,
+      markClass: MarkClass.filled,
+    );
+
+    Future<void> scanWithSet(
+      String studentId,
+      String roll,
+      String? set,
+      int q1Option,
+    ) => db.scansDao.insertScanWithReads(
+      scanRow(
+        examId: examId,
+        studentId: studentId,
+        rollNoRead: roll,
+        setCodeRead: set,
+      ),
+      [fill('q1', q1Option)],
+    );
+
+    test('each student is marked against their own set\'s key', () async {
+      final v = await twoSetKey();
+      await scanWithSet(studentIds[0], 'R001', 'A', 0); // right for set A
+      await scanWithSet(studentIds[1], 'R002', 'B', 1); // right for set B
+
+      final report = await grading().gradeExam(
+        tenantId: kTenantId,
+        examId: examId,
+        keyVersionId: v,
+      );
+
+      expect(report.resultsByStudent[studentIds[0]]!.totalMarks, 4);
+      expect(report.resultsByStudent[studentIds[1]]!.totalMarks, 4);
+    });
+
+    test('a single keyed set marks sheets whose set was left blank', () async {
+      await scanWithSet(studentIds[0], 'R001', null, 0);
+
+      final report = await grading().gradeExam(
+        tenantId: kTenantId,
+        examId: examId,
+        keyVersionId: keyVersionId,
+      );
+
+      expect(report.resultsByStudent[studentIds[0]]!.totalMarks, 4);
+    });
+
+    test(
+      'with several sets, a sheet whose set has no key is not guessed',
+      () async {
+        final v = await twoSetKey();
+        await scanWithSet(studentIds[0], 'R001', 'C', 0);
+        await scanWithSet(studentIds[1], 'R002', null, 0);
+
+        final report = await grading().gradeExam(
+          tenantId: kTenantId,
+          examId: examId,
+          keyVersionId: v,
+        );
+
+        expect(report.resultsByStudent, isEmpty);
+      },
+    );
+
+    test('effectiveSetFor rules', () {
+      expect(effectiveSetFor('B', {'A', 'B'}), 'B');
+      expect(effectiveSetFor(null, {'A'}), 'A');
+      expect(effectiveSetFor('C', {'A'}), 'A');
+      expect(effectiveSetFor(null, {'A', 'B'}), isNull);
+      expect(effectiveSetFor('C', {'A', 'B'}), isNull);
+    });
+  });
 }

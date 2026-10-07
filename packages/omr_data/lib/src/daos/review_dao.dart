@@ -120,12 +120,54 @@ class ReviewDao extends DatabaseAccessor<AppDb> with _$ReviewDaoMixin {
               ),
             );
       }
-      if (outcome != ReviewOutcome.retaken) {
-        final status = outcome == ReviewOutcome.corrected
-            ? ScanStatus.reviewed
-            : ScanStatus.rejected;
-        await (update(scans)..where((Scans s) => s.id.equals(item.scanId)))
-            .write(ScansCompanion(status: Value(status)));
+      // A corrected set bubble IS the sheet's set: grading reads the set
+      // from the scan row, so the correction must land there too.
+      final setFix = corrections.where(
+        (c) => c.fieldKey == 'set' && c.markClass == MarkClass.filled,
+      );
+      // A sheet can carry several review reasons. A correction clears
+      // only its own item; the sheet leaves review once none are open. A
+      // reject/retake settles the whole sheet, so its other items close too.
+      final otherOpen =
+          await (select(reviewQueue)..where(
+                (ReviewQueue r) =>
+                    r.scanId.equals(item.scanId) &
+                    r.id.equals(reviewId).not() &
+                    r.outcome.equals(ReviewOutcome.open.name),
+              ))
+              .get();
+      if (outcome != ReviewOutcome.corrected && otherOpen.isNotEmpty) {
+        await (update(reviewQueue)..where(
+              (ReviewQueue r) => r.id.isIn([for (final o in otherOpen) o.id]),
+            ))
+            .write(
+              ReviewQueueCompanion(
+                resolvedBy: Value(resolvedBy),
+                resolvedAt: Value(DateTime.now().toUtc()),
+                outcome: Value(outcome),
+              ),
+            );
+      }
+      final status = switch (outcome) {
+        ReviewOutcome.corrected =>
+          otherOpen.isEmpty ? ScanStatus.reviewed : null,
+        // A retake replaces this photo: it must neither be marked nor sit
+        // forever as "to check" once its review item is closed.
+        ReviewOutcome.retaken ||
+        ReviewOutcome.unresolvable => ScanStatus.rejected,
+        ReviewOutcome.open => null,
+      };
+      if (status != null || setFix.isNotEmpty) {
+        await (update(
+          scans,
+        )..where((Scans s) => s.id.equals(item.scanId))).write(
+          ScansCompanion(
+            status: status == null ? const Value.absent() : Value(status),
+            setCodeRead: setFix.isEmpty
+                ? const Value.absent()
+                : Value(String.fromCharCode(65 + setFix.last.optionIndex)),
+          ),
+        );
       }
       await AuditLogService(attachedDatabase).record(
         tenantId: item.tenantId,

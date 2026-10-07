@@ -170,7 +170,10 @@ class GradingService {
                       enums.ScanStatus.reviewed,
                     ]),
               )
-              ..orderBy([(s) => OrderingTerm.asc(s.capturedAt)]))
+              // Newest first: a second sheet for a student only reaches here
+              // after a human cleared it (intake routes duplicates to review),
+              // so the confirmed rescan replaces the earlier sheet.
+              ..orderBy([(s) => OrderingTerm.desc(s.capturedAt)]))
             .get();
 
     final reads = <String, core.SheetRead>{};
@@ -178,21 +181,52 @@ class GradingService {
     for (final scan in scans) {
       final studentId = scan.studentId;
       if (studentId == null || scanIdByStudent.containsKey(studentId)) {
-        continue; // first capture wins: a replay cannot double-grade
+        continue; // one result per student: the newest cleared sheet
       }
       reads[studentId] = await readForScan(scan.id, layout);
       scanIdByStudent[studentId] = scan.id;
     }
 
-    final request = await _buildRequest(
+    // Each student is marked against THEIR set's key (effectiveSetFor);
+    // a sheet whose set has no key is left unmarked rather than guessed.
+    final keys = await keysBySet(keyVersionId);
+    final readsBySet = <String, Map<String, core.SheetRead>>{};
+    for (final entry in reads.entries) {
+      final set = effectiveSetFor(entry.value.setCodeRead, keys.keys.toSet());
+      if (set == null) continue;
+      readsBySet.putIfAbsent(set, () => {})[entry.key] = entry.value;
+    }
+    final resultsByStudent = <String, core.ExamResult>{};
+    core.GradingSummary? summary;
+    for (final group in readsBySet.entries) {
+      final request = await _buildRequest(
+        examId: examId,
+        keyVersionId: keyVersionId,
+        gradingConfigJson: exam.gradingConfigJson,
+        layout: layout,
+        reads: group.value,
+        key: keys[group.key]!,
+        regrade: regrade,
+      );
+      final part = const core.ExamGrader().grade(request);
+      resultsByStudent.addAll(part.resultsByStudent);
+      // Per-question cohort stats only make sense within one key; with
+      // several sets, AnalyticsDao is the cross-set source.
+      summary = readsBySet.length == 1 ? part.summary : null;
+    }
+    final report = core.GradingReport(
       examId: examId,
       keyVersionId: keyVersionId,
-      gradingConfigJson: exam.gradingConfigJson,
-      layout: layout,
-      reads: reads,
-      regrade: regrade,
+      resultsByStudent: resultsByStudent,
+      summary:
+          summary ??
+          core.GradingSummary(
+            students: resultsByStudent.length,
+            stats: const [],
+            medianCorrectRate: 0,
+            medianMultiMarkRate: 0,
+          ),
     );
-    final report = const core.ExamGrader().grade(request);
 
     final scoringRunId = await db.resultsDao.startScoringRun(
       tenantId: tenantId,
@@ -270,12 +304,20 @@ class GradingService {
     }
     final layout = await layoutContextFor(examId);
     final read = await readForScan(scanId, layout);
+    final keys = await keysBySet(keyVersionId);
+    final set = effectiveSetFor(read.setCodeRead, keys.keys.toSet());
+    if (set == null) {
+      throw StateError(
+        'scan $scanId: set "${read.setCodeRead}" has no answer key',
+      );
+    }
     final request = await _buildRequest(
       examId: examId,
       keyVersionId: keyVersionId,
       gradingConfigJson: exam.gradingConfigJson,
       layout: layout,
       reads: <String, core.SheetRead>{scanId: read},
+      key: keys[set]!,
     );
     final report = const core.ExamGrader().grade(request);
     return report.resultsByStudent[scanId]!;
@@ -356,39 +398,47 @@ class GradingService {
     );
   }
 
+  /// The key version's entries grouped by question-paper set: set code →
+  /// question → entry. Each set is its own key; flattening them by question
+  /// would let one set's answers overwrite another's.
+  Future<Map<String, Map<core.QuestionId, core.KeyEntry>>> keysBySet(
+    String keyVersionId,
+  ) async {
+    final bySet = <String, Map<core.QuestionId, core.KeyEntry>>{};
+    for (final e in await db.keysDao.entriesFor(keyVersionId)) {
+      bySet.putIfAbsent(e.setCode, () => {})[e.questionId] = core.KeyEntry(
+        questionId: e.questionId,
+        // The DB stores option INDEXES; the letter is the canonical
+        // OptionId everywhere else in the system.
+        correctOptions: <core.OptionId>{
+          for (final i in decodeJsonList(e.correctOptionsJson).cast<int>())
+            String.fromCharCode(65 + i),
+        },
+        correctInteger: e.correctInteger,
+        state: switch (e.state) {
+          enums.KeyEntryState.normal => core.KeyEntryState.normal,
+          enums.KeyEntryState.multipleCorrectKey =>
+            core.KeyEntryState.multipleCorrectKey,
+          enums.KeyEntryState.allOptionsCorrect =>
+            core.KeyEntryState.allOptionsCorrect,
+          enums.KeyEntryState.noneCorrect => core.KeyEntryState.noneCorrect,
+          enums.KeyEntryState.dropped => core.KeyEntryState.dropped,
+        },
+        scoringRuleId: e.scoringRuleId,
+      );
+    }
+    return bySet;
+  }
+
   Future<core.GradingRequest> _buildRequest({
     required String examId,
     required String keyVersionId,
     required String gradingConfigJson,
     required LayoutContext layout,
     required Map<String, core.SheetRead> reads,
+    required Map<core.QuestionId, core.KeyEntry> key,
     bool regrade = false,
   }) async {
-    final entries = await db.keysDao.entriesFor(keyVersionId);
-    final key = <core.QuestionId, core.KeyEntry>{
-      for (final e in entries)
-        e.questionId: core.KeyEntry(
-          questionId: e.questionId,
-          // The DB stores option INDEXES; the letter is the canonical
-          // OptionId everywhere else in the system.
-          correctOptions: <core.OptionId>{
-            for (final i in decodeJsonList(e.correctOptionsJson).cast<int>())
-              String.fromCharCode(65 + i),
-          },
-          correctInteger: e.correctInteger,
-          state: switch (e.state) {
-            enums.KeyEntryState.normal => core.KeyEntryState.normal,
-            enums.KeyEntryState.multipleCorrectKey =>
-              core.KeyEntryState.multipleCorrectKey,
-            enums.KeyEntryState.allOptionsCorrect =>
-              core.KeyEntryState.allOptionsCorrect,
-            enums.KeyEntryState.noneCorrect => core.KeyEntryState.noneCorrect,
-            enums.KeyEntryState.dropped => core.KeyEntryState.dropped,
-          },
-          scoringRuleId: e.scoringRuleId,
-        ),
-    };
-
     final config = decodeJsonObject(gradingConfigJson);
     final presetId = config['preset'] as String?;
     final rule = presetId == null
@@ -421,4 +471,14 @@ class GradingService {
       'preset': core.ScoringPresets.neetJeeMain.id,
     };
   }
+}
+
+/// Which keyed set a sheet is marked against: its own set when that set has
+/// a key; otherwise the only keyed set when there is exactly one (the common
+/// single-set exam, where students often leave the set blank); otherwise
+/// none — the sheet cannot be marked until a human settles its set.
+String? effectiveSetFor(String? setRead, Set<String> keyedSets) {
+  if (setRead != null && keyedSets.contains(setRead)) return setRead;
+  if (keyedSets.length == 1) return keyedSets.single;
+  return null;
 }

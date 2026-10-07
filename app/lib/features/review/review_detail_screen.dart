@@ -56,6 +56,21 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
     });
   }
 
+  /// The sheet has no student yet: it can only be marked once one is chosen.
+  bool get _needsStudent => _detail?.scan.studentId == null;
+
+  /// Flagged fields the operator can correct here (roll digits are fixed
+  /// through the "Whose sheet is this?" card instead).
+  bool get _hasEditableFields =>
+      _flaggedFields.any((f) => !f.startsWith('roll'));
+
+  /// Saving needs a student, and either a fix or nothing specific to fix
+  /// (blurry photo, curled sheet, duplicate): then the human's look is the
+  /// confirmation.
+  bool get _canSave =>
+      (!_needsStudent || _assigned != null) &&
+      (_chosen.isNotEmpty || _assigned != null || !_hasEditableFields);
+
   /// The corrections payload: chosen option filled, every other option of the
   /// field emptied — both rows written in place, so the read is left
   /// internally consistent (exactly one mark per question).
@@ -158,16 +173,27 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
           for (final fieldKey in _flaggedFields)
             if (!fieldKey.startsWith('roll')) _fieldEditor(fieldKey),
           const SizedBox(height: 8),
+          if (_needsStudent && _assigned == null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Type the roll number above first — a sheet with no student '
+                'cannot be marked.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
           FilledButton.icon(
-            onPressed: _chosen.isNotEmpty || _assigned != null
+            onPressed: _canSave
                 ? () => _resolve(ReviewOutcome.corrected)
                 : null,
             icon: const Icon(Icons.check),
             label: Text(
-              _chosen.isEmpty && _assigned != null
+              _chosen.isNotEmpty
+                  ? 'Save correction${_chosen.length == 1 ? '' : 's'} '
+                        '(${_chosen.length})'
+                  : _assigned != null
                   ? 'Save and grade this sheet'
-                  : 'Save correction${_chosen.length == 1 ? '' : 's'}'
-                        '${_chosen.isEmpty ? '' : ' (${_chosen.length})'}',
+                  : 'Sheet looks right — mark it',
             ),
           ),
           const SizedBox(height: 8),

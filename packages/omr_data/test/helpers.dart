@@ -201,7 +201,12 @@ const List<Map<String, int?>> kFilledOptions = [
   {'q1': 1, 'q2': 3, 'q3': 2, 'q4': null},
 ];
 
-Future<AnalyticsCohort> seedAnalyticsCohort(AppDb db) async {
+/// [setCodeRead] is what every sheet bubbled for its set (null = left
+/// blank); the key is always set A.
+Future<AnalyticsCohort> seedAnalyticsCohort(
+  AppDb db, {
+  String? setCodeRead = 'A',
+}) async {
   final instituteId = await seedInstitute(db);
   final layoutId = await seedLayout(db);
   final examId = await seedExam(db, instituteId, sheetLayoutId: layoutId);
@@ -229,7 +234,7 @@ Future<AnalyticsCohort> seedAnalyticsCohort(AppDb db) async {
         examId: examId,
         studentId: studentIds[i],
         rollNoRead: 'R00${i + 1}',
-        setCodeRead: 'A',
+        setCodeRead: setCodeRead,
       ),
       [
         for (final q in const ['q1', 'q2', 'q3', 'q4'])

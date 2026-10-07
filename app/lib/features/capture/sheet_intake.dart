@@ -52,7 +52,18 @@ class SheetIntake {
         ? null
         : (await db.studentsDao.findByRoll(exam.instituteId, roll))?.id;
 
-    final reasons = reviewReasonsFor(evaluation);
+    final reasons = [
+      ...reviewReasonsFor(evaluation),
+      // A second sheet for the same student is either a rescan or another
+      // student who bubbled this roll. Never decide silently: a human does.
+      if (studentId != null &&
+          await db.scansDao.hasActiveScanFor(examId, studentId))
+        (
+          code: 'DUPLICATE_SHEET',
+          severity: ReviewSeverity.mandatory,
+          fieldRefs: const <String>[],
+        ),
+    ];
     final needsReview = reasons.isNotEmpty;
     final scanId = await db.scansDao.insertScanWithReads(
       ScansCompanion.insert(

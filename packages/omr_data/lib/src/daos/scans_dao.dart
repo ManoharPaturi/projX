@@ -161,6 +161,22 @@ class ScansDao extends DatabaseAccessor<AppDb> with _$ScansDaoMixin {
     );
   }
 
+  /// True when [studentId] already has a sheet in [examId] that is marked,
+  /// checked or waiting for a check — i.e. a new sheet would be a duplicate.
+  Future<bool> hasActiveScanFor(String examId, String studentId) async {
+    final rows =
+        await (select(scans)
+              ..where(
+                (Scans s) =>
+                    s.examId.equals(examId) &
+                    s.studentId.equals(studentId) &
+                    s.status.isNotValue(ScanStatus.rejected.name),
+              )
+              ..limit(1))
+            .get();
+    return rows.isNotEmpty;
+  }
+
   /// Attributes a scan to a roster student after a human confirmed who wrote
   /// it (unreadable roll, roll not on the roster, failed check digit).
   ///

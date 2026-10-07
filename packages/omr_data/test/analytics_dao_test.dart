@@ -214,4 +214,26 @@ void main() {
       expect(dist['q4:1']!.isCorrectOption, isTrue);
     },
   );
+
+  test(
+    'single-set key: sheets with a blank set still count in analytics',
+    () async {
+      final blank = await openTestDb();
+      addTearDown(blank.close);
+      final cohort = await seedAnalyticsCohort(blank, setCodeRead: null);
+
+      final stats = await blank.analyticsDao.questionStats(
+        cohort.examId,
+        cohort.keyVersionId,
+      );
+      final q1 = stats.singleWhere((q) => q.questionId == 'q1');
+      expect(q1.students, 4);
+      expect(q1.correct, 3);
+      final options = await blank.analyticsDao.distractorDistribution(
+        cohort.examId,
+        cohort.keyVersionId,
+      );
+      expect(options.where((o) => o.questionId == 'q1'), isNotEmpty);
+    },
+  );
 }
