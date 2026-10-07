@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../src/app_state.dart';
+import '../../src/labels.dart';
 import '../../src/db/open_db.dart' show reportsDirectory;
 import '../../src/report_fonts_loader.dart';
 
@@ -54,7 +55,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text('Publish an answer key before generating reports.'),
+          child: Text(
+            'Enter the answer key (Answer key tab) before making reports.',
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
@@ -62,7 +66,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: 'Key version'),
+          decoration: const InputDecoration(labelText: 'Use answer key'),
           items: [
             for (final version in _versions!)
               DropdownMenuItem(
@@ -76,10 +80,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(height: 16),
         _ReportCard(
           icon: Icons.picture_as_pdf,
-          title: 'Consolidated class PDF',
+          title: 'Class result list (PDF)',
           subtitle:
-              'Every student, ranks, repeating header — paginates to 500 '
-              'pages for large cohorts',
+              'Every student with marks and rank — ready to print or send '
+              'on WhatsApp',
           onGenerate: () => _generate(
             type: ReportJobType.consolidated,
             format: 'pdf',
@@ -91,8 +95,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           icon: Icons.grid_on,
           title: 'Excel workbook',
           subtitle:
-              'Summary with live percentile formulas + per-question '
-              'matrix sheet',
+              'Marks, ranks and percentiles, plus every student\'s answer '
+              'to every question',
           onGenerate: () => _generate(
             type: ReportJobType.excel,
             format: 'xlsx',
@@ -101,8 +105,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         _ReportCard(
           icon: Icons.table_chart,
-          title: 'CSV',
-          subtitle: 'UTF-8 BOM so Indian-language names survive Excel',
+          title: 'Spreadsheet (CSV)',
+          subtitle:
+              'Opens in any spreadsheet app; Hindi and other '
+              'Indian-language names are kept',
           onGenerate: () => _generate(
             type: ReportJobType.csv,
             format: 'csv',
@@ -115,7 +121,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Recent', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          'Each report opens the share screen when ready. Single-student '
+          'marksheets are on the Results tab — tap a student.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        Text('Made earlier', style: Theme.of(context).textTheme.titleMedium),
         _JobsList(
           examId: widget.examId,
           refreshKey: state.version,
@@ -159,7 +172,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       await _share(path);
     } catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Generation failed: $error')),
+        SnackBar(content: Text('Could not make the report: $error')),
       );
     }
   }
@@ -191,7 +204,7 @@ class _ReportCard extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: FilledButton.tonal(
           onPressed: onGenerate,
-          child: const Text('Generate'),
+          child: const Text('Make'),
         ),
       ),
     );
@@ -220,7 +233,7 @@ class _JobsList extends StatelessWidget {
         if (jobs.isEmpty) {
           return const Padding(
             padding: EdgeInsets.all(8),
-            child: Text('Nothing generated yet.'),
+            child: Text('No reports made yet.'),
           );
         }
         return Card(
@@ -243,15 +256,18 @@ class _JobsList extends StatelessWidget {
                         ? const Color(0xFFB3261E)
                         : const Color(0xFF8B4000),
                   ),
-                  title: Text('${job.type.name}.${job.format}'),
+                  title: Text(reportTypeLabel(job.type)),
                   subtitle: Text(
                     job.status == ReportJobStatus.failed
-                        ? (job.errorText ?? 'failed')
-                        : (job.generatedAt?.toLocal().toString() ?? 'running'),
+                        ? 'Failed: ${job.errorText ?? 'unknown error'}'
+                        : job.generatedAt == null
+                        ? 'Making…'
+                        : formatDateTime(job.generatedAt!),
                   ),
                   trailing: job.filePath == null
                       ? null
                       : IconButton(
+                          tooltip: 'Share',
                           icon: const Icon(Icons.share),
                           onPressed: () => onShare(job.filePath!),
                         ),

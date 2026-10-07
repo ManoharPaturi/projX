@@ -4,6 +4,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/labels.dart';
 
 /// Plan §6 screen 3 — per-set tabs (A–D), grid entry, publish final.
 ///
@@ -43,6 +44,10 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
   void initState() {
     super.initState();
     _setTabs = TabController(length: _sets.length, vsync: this);
+    // The grid and the footer follow the selected set.
+    _setTabs.addListener(() {
+      if (!_setTabs.indexIsChanging) setState(() {});
+    });
     _load();
   }
 
@@ -84,7 +89,56 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
 
   int get _keyedCount => _draft[_sets[_setTabs.index]]?.length ?? 0;
 
+  int _countFor(String set) => _draft[set]?.length ?? 0;
+
+  bool _complete(String set) => _countFor(set) == _questionOrder.length;
+
+  /// Sets started but not finished — saving them would grade students of
+  /// that set against holes in the key.
+  List<String> get _partialSets => [
+    for (final set in _sets)
+      if (_countFor(set) > 0 && !_complete(set)) set,
+  ];
+
+  bool get _canPublish =>
+      _questionOrder.isNotEmpty && _sets.any(_complete) && _partialSets.isEmpty;
+
+  String _tabLabel(String set) => _complete(set)
+      ? 'Set $set ✓'
+      : _countFor(set) == 0
+      ? 'Set $set'
+      : 'Set $set (${_countFor(set)}/${_questionOrder.length})';
+
+  Future<bool> _confirmPublish() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save this answer key?'),
+        content: Text(
+          'Sets saved: ${[for (final s in _sets)
+            if (_complete(s)) s].join(', ')}.\n\n'
+          'A saved key is kept exactly as it is. If you find a mistake '
+          'later, fix it here and save again — every sheet is re-marked '
+          'automatically, no rescanning needed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save key'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
   Future<void> _publish() async {
+    if (!await _confirmPublish()) return;
+    if (!mounted) return;
     final state = context.read<AppState>();
     final db = state.db;
     final active = await db.keysDao.activeVersion(widget.examId);
@@ -113,11 +167,19 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
       entries: entries,
     );
     await db.keysDao.finalizeVersion(keyVersionId);
+    // Re-grade from stored reads against the new key (plan §5): an insert,
+    // never a rescan. Harmless when nothing has been scanned yet.
+    await state.grade(widget.examId, keyVersionId);
     await _load();
-    state.refresh();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Key version $nextVersion published')),
+        SnackBar(
+          content: Text(
+            nextVersion == 1
+                ? 'Answer key saved'
+                : 'Answer key $nextVersion saved — marks updated',
+          ),
+        ),
       );
     }
   }
@@ -134,11 +196,13 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Row(
               children: [
-                Text(
-                  'Active: v${_versions.first.version}'
-                  ' (${_versions.first.status.name})'
-                  '${_versions.length > 1 ? ' · ${_versions.length} versions' : ''}',
-                  style: Theme.of(context).textTheme.bodySmall,
+                Expanded(
+                  child: Text(
+                    'In use: answer key ${_versions.first.version}'
+                    '${_versions.length > 1 ? ' (${_versions.length} saved over time)' : ''}. '
+                    'Changes below are saved as a new key.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                 ),
               ],
             ),
@@ -147,15 +211,40 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('$_keyedCount/${_questionOrder.length} keyed'),
-                const Spacer(),
-                FilledButton(
-                  onPressed: _keyedCount == _questionOrder.length
-                      ? _publish
-                      : null,
-                  child: const Text('Publish as final'),
+                if (_partialSets.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'Finish or clear set ${_partialSets.join(', ')} '
+                      'before saving.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$_keyedCount of ${_questionOrder.length} answered '
+                        'in set ${_sets[_setTabs.index]}',
+                      ),
+                    ),
+                    if (_keyedCount > 0)
+                      TextButton(
+                        onPressed: () => setState(
+                          () => _draft[_sets[_setTabs.index]]!.clear(),
+                        ),
+                        child: const Text('Clear set'),
+                      ),
+                    FilledButton(
+                      onPressed: _canPublish ? _publish : null,
+                      child: const Text('Save answer key'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -170,7 +259,7 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
           TabBar(
             controller: _setTabs,
             isScrollable: true,
-            tabs: [for (final set in _sets) Tab(text: 'Set $set')],
+            tabs: [for (final set in _sets) Tab(text: _tabLabel(set))],
           ),
           Expanded(child: body),
         ],
@@ -182,7 +271,7 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
         bottom: TabBar(
           controller: _setTabs,
           isScrollable: true,
-          tabs: [for (final set in _sets) Tab(text: 'Set $set')],
+          tabs: [for (final set in _sets) Tab(text: _tabLabel(set))],
         ),
       ),
       body: body,
@@ -222,8 +311,8 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
                   SizedBox(
                     width: 56,
                     child: Text(
-                      questionId,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      questionNumber(questionId),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                   for (var option = 0; option < optionCount; option++)
@@ -250,6 +339,7 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
             '${questionId.replaceAll(RegExp(r'^q'), '')}',
         child: InkWell(
           onTap: () => setState(() {
+            // Rebuild tab labels too (they show per-set progress).
             if (selected) {
               _draft[set]?.remove(questionId);
             } else {

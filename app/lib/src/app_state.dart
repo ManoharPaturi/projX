@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:omr_data/omr_data.dart';
 
@@ -13,12 +14,18 @@ class AppState extends ChangeNotifier {
   AppState({
     required this.db,
     required this.instituteId,
-    required this.instituteName,
-  });
+    required String instituteName,
+  }) : _instituteName = instituteName;
 
   final AppDb db;
   final String instituteId;
-  final String instituteName;
+  String _instituteName;
+
+  /// The name printed on reports and shown in the app bar.
+  String get instituteName => _instituteName;
+
+  /// True until the operator replaces the first-run placeholder name.
+  bool get instituteNamed => _instituteName != kDefaultInstituteName;
 
   /// Monotonic data-change counter — use as a FutureBuilder key.
   int version = 0;
@@ -41,6 +48,25 @@ class AppState extends ChangeNotifier {
       return RetentionReport(purged: const [], missing: const []);
     });
     return AppState(db: db, instituteId: row.id, instituteName: row.name);
+  }
+
+  /// Renames the institute (reports and the app bar pick it up at once).
+  Future<void> renameInstitute(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || trimmed == _instituteName) return;
+    await (db.update(db.institutes)
+          ..where((Institutes i) => i.id.equals(instituteId)))
+        .write(InstitutesCompanion(name: Value(trimmed)));
+    await AuditLogService(db).record(
+      tenantId: tenantId,
+      entity: 'institutes',
+      entityId: instituteId,
+      action: 'rename',
+      before: {'name': _instituteName},
+      after: {'name': trimmed},
+    );
+    _instituteName = trimmed;
+    refresh();
   }
 
   /// Signal "data changed" to every listening screen.

@@ -43,19 +43,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Normal — the default preset'), findsOneWidget);
+    expect(find.textContaining('Normal — recommended'), findsOneWidget);
 
-    await tester.tap(find.text('Threshold preset'));
+    await tester.tap(find.text('Photo quality check'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.textContaining('Strict — highest blur floor'));
+    await tester.tap(find.textContaining('Strict — asks for sharper photos'));
     await tester.pumpAndSettle();
 
     expect(
       (await SettingsDao(state.db).settingsFor(state.tenantId)).strictness,
       'strict',
     );
-    expect(find.textContaining('Strict — highest blur floor'), findsOneWidget);
+    expect(
+      find.textContaining('Strict — asks for sharper photos'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('retention tile: entering 14 days persists', (tester) async {
@@ -64,9 +67,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('7 days after capture'), findsOneWidget);
+    expect(find.textContaining('7 days — then deleted'), findsOneWidget);
 
-    await tester.tap(find.text('Image retention'));
+    await tester.tap(find.text('Keep full-size photos for'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('retention-days-field')), '14');
@@ -79,7 +82,7 @@ void main() {
       ).settingsFor(state.tenantId)).retentionGraceDays,
       14,
     );
-    expect(find.textContaining('14 days after capture'), findsOneWidget);
+    expect(find.textContaining('14 days — then deleted'), findsOneWidget);
   });
 
   testWidgets('calibration analyze leg shows the report; comfortable needs '
@@ -108,13 +111,19 @@ void main() {
     await tester.pumpWidget(wrapForTest(screen, state));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Photograph & analyze'));
+    await tester.tap(find.text('2. Take its photo and check'));
     await tester.pumpAndSettle();
 
     expect(analyzed, 1);
+    expect(
+      find.textContaining('Sheets from this printer read well'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Technical details'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('PASS - min band margin'), findsOneWidget);
     expect(find.textContaining('Band T'), findsOneWidget);
-    expect(find.textContaining("Apply the '"), findsNothing);
+    expect(find.textContaining('Use the suggested setting'), findsNothing);
   });
 
   testWidgets('tight calibration offers the strict preset and applies it', (
@@ -140,12 +149,12 @@ void main() {
     await tester.pumpWidget(wrapForTest(screen, state));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Photograph & analyze'));
+    await tester.tap(find.text('2. Take its photo and check'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('TIGHT - min band margin'), findsOneWidget);
+    expect(find.textContaining('Usable, but faint marks'), findsOneWidget);
 
-    await tester.tap(find.textContaining("Apply the 'strict' preset"));
+    await tester.tap(find.textContaining('Use the suggested setting (strict)'));
     await tester.pumpAndSettle();
 
     expect(

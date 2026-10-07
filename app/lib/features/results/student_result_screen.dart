@@ -50,7 +50,7 @@ class StudentResultScreen extends StatelessWidget {
               _summaryCard(context),
               const SizedBox(height: 8),
               Text(
-                'Per question',
+                'Answer by answer',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
@@ -197,7 +197,7 @@ class StudentResultScreen extends StatelessWidget {
       ShareParams(files: [XFile(file.path)], text: 'Marksheet ${row.rollNo}'),
     );
     messenger.showSnackBar(
-      SnackBar(content: Text('Shared ${p.basename(file.path)}')),
+      const SnackBar(content: Text('Marksheet ready to share')),
     );
   }
 }

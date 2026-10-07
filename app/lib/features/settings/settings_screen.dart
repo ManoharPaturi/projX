@@ -3,6 +3,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/version.dart';
 
 /// Plan §6 screen 12: identity, capture strictness preset, image retention
 /// policy, storage. The strictness choice here is what the still pipeline
@@ -21,21 +22,12 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         children: [
           Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.school_outlined),
-                  title: const Text('Institute'),
-                  subtitle: Text(
-                    '${state.instituteName} (id ${state.instituteId})',
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.business_outlined),
-                  title: const Text('Tenant'),
-                  subtitle: Text('${state.tenantId} · single-tenant MVP'),
-                ),
-              ],
+            child: ListTile(
+              leading: const Icon(Icons.school_outlined),
+              title: const Text('Institute name'),
+              subtitle: Text(state.instituteName),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () => editInstituteName(context),
             ),
           ),
           Card(
@@ -52,10 +44,10 @@ class SettingsScreen extends StatelessWidget {
                 _StorageTile(version: state.version),
                 const ListTile(
                   leading: Icon(Icons.info_outline),
-                  title: Text('About'),
+                  title: Text('About OMR Evaluator'),
                   subtitle: Text(
-                    'OMR Evaluator · on-device, offline-first · '
-                    'reports reproduce from stored reads',
+                    'Version $kAppVersion · works fully offline · all data '
+                    'stays on this phone',
                   ),
                 ),
               ],
@@ -75,9 +67,9 @@ class _StrictnessTile extends StatelessWidget {
   final int version;
 
   static const _labels = {
-    'strict': 'Strict — highest blur floor, more retakes',
-    'normal': 'Normal — the default preset',
-    'relaxed': 'Relaxed — accepts fainter sheets, review more often',
+    'strict': 'Strict — asks for sharper photos, more retakes',
+    'normal': 'Normal — recommended for most institutes',
+    'relaxed': 'Relaxed — accepts softer photos, more sheets to check',
   };
 
   @override
@@ -90,7 +82,7 @@ class _StrictnessTile extends StatelessWidget {
         final current = snapshot.data?.strictness ?? 'normal';
         return ListTile(
           leading: const Icon(Icons.tune),
-          title: const Text('Threshold preset'),
+          title: const Text('Photo quality check'),
           subtitle: Text(_labels[current] ?? current),
           enabled: snapshot.hasData,
           onTap: () => _choose(context, state, current),
@@ -107,7 +99,7 @@ class _StrictnessTile extends StatelessWidget {
     final picked = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Threshold preset'),
+        title: const Text('Photo quality check'),
         children: [
           for (final entry in _labels.entries)
             SimpleDialogOption(
@@ -153,11 +145,10 @@ class _RetentionTile extends StatelessWidget {
         final days = snapshot.data?.retentionGraceDays ?? 7;
         return ListTile(
           leading: const Icon(Icons.auto_delete_outlined),
-          title: const Text('Image retention'),
+          title: const Text('Keep full-size photos for'),
           subtitle: Text(
-            '12MP originals dropped $days day'
-            '${days == 1 ? '' : 's'} after capture; warped + thumbnails '
-            'kept',
+            '$days day${days == 1 ? '' : 's'} — then deleted to save space. '
+            'Answer data and small previews are always kept.',
           ),
           enabled: snapshot.hasData,
           onTap: () => _choose(context, state, days),
@@ -171,7 +162,7 @@ class _RetentionTile extends StatelessWidget {
     final picked = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Originals grace window (days)'),
+        title: const Text('Keep full-size photos for (days)'),
         content: TextField(
           key: const Key('retention-days-field'),
           controller: controller,
@@ -216,14 +207,77 @@ class _StorageTile extends StatelessWidget {
       builder: (context, snapshot) {
         return ListTile(
           leading: const Icon(Icons.storage_outlined),
-          title: const Text('Local database'),
+          title: const Text('Data on this phone'),
           subtitle: Text(
-            'SQLite, on this device only. '
-            '${snapshot.data?[ScanStatus.needsReview] ?? 0} sheets awaiting '
-            'review.',
+            'Stored only on this device. '
+            '${snapshot.data?[ScanStatus.needsReview] ?? 0} sheet(s) waiting '
+            'to be checked.',
           ),
         );
       },
+    );
+  }
+}
+
+/// Shown from Settings and the getting-started checklist.
+Future<void> editInstituteName(BuildContext context) async {
+  final state = context.read<AppState>();
+  final name = await showDialog<String>(
+    context: context,
+    builder: (_) => _InstituteNameDialog(
+      initial: state.instituteNamed ? state.instituteName : '',
+    ),
+  );
+  if (name != null) await state.renameInstitute(name);
+}
+
+/// Owns its controller, so it is disposed only after the closing
+/// animation stops using it.
+class _InstituteNameDialog extends StatefulWidget {
+  const _InstituteNameDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_InstituteNameDialog> createState() => _InstituteNameDialogState();
+}
+
+class _InstituteNameDialogState extends State<_InstituteNameDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Institute name'),
+      content: TextField(
+        key: const Key('institute-name-field'),
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(
+          hintText: 'e.g. Sunrise Coaching Centre',
+          helperText: 'Printed on every marksheet and report',
+        ),
+        onSubmitted: (value) => Navigator.pop(context, value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

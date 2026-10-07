@@ -3,6 +3,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/labels.dart';
 import 'review_detail_screen.dart';
 
 /// Plan §6 screen 7 — the worklist that turns ~90% machine reads into ~99%+
@@ -16,7 +17,7 @@ class ReviewQueueScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Review queue')),
+      appBar: AppBar(title: const Text('Sheets to check')),
       body: FutureBuilder<List<PendingReviewRow>>(
         key: ValueKey('pending-${state.version}'),
         future: state.db.scansDao.pendingReview(),
@@ -33,6 +34,8 @@ class ReviewQueueScreen extends StatelessWidget {
                   Icon(Icons.verified_outlined, size: 48, color: Colors.green),
                   SizedBox(height: 8),
                   Text('Nothing waiting for review'),
+                  SizedBox(height: 4),
+                  Text('Every scanned sheet has been checked.'),
                 ],
               ),
             );
@@ -45,13 +48,14 @@ class ReviewQueueScreen extends StatelessWidget {
               return ListTile(
                 leading: _SeverityBadge(severity: row.severity),
                 title: Text(
-                  row.rollNoRead ?? '(roll not read)',
+                  row.rollNoRead == null
+                      ? 'Roll number not read'
+                      : 'Roll ${row.rollNoRead}',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
-                  '${_reasonLabel(row.reasonCode)}'
-                  '${row.setCodeRead == null ? '' : ' · set ${row.setCodeRead}'}'
-                  ' · ${(row.sheetConfidence ?? 0).toStringAsFixed(2)}',
+                  '${reviewReasonLabel(row.reasonCode)}'
+                  '${row.setCodeRead == null ? '' : ' · Set ${row.setCodeRead}'}',
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push(
@@ -68,22 +72,6 @@ class ReviewQueueScreen extends StatelessWidget {
     );
   }
 }
-
-/// The intake's machine reason code, said the way an operator would. Kept
-/// beside the queue because the code itself stays the storage key — only
-/// the display is human.
-String _reasonLabel(String code) => switch (code) {
-  'NO_MARKER_ERR' => 'sheet not detected',
-  'ROLL_CHECKSUM_ERR' => 'roll number failed its check digit',
-  'ROLL_NOT_ON_ROSTER' => 'roll number not on the roster',
-  'ROLL_AMBIGUOUS' => 'a roll digit was ambiguous',
-  'SET_BLANK' => 'set code left blank',
-  'SET_MULTI' => 'set code marked twice',
-  'MULTI_BUBBLE_WARN' => 'a question has two marks',
-  'PROBABLE_BUBBLE' => 'some bubbles read faintly',
-  'CURL_WARN' => 'sheet looked curved',
-  _ => code,
-};
 
 class _SeverityBadge extends StatelessWidget {
   const _SeverityBadge({required this.severity});

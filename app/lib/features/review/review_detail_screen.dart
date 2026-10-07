@@ -3,6 +3,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/labels.dart';
 
 /// Plan §6 screen 7's tap-through: the flagged fields' machine reads beside
 /// tap-to-correct bubbles. Saving writes `bubble_reads.isHumanCorrection=1`
@@ -116,7 +117,7 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
     }
     final scan = _detail!.scan;
     return Scaffold(
-      appBar: AppBar(title: Text(scan.rollNoRead ?? 'Review sheet')),
+      appBar: AppBar(title: const Text('Check this sheet')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -127,20 +128,18 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _item!.reasonCode,
+                    reviewReasonLabel(_item!.reasonCode),
                     style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Set ${scan.setCodeRead ?? '—'} · confidence '
-                    '${(scan.sheetConfidence ?? 0).toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tap the bubble the student actually marked. '
-                    'Saving writes a human correction that supersedes the '
-                    'machine read on every re-grade.',
+                    reviewReasonHelp(_item!.reasonCode),
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Set ${scan.setCodeRead ?? 'not marked'} · your fix is '
+                    'kept even if the answer key changes later.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -177,14 +176,14 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => _resolve(ReviewOutcome.retaken),
-                  child: const Text('Ask for retake'),
+                  child: const Text('Retake photo'),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => _resolve(ReviewOutcome.unresolvable),
-                  child: const Text('Reject sheet'),
+                  child: const Text('Can\'t fix — reject'),
                 ),
               ),
             ],
@@ -200,8 +199,8 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
     if (reads.isEmpty) {
       return Card(
         child: ListTile(
-          title: Text(fieldKey),
-          subtitle: const Text('No reads stored for this field'),
+          title: Text(fieldLabel(fieldKey)),
+          subtitle: const Text('Nothing was read here'),
         ),
       );
     }
@@ -212,7 +211,10 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(fieldKey, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(
+              fieldLabel(fieldKey),
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -275,7 +277,7 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            machineFilled ? 'machine' : 'empty',
+            machineFilled ? 'read as marked' : 'blank',
             style: TextStyle(
               fontSize: 11,
               color: machineFilled
