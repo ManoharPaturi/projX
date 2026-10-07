@@ -24,6 +24,9 @@ flutter analyze
 Run package suites one at a time — two concurrent `dart test` runs race on
 the shared native-assets build directory and fail spuriously.
 
+Android builds need JDK 17: `flutter config --jdk-dir=<JDK 17 home>` (or
+`JAVA_HOME`). Never commit machine paths into `app/android/gradle.properties`.
+
 The first OpenCV build on macOS needs the toolchain notes in
 [`docs/m0-gate.md`](docs/m0-gate.md).
 
