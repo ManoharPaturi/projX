@@ -140,7 +140,7 @@ jobs:
         run: |
           ZIPALIGN=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)zipalign
           "$ZIPALIGN" -c -P 16 -v 4 app/build/app/outputs/flutter-apk/app-debug.apk | tail -5
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-debug-arm64
           path: app/build/app/outputs/flutter-apk/app-debug.apk
