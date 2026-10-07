@@ -78,7 +78,7 @@ jobs:
       - name: Native build tools
         run: sudo apt-get update && sudo apt-get install -y ninja-build cmake
       - name: Cache native-assets builds (OpenCV)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .dart_tool/hooks_runner
@@ -125,7 +125,7 @@ jobs:
         # KleidiCV for arm64 (docs/m0-gate.md, "KleidiCV download").
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "cmake;3.31.6" > /dev/null
       - name: Cache native-assets builds (OpenCV, Android)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .dart_tool/hooks_runner
