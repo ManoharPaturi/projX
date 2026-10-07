@@ -175,7 +175,7 @@ class _GettingStarted extends StatelessWidget {
       ),
       _Step(
         title: 'Enter the answer key',
-        detail: 'Tap the right option for each question.',
+        detail: 'Tap each right option, or type them as letters.',
         done: overview.anyKey,
         onTap: keyExam == null
             ? null

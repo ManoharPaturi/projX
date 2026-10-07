@@ -127,7 +127,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The card says review, with the reason spelled out.
-    expect(find.text('needs review', skipOffstage: false), findsOneWidget);
+    expect(find.text('needs a check', skipOffstage: false), findsOneWidget);
     expect(
       find.textContaining('A question has two marks', skipOffstage: false),
       findsOneWidget,

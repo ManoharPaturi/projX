@@ -166,7 +166,7 @@ void main() {
     // surface (scanner is 440 of it), so these look past the viewport —
     // on device the operator scrolls to it.
     expect(find.text('R001', skipOffstage: false), findsOneWidget);
-    expect(find.text('auto-graded', skipOffstage: false), findsOneWidget);
+    expect(find.text('marked', skipOffstage: false), findsOneWidget);
     expect(find.text('Scan next sheet', skipOffstage: false), findsOneWidget);
   });
 
@@ -193,7 +193,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('R001', skipOffstage: false), findsOneWidget);
-    expect(find.text('auto-graded', skipOffstage: false), findsOneWidget);
+    expect(find.text('marked', skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('scan next sheet re-arms the scanner for the following student', (

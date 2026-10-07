@@ -370,4 +370,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('0 of 90 answered in set B'), findsOneWidget);
   });
+
+  testWidgets('type answers fills the set in question order', (tester) async {
+    final seeded = await seedExamWithRoster(state, students: 1);
+    await tester.pumpWidget(
+      wrapForTest(
+        ExamDetailScreen(
+          examId: seeded.examId,
+          initialTab: ExamDetailScreen.answerKeyTab,
+        ),
+        state,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Set B'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Type answers'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('type-answers-field')),
+      'abcd, dcba 1x',
+    );
+    await tester.pump();
+    // 'x' is a letter but not an option on a 4-option sheet: counted as
+    // typed, skipped when filling.
+    expect(find.text('9 of 90 answers typed'), findsOneWidget);
+    await tester.tap(find.text('Fill answers'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('8 of 90 answered in set B'), findsOneWidget);
+    expect(find.text('Set B (8/90)'), findsOneWidget);
+    expect(find.textContaining('Finish or clear set B'), findsOneWidget);
+  });
 }

@@ -84,8 +84,10 @@ jobs:
             .dart_tool/hooks_runner
             packages/omr_detect/.dart_tool/hooks_runner
             app/.dart_tool/hooks_runner
+          # Exact key only: a native build configured against another
+          # dartcv4 version poisons CMake (source-dir mismatch), so a
+          # dependency change must start clean rather than restore near-misses.
           key: hooks-linux-${{ hashFiles('pubspec.lock', 'pubspec.yaml') }}
-          restore-keys: hooks-linux-
       - run: flutter pub get
       - name: omr_detect (incl. OpenCV smoke probe)
         working-directory: packages/omr_detect
@@ -130,8 +132,10 @@ jobs:
           path: |
             .dart_tool/hooks_runner
             app/.dart_tool/hooks_runner
+          # Exact key only: a native build configured against another
+          # dartcv4 version poisons CMake (source-dir mismatch), so a
+          # dependency change must start clean rather than restore near-misses.
           key: hooks-android-${{ hashFiles('pubspec.lock', 'pubspec.yaml') }}
-          restore-keys: hooks-android-
       - run: flutter pub get
       - name: Build debug APK
         working-directory: app

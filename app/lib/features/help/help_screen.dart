@@ -21,8 +21,9 @@ class HelpScreen extends StatelessWidget {
     ),
     (
       'Enter the answer key',
-      'Tap the correct option for every question, then "Save answer key". '
-          'Using several question paper sets? Fill a tab for each set.',
+      'Tap the correct option for every question — or "Type answers" to '
+          'type the key as letters (ABDC…) — then "Save answer key". Using '
+          'several question paper sets? Fill a tab for each set.',
     ),
     (
       'Print the answer sheets',

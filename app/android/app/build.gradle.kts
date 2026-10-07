@@ -1,8 +1,25 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Release signing comes from app/android/key.properties (gitignored) or,
+// in CI, from the same keys as environment variables. Without either, a
+// release build falls back to the debug key so `flutter run --release`
+// still works locally — such a build must never be uploaded to Play.
+// Setup: docs/release.md.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingValue(key: String, env: String): String? =
+    keystoreProperties.getProperty(key) ?: System.getenv(env)
+
+val releaseStoreFile = signingValue("storeFile", "OMR_KEYSTORE_PATH")
 
 android {
     namespace = "com.projx.omr.omr_app"
@@ -15,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Play identity — permanent once published.
         applicationId = "com.projx.omr.omr_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -29,11 +46,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "OMR_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "OMR_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "OMR_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseStoreFile != null) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn("omr: no release keystore — signing release with the debug key")
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

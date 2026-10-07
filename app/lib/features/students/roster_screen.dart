@@ -76,7 +76,8 @@ class _RosterScreenState extends State<RosterScreen> {
                 }
                 final roster = snapshot.data!;
                 if (roster.isEmpty) {
-                  return const Center(
+                  return const Padding(
+                    padding: EdgeInsets.all(24),
                     child: Text(
                       'No students yet.\n\nTap "Add student" to add one, or '
                       '"Paste a list" to add many from a spreadsheet.',
