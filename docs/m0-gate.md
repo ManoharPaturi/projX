@@ -166,3 +166,25 @@ the source ".../dartcv4-2.3.0/src/CMakeLists.txt" used to generate cache.
 
   On a Command-Line-Tools-only Mac the fresh configure needs the sysroot
   seeding from "Toolchain notes" step 4 above.
+
+## dartcv4 2.3.1 keep-list leaks between builds — 2026-10-07
+
+dartcv4 2.3.1's build hook passes `.dart_tool/hooks_runner/shared/dartcv4/dartcv_keep.txt`
+(a symbol keep-list recorded by an AOT/release build) to **every** later
+native build, tree-shaking flag or not. After a local `flutter build apk
+--release`, host tests then link a library exporting only the app's symbols
+and fail with e.g. `Failed to lookup symbol 'std_VecUChar_new_1'` (fixture
+JPEG encoding, unused by the app). CI is unaffected (fresh runners).
+
+Local recovery:
+
+```sh
+rm .dart_tool/hooks_runner/shared/dartcv4/dartcv_keep.txt
+# clear the poisoned path from the host build's cache and relink
+sed -i '' 's#^DARTCV_KEEP_FILE:PATH=.*#DARTCV_KEEP_FILE:PATH=#' \
+  .dart_tool/hooks_runner/shared/dartcv4/build/*/CMakeCache.txt
+rm -rf .dart_tool/hooks_runner/dartcv4/*/   # hook output cache
+```
+
+Release APKs are not at risk: their keep-list is recorded from the app's own
+native calls.

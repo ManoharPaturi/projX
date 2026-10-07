@@ -176,7 +176,10 @@ class _RosterScreenState extends State<RosterScreen> {
               Navigator.pop(dialogContext);
               if (result != null) {
                 state.refresh();
-                await _showResult(result);
+                await _showResult(
+                  result,
+                  unscannable: _unscannableIn(_pasteController.text),
+                );
               }
             },
             child: const Text('Import'),
@@ -222,12 +225,29 @@ class _RosterScreenState extends State<RosterScreen> {
     );
   }
 
-  Future<void> _showResult(RosterImportResult result) async {
+  /// Rolls in a pasted list that can never be bubbled on the sheet
+  /// (letters, more than 7 digits): imported, but worth saying so.
+  List<String> _unscannableIn(String text) {
+    final rolls = <String>[];
+    for (final line in text.replaceAll('\t', ',').split('\n')) {
+      final roll = line.split(',').first.trim();
+      if (roll.isEmpty || roll.toLowerCase() == 'roll') continue;
+      if (!isScannableRoll(roll)) rolls.add(roll);
+    }
+    return rolls;
+  }
+
+  Future<void> _showResult(
+    RosterImportResult result, {
+    List<String> unscannable = const [],
+  }) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          result.clean ? 'Imported ${result.imported}' : 'Import finished',
+          result.clean && unscannable.isEmpty
+              ? 'Imported ${result.imported}'
+              : 'Import finished',
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -246,6 +266,16 @@ class _RosterScreenState extends State<RosterScreen> {
               ),
             if (result.invalidRolls.isNotEmpty)
               Text('Invalid rows: ${result.invalidRolls.length}'),
+            if (unscannable.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'These roll numbers cannot be filled in on the answer sheet '
+                '(use digits only, up to $kSheetRollDigits): '
+                '${unscannable.take(10).join(', ')}'
+                '${unscannable.length > 10 ? ' and ${unscannable.length - 10} more' : ''}',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
           ],
         ),
         actions: [

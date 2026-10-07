@@ -158,35 +158,70 @@ class _RetentionTile extends StatelessWidget {
   }
 
   Future<void> _choose(BuildContext context, AppState state, int days) async {
-    final controller = TextEditingController(text: '$days');
     final picked = await showDialog<int>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Keep full-size photos for (days)'),
-        content: TextField(
-          key: const Key('retention-days-field'),
-          controller: controller,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(context, int.tryParse(controller.text)),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (_) => _RetentionDialog(initial: days),
     );
-    if (picked == null || picked <= 0) return;
+    if (picked == null) return;
     await SettingsDao(
       state.db,
     ).write(tenantId: state.tenantId, retentionGraceDays: picked);
     state.refresh();
+  }
+}
+
+/// Owns its controller (disposed after the close animation) and refuses
+/// values outside 1–365 days with a message instead of silently ignoring.
+class _RetentionDialog extends StatefulWidget {
+  const _RetentionDialog({required this.initial});
+
+  final int initial;
+
+  @override
+  State<_RetentionDialog> createState() => _RetentionDialogState();
+}
+
+class _RetentionDialogState extends State<_RetentionDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: '${widget.initial}',
+  );
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final days = int.tryParse(_controller.text.trim());
+    if (days == null || days < 1 || days > 365) {
+      setState(() => _error = 'Enter a number of days from 1 to 365');
+      return;
+    }
+    Navigator.pop(context, days);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Keep full-size photos for (days)'),
+      content: TextField(
+        key: const Key('retention-days-field'),
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        autofocus: true,
+        decoration: InputDecoration(errorText: _error),
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Save')),
+      ],
+    );
   }
 }
 

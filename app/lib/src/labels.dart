@@ -18,6 +18,8 @@ String reviewReasonLabel(String code) => switch (code) {
   'PROBABLE_BUBBLE' => 'Some marks are faint',
   'CURL_WARN' => 'Sheet looked bent or curled',
   'LOW_CONFIDENCE' => 'Photo was hard to read',
+  'DUPLICATE_SHEET' => 'This student already has a scanned sheet',
+  'SET_NO_KEY' => 'No answer key for this question paper set',
   _ => 'Needs a quick check',
 };
 
@@ -28,7 +30,13 @@ String reviewReasonHelp(String code) => switch (code) {
   'ROLL_CHECKSUM_ERR' ||
   'ROLL_NOT_ON_ROSTER' ||
   'ROLL_AMBIGUOUS' => 'Look at the sheet and type the student\'s roll number.',
-  'SET_BLANK' || 'SET_MULTI' => 'Tap the set the student actually wrote.',
+  'DUPLICATE_SHEET' =>
+    'Check the roll number on the paper. If it is another student\'s sheet, '
+        'type their roll below. If it is a rescan of the same student, save '
+        'to use this sheet instead of the earlier one. Otherwise reject it.',
+  'SET_BLANK' || 'SET_MULTI' || 'SET_NO_KEY' =>
+    'Tap the set the student actually wrote. If that set has no '
+        'answer key yet, enter it on the Answer key tab first.',
   'MULTI_BUBBLE_WARN' || 'PROBABLE_BUBBLE' =>
     'Look at the sheet and tap the answer the student really marked.',
   'CURL_WARN' || 'LOW_CONFIDENCE' =>
