@@ -1,8 +1,34 @@
-# projX — OMR Sheet Evaluation System
+# projX — OMR Evaluator
 
-Mobile (Android-first, Flutter) OMR grading for coaching institutes: capture sheets
-with the phone camera, detect bubbles **on-device** (offline), grade against
-versioned answer keys, and generate marksheets/reports.
+[![CI](https://github.com/ManoharPaturi/projX/actions/workflows/ci.yml/badge.svg)](https://github.com/ManoharPaturi/projX/actions/workflows/ci.yml)
+
+Android app (Flutter) that marks bubble answer sheets for coaching institutes
+and schools: print the sheet, photograph it with the phone, get marks
+instantly — **fully offline**, with every doubtful sheet sent to a quick human
+check instead of being silently mis-marked.
+
+**For operators:** read the [user guide](docs/user-guide.md) (also in the app
+under *Menu → How to use*).
+
+## What it does
+
+- **Guided setup** — a getting-started checklist walks a first-time user from
+  an empty phone to the first marked sheet.
+- **Printable sheets** generated from one spec, so print and reader can never
+  disagree; roll numbers carry a check digit.
+- **Auto-capture scanner** — live coaching (move closer, hold still, too dark,
+  glare) and a hands-free shutter.
+- **On-device reading** with OpenCV and a confidence score per bubble; faint,
+  double-marked or unreadable sheets go to **Sheets to check**.
+- **Marking schemes as data** — NEET/JEE Main (+4/−1/0), JEE Advanced
+  multi-correct with partial marks, NTA key-correction states.
+- **Answer-key fixes re-mark everything** from stored reads — no rescanning;
+  every key version is kept for audit.
+- **Results, analysis and reports** — ranks, subject averages, hardest
+  questions, likely key mistakes; class PDF, Excel, CSV and per-student
+  marksheets (Indian-script names supported), shared via any app.
+- **Privacy first** — roll numbers as identity, names optional, data never
+  leaves the phone; full-size photos auto-deleted after a grace period.
 
 ## Layout
 
@@ -19,13 +45,28 @@ versioned answer keys, and generate marksheets/reports.
 
 Design + research: see `docs/plan.md` and `docs/research/`.
 
-## Getting started
+## Quality gates
+
+Every pull request runs format + analyze, all package suites (incl. an
+OpenCV smoke probe), the app's widget/flow tests, and an arm64 APK build
+checked for Play's 16 KB page alignment. `main` only moves through merged,
+green pull requests.
+
+## Getting started (developers)
+
+Requires Flutter 3.47 / Dart ≥ 3.10, JDK 17 for Android
+(`flutter config --jdk-dir=…`), and CMake + Ninja for the OpenCV build.
 
 ```bash
-dart pub get          # at repo root (workspace)
-dart test             # all pure-Dart packages
-cd app && flutter run # Android device
+flutter pub get                       # at repo root (pub workspace)
+(cd packages/omr_core && dart test)   # pure-Dart suites run in seconds
+(cd app && flutter test)              # first run compiles OpenCV (~20 min)
+(cd app && flutter run)               # on an arm64 Android phone/emulator
 ```
+
+The full check list CI runs is in [CONTRIBUTING.md](CONTRIBUTING.md); first
+OpenCV build notes are in [docs/m0-gate.md](docs/m0-gate.md). Releases:
+[docs/release.md](docs/release.md).
 
 ## Rendering sheets (no phone needed)
 
