@@ -2,6 +2,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'format.dart';
+import 'report_fonts.dart';
 import 'results_query.dart';
 
 /// Renders the whole cohort as one paginated class list PDF (plan §7).
@@ -10,10 +11,10 @@ import 'results_query.dart';
 /// maxPages of 20 throws mid-generation on ~200 students — the M3 acceptance
 /// criterion ("paginates past 20 pages without throwing") pins exactly this.
 class ConsolidatedPdf {
-  ConsolidatedPdf({this.font, this.pageFormat = PdfPageFormat.a4});
+  ConsolidatedPdf({this.fonts, this.pageFormat = PdfPageFormat.a4});
 
-  /// Optional unicode font (loaded TTF) for non-Latin student names.
-  final pw.Font? font;
+  /// Unicode fonts for non-Latin names; null = PDF built-ins (Latin-1).
+  final ReportFonts? fonts;
 
   final PdfPageFormat pageFormat;
 
@@ -27,7 +28,7 @@ class ConsolidatedPdf {
     final header = await query.header();
     final rows = await query.rows();
 
-    final doc = pw.Document(theme: font == null ? null : _themeFor(font!));
+    final doc = pw.Document(theme: fonts?.theme(fontSize: 9));
     doc.addPage(
       pw.MultiPage(
         pageFormat: pageFormat,
@@ -44,9 +45,6 @@ class ConsolidatedPdf {
     );
     return doc;
   }
-
-  pw.ThemeData _themeFor(pw.Font f) =>
-      pw.ThemeData(defaultTextStyle: pw.TextStyle(font: f, fontSize: 9));
 
   /// Runs on EVERY page — page n of m must survive a teacher photocopying one
   /// sheet of the stack.
@@ -83,8 +81,8 @@ class ConsolidatedPdf {
         style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
       ),
       pw.Text(
-        'Held ${formatExamDate(header.heldAt)} • ${header.studentCount} '
-        'students • ${header.totalQuestions} questions • top score '
+        'Held ${formatExamDate(header.heldAt)} · ${header.studentCount} '
+        'students · ${header.totalQuestions} questions · top score '
         '${formatMarks(header.maxTotal)}',
         style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
       ),

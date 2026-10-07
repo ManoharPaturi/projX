@@ -49,3 +49,10 @@ export 'src/diagnostics/wrong_key_detector.dart'
 
 // Utilities.
 export 'src/util/marks_close.dart' show marksClose;
+export 'src/util/roll_numbers.dart'
+    show
+        canonicalRoll,
+        isScannableRoll,
+        kSheetRollDigits,
+        rollCheckDigit,
+        rollChecksumOf;

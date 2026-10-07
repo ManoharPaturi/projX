@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'format.dart';
+import 'report_fonts.dart';
 import 'results_query.dart';
 
 /// Renders ONE student's marksheet as a single-page A4 PDF (plan §7).
@@ -12,13 +13,13 @@ import 'results_query.dart';
 /// today from an old key version reproduces that version's marks exactly.
 ///
 /// Glyphs stay ASCII (`+4`, `-1`, `0`) because the built-in PDF fonts are
-/// WinAnsi-only. Pass [font] with a Devanagari-capable TTF from the app layer
+/// WinAnsi-only. Pass [fonts] with a Devanagari-capable TTF from the app layer
 /// (where the asset lives) to render student names beyond Latin.
 class MarksheetPdf {
-  MarksheetPdf({this.font, this.pageFormat = PdfPageFormat.a4});
+  MarksheetPdf({this.fonts, this.pageFormat = PdfPageFormat.a4});
 
-  /// Optional unicode font (loaded TTF) used for all text when provided.
-  final pw.Font? font;
+  /// Unicode fonts for non-Latin names; null = PDF built-ins (Latin-1).
+  final ReportFonts? fonts;
 
   final PdfPageFormat pageFormat;
 
@@ -32,7 +33,7 @@ class MarksheetPdf {
     final header = await query.header();
     final outcomes = await query.outcomesFor(row);
 
-    final doc = pw.Document(theme: font == null ? null : _themeFor(font!));
+    final doc = pw.Document(theme: fonts?.theme(fontSize: 10));
     doc.addPage(
       pw.Page(
         pageFormat: pageFormat,
@@ -42,9 +43,6 @@ class MarksheetPdf {
     );
     return doc;
   }
-
-  pw.ThemeData _themeFor(pw.Font f) =>
-      pw.ThemeData(defaultTextStyle: pw.TextStyle(font: f, fontSize: 10));
 
   pw.Widget _page(
     ExamHeader header,
@@ -97,7 +95,7 @@ class MarksheetPdf {
             pw.Text('Held: ${formatExamDate(header.heldAt)}'),
             pw.Text('Key version: v${header.keyVersionNumber}'),
             pw.Text(
-              'Students: ${header.studentCount}  •  Questions: ${header.totalQuestions}',
+              'Students: ${header.studentCount}  ·  Questions: ${header.totalQuestions}',
             ),
           ],
         ),
@@ -202,8 +200,8 @@ class MarksheetPdf {
       border: pw.Border(top: pw.BorderSide(color: PdfColors.grey400)),
     ),
     child: pw.Text(
-      'Generated ${formatExamDate(header.generatedAt)} UTC • '
-      'key v${header.keyVersionNumber} • cohort top score '
+      'Generated ${formatExamDate(header.generatedAt)} UTC · '
+      'key v${header.keyVersionNumber} · cohort top score '
       '${formatMarks(header.maxTotal)}',
       style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
     ),

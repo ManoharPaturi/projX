@@ -46,17 +46,11 @@ class SheetIntake {
 
     // Roll → student: an unresolvable roll leaves the scan student-less on
     // purpose — it belongs to review, not to a guessed roster row.
-    String? studentId;
+    // Matching is by canonical roll: `0001234` on the sheet is roster `1234`.
     final roll = read.rollNoRead;
-    if (roll != null) {
-      final roster = await db.studentsDao.rosterFor(exam.instituteId);
-      for (final s in roster) {
-        if (s.rollNo == roll) {
-          studentId = s.id;
-          break;
-        }
-      }
-    }
+    final studentId = roll == null
+        ? null
+        : (await db.studentsDao.findByRoll(exam.instituteId, roll))?.id;
 
     final reasons = reviewReasonsFor(evaluation);
     final needsReview = reasons.isNotEmpty;

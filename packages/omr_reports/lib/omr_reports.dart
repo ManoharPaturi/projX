@@ -8,5 +8,6 @@ export 'src/csv_export.dart';
 export 'src/excel_export.dart';
 export 'src/format.dart';
 export 'src/marksheet_pdf.dart';
+export 'src/report_fonts.dart';
 export 'src/report_runner.dart';
 export 'src/results_query.dart';

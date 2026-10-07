@@ -320,4 +320,31 @@ void main() {
       expect(detail.scan.status, ScanStatus.reviewed);
     },
   );
+
+  test('assignStudent attributes the scan and audit-logs the change', () async {
+    final scanId = await db.scansDao.insertScanWithReads(
+      scanRow(examId: examId, rollNoRead: null, setCodeRead: 'A'),
+      const [],
+    );
+    final exam = await db.examsDao.byId(examId);
+    await db.studentsDao.importRoster(kTenantId, exam!.instituteId, const [
+      RosterEntry(rollNo: '1234'),
+    ]);
+    final student = (await db.studentsDao.rosterFor(exam.instituteId)).single;
+
+    await db.scansDao.assignStudent(
+      scanId,
+      studentId: student.id,
+      rollNo: '1234',
+      byUser: 'operator',
+    );
+
+    final scan = (await db.scansDao.fetchWithReads(scanId))!.scan;
+    expect(scan.studentId, student.id);
+    expect(scan.rollNoRead, '1234');
+    final audit = await (db.select(
+      db.auditLog,
+    )..where((a) => a.action.equals('assign_student'))).get();
+    expect(audit.single.entityId, scanId);
+  });
 }

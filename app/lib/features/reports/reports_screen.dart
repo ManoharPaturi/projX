@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../src/app_state.dart';
 import '../../src/db/open_db.dart' show reportsDirectory;
+import '../../src/report_fonts_loader.dart';
 
 /// Plan §6 screen 10 + §7 — every output goes through [ReportRunner] so a
 /// `report_jobs` row records what was generated, from which key version, and
@@ -82,7 +83,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           onGenerate: () => _generate(
             type: ReportJobType.consolidated,
             format: 'pdf',
-            builder: (query) => ConsolidatedPdf().build(query),
+            builder: (query) async =>
+                ConsolidatedPdf(fonts: await loadReportFonts()).build(query),
           ),
         ),
         _ReportCard(

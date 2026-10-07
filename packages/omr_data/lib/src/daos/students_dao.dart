@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:omr_core/omr_core.dart' show canonicalRoll;
 
 import '../app_db.dart';
 import '../tables/students.dart';
@@ -99,30 +100,26 @@ class StudentsDao extends DatabaseAccessor<AppDb> with _$StudentsDaoMixin {
         invalidRolls.add(entry.rollNo);
         continue;
       }
-      if (!seen.add(roll)) {
+      // Canonical form: `0042` and `42` are the same bubbled roll.
+      if (!seen.add(canonicalRoll(roll))) {
         duplicatesInFile.add(roll);
         continue;
       }
       accepted.add(entry);
     }
 
-    // Pre-select what is already enrolled. (Counting on insertOrIgnore's
-    // return is a trap: SQLite leaves lastInsertRowId STALE on an ignored
-    // insert, so an ignored row reports the previous row's id, not 0.)
-    final acceptedRolls = accepted.map((e) => e.rollNo.trim()).toList();
-    Set<String> alreadyEnrolled;
-    if (acceptedRolls.isEmpty) {
-      alreadyEnrolled = const <String>{};
-    } else {
-      final enrolled =
-          await (select(students)..where(
-                (Students s) =>
-                    s.instituteId.equals(instituteId) &
-                    s.rollNo.isIn(acceptedRolls),
-              ))
-              .get();
-      alreadyEnrolled = enrolled.map((s) => s.rollNo).toSet();
-    }
+    // Pre-select what is already enrolled, by canonical roll. (Counting on
+    // insertOrIgnore's return is a trap: SQLite leaves lastInsertRowId STALE
+    // on an ignored insert, so an ignored row reports the previous row's id.)
+    final enrolledByCanonical = <String, String>{
+      for (final s in await rosterFor(instituteId))
+        canonicalRoll(s.rollNo): s.rollNo,
+    };
+    final alreadyEnrolled = <String>{
+      for (final entry in accepted)
+        if (enrolledByCanonical.containsKey(canonicalRoll(entry.rollNo)))
+          entry.rollNo.trim(),
+    };
 
     await transaction(() async {
       for (final entry in accepted) {
@@ -151,4 +148,52 @@ class StudentsDao extends DatabaseAccessor<AppDb> with _$StudentsDaoMixin {
       invalidRolls: invalidRolls,
     );
   }
+
+  /// The enrolled student a scanned [roll] belongs to, compared by
+  /// [canonicalRoll] — a sheet bubbled `0001234` and a roster row typed
+  /// `1234` are the same student. Null when nobody matches.
+  Future<Student?> findByRoll(String instituteId, String roll) async {
+    final wanted = canonicalRoll(roll);
+    for (final s in await rosterFor(instituteId)) {
+      if (canonicalRoll(s.rollNo) == wanted) return s;
+    }
+    return null;
+  }
+
+  /// Adds one student typed in by the operator.
+  Future<AddStudentResult> addStudent(
+    String tenantId,
+    String instituteId,
+    RosterEntry entry,
+  ) async {
+    final result = await importRoster(tenantId, instituteId, [entry]);
+    if (result.imported == 1) return AddStudentResult.added;
+    if (result.existingRolls.isNotEmpty) return AddStudentResult.duplicate;
+    return AddStudentResult.invalid;
+  }
+
+  /// Removes a student who has never been scanned. A student with any scan
+  /// or result is kept — those rows are the audit trail behind published
+  /// marks — and `false` is returned so the UI can say why.
+  Future<bool> deleteStudent(String studentId) async {
+    final db = attachedDatabase;
+    final scans =
+        await (db.select(db.scans)
+              ..where((t) => t.studentId.equals(studentId))
+              ..limit(1))
+            .get();
+    final results =
+        await (db.select(db.results)
+              ..where((t) => t.studentId.equals(studentId))
+              ..limit(1))
+            .get();
+    if (scans.isNotEmpty || results.isNotEmpty) return false;
+    final deleted = await (delete(
+      students,
+    )..where((s) => s.id.equals(studentId))).go();
+    return deleted == 1;
+  }
 }
+
+/// Outcome of [StudentsDao.addStudent].
+enum AddStudentResult { added, duplicate, invalid }
