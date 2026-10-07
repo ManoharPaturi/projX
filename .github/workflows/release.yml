@@ -30,7 +30,7 @@ jobs:
             echo "::error::tag $GITHUB_REF_NAME but app/pubspec.yaml says $APP_VERSION"
             exit 1
           fi
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
