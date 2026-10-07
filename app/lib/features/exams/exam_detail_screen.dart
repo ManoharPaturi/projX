@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:omr_data/omr_data.dart';
-import 'package:omr_reports/omr_reports.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/labels.dart';
+import 'print_sheets.dart';
 import '../keys/key_editor_screen.dart';
 import '../reports/reports_screen.dart';
 import '../results/results_screen.dart';
@@ -11,9 +12,18 @@ import '../results/results_screen.dart';
 /// The exam hub: overview / answer key / results / reports (plan §6 screens
 /// 3, 8 and 10 hang off here so navigation stays one level deep).
 class ExamDetailScreen extends StatefulWidget {
-  const ExamDetailScreen({super.key, required this.examId});
+  const ExamDetailScreen({
+    super.key,
+    required this.examId,
+    this.initialTab = 0,
+  });
 
   final String examId;
+
+  /// Tab to open on: 0 overview, 1 answer key, 2 results, 3 reports.
+  final int initialTab;
+
+  static const int answerKeyTab = 1;
 
   @override
   State<ExamDetailScreen> createState() => _ExamDetailScreenState();
@@ -26,7 +36,11 @@ class _ExamDetailScreenState extends State<ExamDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
   }
 
   @override
@@ -100,11 +114,13 @@ class _OverviewTab extends StatelessWidget {
                     Text('${exam.totalQuestions} questions'),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Held ${formatExamDate(exam.heldAt)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                if (exam.heldAt != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Exam date: ${formatDate(exam.heldAt!)}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ],
             ),
           ),
@@ -140,7 +156,7 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status.name,
+        examStatusLabel(status),
         style: TextStyle(color: color, fontWeight: FontWeight.w600),
       ),
     );
@@ -168,19 +184,19 @@ class _ScanCountsCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Sheets', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Scanned sheets',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
                   children: [
+                    _countChip('total', counts.values.fold(0, (a, b) => a + b)),
+                    _countChip('marked', of(ScanStatus.graded)),
                     _countChip(
-                      'scanned',
-                      counts.values.fold(0, (a, b) => a + b),
-                    ),
-                    _countChip('graded', of(ScanStatus.graded)),
-                    _countChip(
-                      'needs review',
+                      'to check',
                       of(ScanStatus.needsReview),
                       color:
                           counts[ScanStatus.needsReview] != null &&
@@ -188,7 +204,7 @@ class _ScanCountsCard extends StatelessWidget {
                           ? const Color(0xFF8B4000)
                           : null,
                     ),
-                    _countChip('reviewed', of(ScanStatus.reviewed)),
+                    _countChip('checked', of(ScanStatus.reviewed)),
                     _countChip('rejected', of(ScanStatus.rejected)),
                   ],
                 ),
@@ -227,29 +243,39 @@ class _ActionsCard extends StatelessWidget {
     return Card(
       child: Column(
         children: [
-          if (exam.status == ExamStatus.draft)
-            ListTile(
-              leading: const Icon(Icons.play_arrow),
-              title: const Text('Activate exam'),
-              subtitle: const Text('Unlock scanning for this exam'),
-              onTap: () async {
-                await state.db.examsDao.setStatus(exam.id, ExamStatus.active);
-                state.refresh();
-              },
+          ListTile(
+            leading: const Icon(Icons.print_outlined),
+            title: const Text('Print answer sheets'),
+            subtitle: const Text(
+              'Print one blank sheet per student — on any printer, A4 paper',
             ),
+            onTap: () => printAnswerSheets(context, exam),
+          ),
+          const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.calculate_outlined),
-            title: const Text('Grade now'),
+            title: const Text('Calculate marks'),
             subtitle: const Text(
-              'Grade every review-cleared scan against the active key',
+              'Marks every scanned sheet that does not need checking',
             ),
             onTap: () => _grade(context, state),
           ),
-          if (exam.status == ExamStatus.graded)
+          if (exam.status == ExamStatus.graded) ...[
+            const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.publish),
-              title: const Text('Publish results'),
+              leading: const Icon(Icons.verified_outlined),
+              title: const Text('Mark results as final'),
+              subtitle: const Text('Do this once results are shared'),
               onTap: () async {
+                final ok = await _confirm(
+                  context,
+                  title: 'Mark results as final?',
+                  body:
+                      'You can still fix the answer key later; the marks '
+                      'will be recalculated.',
+                  action: 'Mark final',
+                );
+                if (!ok) return;
                 await state.db.examsDao.setStatus(
                   exam.id,
                   ExamStatus.published,
@@ -257,9 +283,36 @@ class _ActionsCard extends StatelessWidget {
                 state.refresh();
               },
             ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<bool> _confirm(
+    BuildContext context, {
+    required String title,
+    required String body,
+    required String action,
+  }) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(action),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
   }
 
   Future<void> _grade(BuildContext context, AppState state) async {
@@ -267,9 +320,15 @@ class _ActionsCard extends StatelessWidget {
     final keyVersion = await state.db.keysDao.activeVersion(exam.id);
     if (keyVersion == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Publish an answer key first')),
+        const SnackBar(
+          content: Text('Enter the answer key first (Answer key tab)'),
+        ),
       );
       return;
+    }
+    if (exam.status == ExamStatus.draft) {
+      // Scanning or grading an exam is what starts it; no separate step.
+      await state.db.examsDao.setStatus(exam.id, ExamStatus.active);
     }
     final report = await GradingService(state.db).gradeExam(
       tenantId: state.tenantId,
@@ -281,8 +340,9 @@ class _ActionsCard extends StatelessWidget {
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          'Graded ${report.resultsByStudent.length} students '
-          '(${report.resultsByStudent.values.fold<double>(0, (a, r) => a + r.totalMarks).toStringAsFixed(0)} marks total)',
+          'Marks ready for ${report.resultsByStudent.length} '
+          'student${report.resultsByStudent.length == 1 ? '' : 's'} — see the '
+          'Results tab',
         ),
       ),
     );

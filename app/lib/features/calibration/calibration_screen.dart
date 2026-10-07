@@ -307,8 +307,8 @@ class _VerdictCard extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          "Threshold preset set to "
-                          "'${report.suggestedStrictness}'",
+                          'Photo quality check set to '
+                          '${report.suggestedStrictness}',
                         ),
                       ),
                     );

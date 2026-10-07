@@ -10,6 +10,9 @@ import 'package:path_provider/path_provider.dart';
 /// The single MVP tenant (plan §4: exactly one row until the phase-2 cloud).
 const String kTenantId = 'tenant-mvp';
 
+/// The first-run institute name, replaced from Settings or onboarding.
+const String kDefaultInstituteName = 'My Institute';
+
 /// Opens the on-device database and runs the idempotent first-run seed.
 ///
 /// WAL journaling and FK enforcement come from the db's `beforeOpen`, not
@@ -54,7 +57,7 @@ Future<String> seedFirstRun(AppDb db) async {
         .insertReturning(
           InstitutesCompanion.insert(
             tenantId: kTenantId,
-            name: 'My Institute',
+            name: kDefaultInstituteName,
             code: 'MVI',
           ),
         );

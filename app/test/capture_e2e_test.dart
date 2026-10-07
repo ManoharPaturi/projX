@@ -129,7 +129,7 @@ void main() {
     // The card says review, with the reason spelled out.
     expect(find.text('needs review', skipOffstage: false), findsOneWidget);
     expect(
-      find.textContaining('MULTI_BUBBLE_WARN', skipOffstage: false),
+      find.textContaining('A question has two marks', skipOffstage: false),
       findsOneWidget,
     );
 

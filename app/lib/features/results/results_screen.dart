@@ -28,7 +28,10 @@ class ResultsScreen extends StatelessWidget {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(24),
-              child: Text('Publish an answer key to see results.'),
+              child: Text(
+                'Enter the answer key (Answer key tab) to see results.',
+                textAlign: TextAlign.center,
+              ),
             ),
           );
         }
@@ -74,8 +77,9 @@ class _Body extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'No graded sheets yet. Scan sheets (or insert fixtures), '
-                'then press Grade now.',
+                'No marks yet. Scan the answer sheets, then tap '
+                '"Calculate marks" on the Overview tab.',
+                textAlign: TextAlign.center,
               ),
             ),
           );
@@ -85,9 +89,10 @@ class _Body extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                '${header.studentCount} students · top ${formatMarks(header.maxTotal)}'
-                ' · key v${header.keyVersionNumber}',
-                style: Theme.of(context).textTheme.bodySmall,
+                '${header.studentCount} students · highest '
+                '${formatMarks(header.maxTotal)} marks · answer key '
+                '${header.keyVersionNumber}',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
             Expanded(
@@ -97,7 +102,6 @@ class _Body extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final row = rows[index];
                   return ListTile(
-                    dense: true,
                     leading: SizedBox(
                       width: 36,
                       child: Center(
@@ -115,7 +119,8 @@ class _Body extends StatelessWidget {
                       '${row.rollNo}${row.name == null ? '' : ' · ${row.name}'}',
                     ),
                     subtitle: Text(
-                      'C ${row.correct} · W ${row.wrong} · U ${row.unattempted}',
+                      '${row.correct} right · ${row.wrong} wrong · '
+                      '${row.unattempted} blank',
                     ),
                     trailing: Text(
                       formatMarks(row.total),

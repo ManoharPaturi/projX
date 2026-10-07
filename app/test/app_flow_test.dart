@@ -49,7 +49,8 @@ void main() {
     await tester.pumpWidget(OmrApp(state: state));
     await tester.pumpAndSettle();
 
-    // Dashboard lists the exam.
+    // Dashboard lists the exam (below the getting-started checklist).
+    await tester.scrollUntilVisible(find.text('JEE Mock 1'), 200);
     expect(find.text('JEE Mock 1'), findsOneWidget);
     await tester.tap(find.text('JEE Mock 1'));
     await tester.pumpAndSettle();
@@ -58,7 +59,10 @@ void main() {
     await tester.tap(find.text('Results'));
     await tester.pumpAndSettle();
     // Student 0's fixture attempts 54 of 90 (all correct at +4) = 216.
-    expect(find.text('2 students · top 216 · key v1'), findsOneWidget);
+    expect(
+      find.text('2 students · highest 216 marks · answer key 1'),
+      findsOneWidget,
+    );
 
     final r1Tile = find.ancestor(
       of: find.text('R001'),
@@ -97,13 +101,13 @@ void main() {
     await tester.pumpAndSettle();
     // The queue speaks operator language; MULTI_BUBBLE_WARN is the stored
     // reason code, the tile says what it means.
-    expect(find.textContaining('a question has two marks'), findsOneWidget);
+    expect(find.textContaining('A question has two marks'), findsOneWidget);
 
     await tester.tap(find.byType(ListTile));
     await tester.pumpAndSettle();
 
     // The flagged field's four bubbles; the operator marks option A.
-    expect(find.text('machine'), findsAtLeastNWidgets(2));
+    expect(find.text('read as marked'), findsAtLeastNWidgets(2));
     await tester.tap(find.text('A'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save correction (1)'));
@@ -203,7 +207,7 @@ void main() {
     await tester.pumpWidget(wrapForTest(const RosterScreen(), state));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Import CSV'));
+    await tester.tap(find.text('Paste a list'));
     await tester.pumpAndSettle();
 
     final field = find.descendant(
@@ -232,7 +236,7 @@ void main() {
     expect(find.text('Imposter'), findsNothing);
 
     // A second import of R001 must not rewrite the enrolled name.
-    await tester.tap(find.text('Import CSV'));
+    await tester.tap(find.text('Paste a list'));
     await tester.pumpAndSettle();
     await tester.enterText(field, 'R001,SomeoneElse');
     await tester.tap(find.text('Import'));
@@ -267,7 +271,7 @@ void main() {
     // tab calls.
     await tester.tap(find.text('Reports'));
     await tester.pumpAndSettle();
-    expect(find.text('Consolidated class PDF'), findsOneWidget);
+    expect(find.text('Class result list (PDF)'), findsOneWidget);
 
     final directory = Directory.systemTemp.createTempSync('omr-reports');
     final runner = ReportRunner(state.db);
@@ -309,5 +313,61 @@ void main() {
     expect(jobs.single.status, ReportJobStatus.done);
     expect(jobs.single.filePath, path);
     directory.deleteSync(recursive: true);
+  });
+
+  testWidgets('add student: check digit shown, then listed on the roster', (
+    tester,
+  ) async {
+    await tester.pumpWidget(wrapForTest(const RosterScreen(), state));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Add student'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('add-roll-field')), '1234');
+    await tester.pump();
+    expect(find.text('Check digit for the sheet: 2'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('add-name-field')), 'Asha');
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1234'), findsOneWidget);
+    expect(find.textContaining('Asha · Check digit 2'), findsOneWidget);
+  });
+
+  testWidgets('add student refuses a roll that cannot be bubbled', (
+    tester,
+  ) async {
+    await tester.pumpWidget(wrapForTest(const RosterScreen(), state));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Add student'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('add-roll-field')), 'AB12');
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Use digits only, up to 7'), findsOneWidget);
+    expect(await state.db.studentsDao.count(state.instituteId), 0);
+  });
+
+  testWidgets('answer key: switching set tabs shows that set', (tester) async {
+    final seeded = await seedExamWithRoster(state, students: 1);
+    await tester.pumpWidget(
+      wrapForTest(
+        ExamDetailScreen(
+          examId: seeded.examId,
+          initialTab: ExamDetailScreen.answerKeyTab,
+        ),
+        state,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Set A is fully keyed by the seed; set B is empty.
+    expect(find.text('Set A ✓'), findsOneWidget);
+    expect(find.text('90 of 90 answered in set A'), findsOneWidget);
+    await tester.tap(find.text('Set B'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 of 90 answered in set B'), findsOneWidget);
   });
 }

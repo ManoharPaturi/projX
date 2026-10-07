@@ -113,6 +113,18 @@ class GradingService {
     return spec.compileDetectionTemplate(sheetSpec);
   }
 
+  /// The exam's sheet spec for PRINTING, hash-verified against its stored
+  /// layout row: a sheet must never print from a layout that was edited
+  /// out-of-band, or the reader would expect different geometry.
+  Future<spec.SheetSpec> printableSpecFor(String examId) async {
+    final (row, _) = await _specFor(examId);
+    final validated = await db.layoutsDao.loadValidated(
+      row.layoutId,
+      row.layoutVersion,
+    );
+    return validated.spec;
+  }
+
   Future<(SheetLayout, spec.SheetSpec)> _specFor(String examId) async {
     final exam = await db.examsDao.byId(examId);
     if (exam == null) {

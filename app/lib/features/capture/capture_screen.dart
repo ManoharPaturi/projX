@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:omr_core/omr_core.dart' as core;
 import 'package:omr_data/omr_data.dart';
@@ -9,6 +10,8 @@ import 'package:omr_spec/omr_spec.dart' show pxPerMm;
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/labels.dart';
+import '../exams/exam_create_screen.dart';
 import '../../src/demo_scans.dart';
 import 'capture_source.dart';
 import 'scanner_view.dart';
@@ -261,13 +264,32 @@ class _CaptureScreenState extends State<CaptureScreen> {
     final source = widget.source ?? _ownedSource;
     final analyze = _analyze;
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan sheets')),
+      appBar: AppBar(title: const Text('Scan answer sheets')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (_exams != null && _exams!.isEmpty)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('Create an exam first'),
+                subtitle: const Text(
+                  'Sheets are marked against an exam\'s answer key.',
+                ),
+                trailing: FilledButton(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    ExamCreateScreen.routeName,
+                  ),
+                  child: const Text('New exam'),
+                ),
+              ),
+            ),
           if (_exams != null && _exams!.isNotEmpty) ...[
             DropdownButtonFormField<Exam>(
-              decoration: const InputDecoration(labelText: 'Exam'),
+              decoration: const InputDecoration(
+                labelText: 'Which exam are these sheets for?',
+              ),
               items: [
                 for (final exam in _exams!)
                   DropdownMenuItem(value: exam, child: Text(exam.name)),
@@ -306,6 +328,15 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 padding: EdgeInsets.only(top: 8),
                 child: LinearProgressIndicator(),
               ),
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Lay the sheet flat in good light with all four black corner '
+                'squares in view. The photo is taken by itself when the '
+                'frame turns green.',
+                textAlign: TextAlign.center,
+              ),
+            ),
           ] else if (_cameraTried) ...[
             Card(
               color: Theme.of(context).colorScheme.tertiaryContainer,
@@ -318,25 +349,29 @@ class _CaptureScreenState extends State<CaptureScreen> {
                       children: [
                         Icon(Icons.camera_outlined),
                         SizedBox(width: 8),
-                        Text(
-                          'No camera available here',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        Expanded(
+                          child: Text(
+                            'The camera is not available',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ],
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'The live scanner needs this device\'s back camera. '
-                      'The buttons below insert fixture sheets through the '
-                      'same read → grade → review → report path the shutter '
-                      'feeds.',
+                      'Allow camera access: open your phone\'s Settings → '
+                      'Apps → OMR Evaluator → Permissions → Camera, then '
+                      'come back to this screen.',
                     ),
                   ],
                 ),
               ),
             ),
           ],
-          if (source == null && _cameraTried) ...[
+          // Developer fixtures (desktop/emulator runs without a camera):
+          // never offered in release builds, where they would insert
+          // made-up sheets into a real institute's results.
+          if (source == null && _cameraTried && kDebugMode) ...[
             const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: _busy || _exam == null
@@ -417,7 +452,7 @@ class _CapturedCard extends StatelessWidget {
             if (captured.reasons.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                captured.reasons.join(' · '),
+                captured.reasons.map(reviewReasonLabel).join(' · '),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.error,
                 ),
@@ -446,8 +481,9 @@ class _CapturedCard extends StatelessWidget {
             else
               Text(
                 captured.needsReview
-                    ? 'Routed to review — graded after confirmation.'
-                    : 'No answer key yet — not graded.',
+                    ? 'Needs a quick check — see "Sheets to check". Marks '
+                          'appear after that.'
+                    : 'No answer key yet — enter it to see marks.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
           ],

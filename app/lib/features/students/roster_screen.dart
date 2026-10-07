@@ -1,6 +1,7 @@
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
-import 'package:omr_core/omr_core.dart' show kSheetRollDigits, rollCheckDigit;
+import 'package:omr_core/omr_core.dart'
+    show isScannableRoll, kSheetRollDigits, rollCheckDigit;
 import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
@@ -34,11 +35,20 @@ class _RosterScreenState extends State<RosterScreen> {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Students')),
+      appBar: AppBar(
+        title: const Text('Students'),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.paste),
+            label: const Text('Paste a list'),
+            onPressed: _showImportDialog,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.paste),
-        label: const Text('Import CSV'),
-        onPressed: _showImportDialog,
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text('Add student'),
+        onPressed: _showAddDialog,
       ),
       body: Column(
         children: [
@@ -46,7 +56,7 @@ class _RosterScreenState extends State<RosterScreen> {
             padding: const EdgeInsets.all(12),
             child: TextField(
               decoration: const InputDecoration(
-                labelText: 'Search by roll number',
+                labelText: 'Find by roll number',
                 prefixIcon: Icon(Icons.search),
                 isDense: true,
               ),
@@ -68,7 +78,8 @@ class _RosterScreenState extends State<RosterScreen> {
                 if (roster.isEmpty) {
                   return const Center(
                     child: Text(
-                      'No students yet.\nImport a roster: roll,name,batch per line.',
+                      'No students yet.\n\nTap "Add student" to add one, or '
+                      '"Paste a list" to add many from a spreadsheet.',
                       textAlign: TextAlign.center,
                     ),
                   );
@@ -80,6 +91,16 @@ class _RosterScreenState extends State<RosterScreen> {
                     final student = roster[index];
                     final check = rollCheckDigit(student.rollNo);
                     return ListTile(
+                      trailing: PopupMenuButton<String>(
+                        tooltip: 'More for roll ${student.rollNo}',
+                        onSelected: (_) => _confirmDelete(student),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Remove student'),
+                          ),
+                        ],
+                      ),
                       leading: CircleAvatar(child: Text('${index + 1}')),
                       title: Text(
                         student.rollNo,
@@ -113,19 +134,30 @@ class _RosterScreenState extends State<RosterScreen> {
 
   Future<void> _showImportDialog() async {
     // A tiny starter so the format is discoverable on first use.
-    _pasteController.text = 'roll,name,batch\nR001,Aarav,Batch-A';
+    _pasteController.text = 'roll,name,batch\n1001,Aarav,Batch-A';
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Paste roster CSV'),
+        title: const Text('Paste a student list'),
         content: SizedBox(
           width: 420,
-          child: TextField(
-            controller: _pasteController,
-            maxLines: 10,
-            decoration: const InputDecoration(
-              hintText: 'roll,name,batch\nR001,Aarav,Batch-A',
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'One student per line: roll number, name, batch. Copy the '
+                'columns straight from Excel or Google Sheets.',
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _pasteController,
+                maxLines: 10,
+                decoration: const InputDecoration(
+                  hintText: 'roll,name,batch\n1001,Aarav,Batch-A',
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -154,7 +186,8 @@ class _RosterScreenState extends State<RosterScreen> {
   }
 
   Future<RosterImportResult?> _import(AppState state, String text) async {
-    final rows = Csv().decoder.convert(text);
+    // Spreadsheet copies arrive tab-separated; treat tabs as commas.
+    final rows = Csv().decoder.convert(text.replaceAll('\t', ','));
     final entries = <RosterEntry>[];
     for (final row in rows) {
       if (row.isEmpty) {
@@ -221,6 +254,162 @@ class _RosterScreenState extends State<RosterScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showAddDialog() async {
+    final state = context.read<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
+    final entry = await showDialog<RosterEntry>(
+      context: context,
+      builder: (_) => const _AddStudentDialog(),
+    );
+    if (entry == null) return;
+    final result = await state.db.studentsDao.addStudent(
+      state.tenantId,
+      state.instituteId,
+      entry,
+    );
+    state.refresh();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(switch (result) {
+          AddStudentResult.added => 'Added roll ${entry.rollNo}',
+          AddStudentResult.duplicate =>
+            'Roll ${entry.rollNo} is already on the list',
+          AddStudentResult.invalid => 'Enter a roll number',
+        }),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(Student student) async {
+    final state = context.read<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remove roll ${student.rollNo}?'),
+        content: const Text(
+          'Students who already have scanned sheets cannot be removed, so '
+          'their results stay correct.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final removed = await state.db.studentsDao.deleteStudent(student.id);
+    state.refresh();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          removed
+              ? 'Removed roll ${student.rollNo}'
+              : 'Roll ${student.rollNo} has scanned sheets and was kept',
+        ),
+      ),
+    );
+  }
+}
+
+class _AddStudentDialog extends StatefulWidget {
+  const _AddStudentDialog();
+
+  @override
+  State<_AddStudentDialog> createState() => _AddStudentDialogState();
+}
+
+class _AddStudentDialogState extends State<_AddStudentDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _roll = TextEditingController();
+  final _name = TextEditingController();
+  final _batch = TextEditingController();
+
+  @override
+  void dispose() {
+    _roll.dispose();
+    _name.dispose();
+    _batch.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    String? optional(TextEditingController c) =>
+        c.text.trim().isEmpty ? null : c.text.trim();
+    Navigator.pop(
+      context,
+      RosterEntry(
+        rollNo: _roll.text.trim(),
+        name: optional(_name),
+        batch: optional(_batch),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final check = rollCheckDigit(_roll.text);
+    return AlertDialog(
+      title: const Text('Add student'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              key: const Key('add-roll-field'),
+              controller: _roll,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Roll number',
+                helperText: check == null
+                    ? 'Digits only, up to $kSheetRollDigits'
+                    : 'Check digit for the sheet: $check',
+              ),
+              onChanged: (_) => setState(() {}),
+              validator: (value) {
+                final roll = value?.trim() ?? '';
+                if (roll.isEmpty) return 'Enter the roll number';
+                if (!isScannableRoll(roll)) {
+                  return 'Use digits only, up to $kSheetRollDigits';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              key: const Key('add-name-field'),
+              controller: _name,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: 'Name (optional)'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _batch,
+              decoration: const InputDecoration(labelText: 'Batch (optional)'),
+              onFieldSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('Add')),
+      ],
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:omr_spec/omr_spec.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/labels.dart';
 import '../keys/key_editor_screen.dart';
 
 /// Grading presets offered at exam setup (ids from `ScoringPresets`; the
@@ -116,20 +117,21 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: 'Exam name',
-                hintText: 'JEE Mock 1',
+                hintText: 'e.g. JEE Mock Test 1',
               ),
               textInputAction: TextInputAction.done,
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Required' : null,
+              validator: (value) => (value == null || value.trim().isEmpty)
+                  ? 'Give the exam a name'
+                  : null,
             ),
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Held on'),
+              title: const Text('Exam date'),
               subtitle: Text(
                 _heldAt == null
-                    ? 'Not set'
-                    : '${_heldAt!.day}/${_heldAt!.month}/${_heldAt!.year}',
+                    ? 'Tap to choose (optional)'
+                    : formatDate(_heldAt!),
               ),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
@@ -146,7 +148,11 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<SheetLayout>(
-              decoration: const InputDecoration(labelText: 'Sheet layout'),
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'Answer sheet type',
+                helperText: 'You will print this sheet for students',
+              ),
               items: [
                 for (final row in _layouts ?? <SheetLayout>[])
                   DropdownMenuItem(
@@ -159,10 +165,14 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Marking scheme'),
               items: [
                 for (final preset in kGradingPresets)
-                  DropdownMenuItem(value: preset.id, child: Text(preset.label)),
+                  DropdownMenuItem(
+                    value: preset.id,
+                    child: Text(preset.label, overflow: TextOverflow.ellipsis),
+                  ),
               ],
               initialValue: _preset,
               onChanged: (id) => setState(() => _preset = id!),
@@ -176,7 +186,7 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Create and enter answer key'),
+                  : const Text('Create exam and enter answers'),
             ),
           ],
         ),
