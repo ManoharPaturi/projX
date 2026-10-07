@@ -23,5 +23,5 @@ dev_dependencies:
   drift_dev: 2.34.5
   # Host tests run against real SQLite via FFI (no Flutter boot needed).
   # ^3.0.0 is what drift_dev 2.34.3 itself requires — stay on one major.
-  sqlite3: ^3.0.0
+  sqlite3: ^3.7.0
   test: ^1.25.0
