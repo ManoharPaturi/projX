@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
 import '../../src/labels.dart';
+import '../analytics/analytics_screen.dart';
 import 'print_sheets.dart';
 import '../keys/key_editor_screen.dart';
 import '../reports/reports_screen.dart';
@@ -20,7 +21,8 @@ class ExamDetailScreen extends StatefulWidget {
 
   final String examId;
 
-  /// Tab to open on: 0 overview, 1 answer key, 2 results, 3 reports.
+  /// Tab to open on: 0 overview, 1 answer key, 2 results, 3 analysis,
+  /// 4 reports.
   final int initialTab;
 
   static const int answerKeyTab = 1;
@@ -37,7 +39,7 @@ class _ExamDetailScreenState extends State<ExamDetailScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 4,
+      length: 5,
       vsync: this,
       initialIndex: widget.initialTab,
     );
@@ -67,10 +69,13 @@ class _ExamDetailScreenState extends State<ExamDetailScreen>
             title: Text(exam.name),
             bottom: TabBar(
               controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
               tabs: const [
                 Tab(text: 'Overview'),
                 Tab(text: 'Answer key'),
                 Tab(text: 'Results'),
+                Tab(text: 'Analysis'),
                 Tab(text: 'Reports'),
               ],
             ),
@@ -81,6 +86,7 @@ class _ExamDetailScreenState extends State<ExamDetailScreen>
               _OverviewTab(exam: exam),
               KeyEditorScreen(examId: widget.examId, embedded: true),
               ResultsScreen(examId: widget.examId),
+              AnalyticsScreen(examId: widget.examId),
               ReportsScreen(examId: widget.examId),
             ],
           ),
