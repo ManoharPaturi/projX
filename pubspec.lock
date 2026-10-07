@@ -293,10 +293,10 @@ packages:
     dependency: transitive
     description:
       name: dartcv4
-      sha256: "3d0418dd2c8437f9b2151fab4758c1796e3b37ae1f41bbda9ef2f65b383ff2e1"
+      sha256: e78c39ea09decc04ee70be9684eb63c092e0cb006b37615d214a08b6e098d5a9
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.0"
+    version: "2.3.1"
   drift:
     dependency: transitive
     description:
