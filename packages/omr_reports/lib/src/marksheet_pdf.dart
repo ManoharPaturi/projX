@@ -92,7 +92,9 @@ class MarksheetPdf {
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            pw.Text('Held: ${formatExamDate(header.heldAt)}'),
+            // The exam date is optional; no date, no dangling label.
+            if (header.heldAt != null)
+              pw.Text('Exam date: ${formatExamDate(header.heldAt)}'),
             pw.Text('Key version: v${header.keyVersionNumber}'),
             pw.Text(
               'Students: ${header.studentCount}  ·  Questions: ${header.totalQuestions}',

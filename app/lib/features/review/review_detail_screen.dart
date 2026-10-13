@@ -193,6 +193,8 @@ class _ReviewDetailScreenState extends State<ReviewDetailScreen> {
                         '(${_chosen.length})'
                   : _assigned != null
                   ? 'Save and grade this sheet'
+                  : _hasEditableFields
+                  ? 'Tap the right answer above to save'
                   : 'Sheet looks right — mark it',
             ),
           ),

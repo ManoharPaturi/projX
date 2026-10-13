@@ -240,13 +240,16 @@ class _StorageTile extends StatelessWidget {
         return <ScanStatus, int>{ScanStatus.needsReview: rows.length};
       }(),
       builder: (context, snapshot) {
+        final waiting = snapshot.data?[ScanStatus.needsReview] ?? 0;
         return ListTile(
           leading: const Icon(Icons.storage_outlined),
           title: const Text('Data on this phone'),
           subtitle: Text(
-            'Stored only on this device. '
-            '${snapshot.data?[ScanStatus.needsReview] ?? 0} sheet(s) waiting '
-            'to be checked.',
+            'Stored only on this device. ${switch (waiting) {
+              0 => 'No sheets waiting to be checked.',
+              1 => '1 sheet waiting to be checked.',
+              _ => '$waiting sheets waiting to be checked.',
+            }}',
           ),
         );
       },

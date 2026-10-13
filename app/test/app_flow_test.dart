@@ -108,6 +108,8 @@ void main() {
 
     // The flagged field's four bubbles; the operator marks option A.
     expect(find.text('read as marked'), findsAtLeastNWidgets(2));
+    // Until an answer is tapped the disabled button says what to do.
+    expect(find.text('Tap the right answer above to save'), findsOneWidget);
     await tester.tap(find.text('A'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save correction (1)'));

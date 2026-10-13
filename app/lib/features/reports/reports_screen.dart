@@ -26,6 +26,7 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   List<AnswerKeyVersion>? _versions;
   String? _keyVersionId;
+  String _examName = '';
 
   @override
   void initState() {
@@ -36,11 +37,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _load() async {
     final db = context.read<AppState>().db;
     final versions = await db.keysDao.versionsFor(widget.examId);
+    final exam = await db.examsDao.byId(widget.examId);
     if (!mounted) {
       return;
     }
     setState(() {
       _versions = versions;
+      _examName = exam?.name ?? '';
       _keyVersionId ??= versions.isNotEmpty ? versions.first.id : null;
     });
   }
@@ -152,8 +155,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       keyVersionId: _keyVersionId!,
     );
     final version = _versions!.firstWhere((v) => v.id == _keyVersionId!);
-    final fileName =
-        '${type.name}-v${version.version}.${format == 'xlsx' ? 'xlsx' : format}';
+    final fileName = reportFileName(
+      examName: _examName,
+      type: type,
+      keyVersion: version.version,
+      format: format,
+    );
     try {
       final path = await runner.run(
         tenantId: state.tenantId,
@@ -180,6 +187,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _share(String path) async {
     await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
   }
+}
+
+/// The name the recipient sees on WhatsApp or email, e.g.
+/// `Mock 1 - Class results (key 1).pdf`. Characters that file systems or
+/// share targets reject are dropped.
+String reportFileName({
+  required String examName,
+  required ReportJobType type,
+  required int keyVersion,
+  required String format,
+}) {
+  final what = switch (type) {
+    ReportJobType.consolidated => 'Class results',
+    ReportJobType.excel => 'Marks workbook',
+    ReportJobType.csv => 'Marks',
+    _ => reportTypeLabel(type),
+  };
+  final exam = examName
+      .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1F]'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  final base = exam.isEmpty ? what : '$exam - $what';
+  return '$base (key $keyVersion).$format';
 }
 
 class _ReportCard extends StatelessWidget {

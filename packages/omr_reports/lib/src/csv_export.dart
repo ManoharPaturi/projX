@@ -45,7 +45,7 @@ class CsvExporter {
     row.unattempted.toString(),
     row.attempted.toString(),
     ...header.subjects.map((s) => formatMarks(row.subjectTotals[s] ?? 0)),
-    row.status.name,
+    resultStatusLabel(row.status),
   ];
 
   /// Full document as a string, BOM first.

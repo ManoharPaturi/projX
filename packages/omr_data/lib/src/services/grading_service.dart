@@ -388,7 +388,11 @@ class GradingService {
 
     return core.SheetRead(
       responses: responses,
-      sheetConfidence: scan.sheetConfidence ?? 1,
+      // A human cleared a reviewed sheet: its low machine confidence no
+      // longer makes the result doubtful.
+      sheetConfidence: scan.status == enums.ScanStatus.reviewed
+          ? 1
+          : scan.sheetConfidence ?? 1,
       rollNoRead: scan.rollNoRead,
       rollConfidence: scan.rollConfidence ?? 1,
       setCodeRead: scan.setCodeRead,

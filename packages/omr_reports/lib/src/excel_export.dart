@@ -93,7 +93,7 @@ class ExcelExporter {
       IntCellValue(row.attempted),
       ...header.subjects.map((s) => _num(row.subjectTotals[s] ?? 0)),
       percentile,
-      TextCellValue(row.status.name),
+      TextCellValue(resultStatusLabel(row.status)),
     ];
   }
 
