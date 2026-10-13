@@ -161,6 +161,43 @@ void main() {
     expect(await db.resultsDao.resultsFor(examId, keyVersionId), isEmpty);
   });
 
+  test('a human-cleared low-confidence sheet is not left doubtful', () async {
+    for (final (roll, student, status) in [
+      ('R001', studentIds[0], ScanStatus.reviewed),
+      ('R002', studentIds[1], ScanStatus.graded),
+    ]) {
+      await db.scansDao.insertScanWithReads(
+        scanRow(
+          examId: examId,
+          studentId: student,
+          rollNoRead: roll,
+          status: status,
+          sheetConfidence: 0.5,
+        ),
+        [
+          const BubbleReadInput(
+            fieldKey: 'q1',
+            optionIndex: 0,
+            markClass: MarkClass.filled,
+          ),
+        ],
+      );
+    }
+
+    await grading().gradeExam(
+      tenantId: kTenantId,
+      examId: examId,
+      keyVersionId: keyVersionId,
+    );
+
+    final byStudent = {
+      for (final r in await db.resultsDao.resultsFor(examId, keyVersionId))
+        r.result.studentId: r.result.status,
+    };
+    expect(byStudent[studentIds[0]], ResultStatus.ok);
+    expect(byStudent[studentIds[1]], ResultStatus.doubtful);
+  });
+
   test(
     'corrected key re-grades with NO rescan; both versions coexist',
     () async {

@@ -81,7 +81,8 @@ class ConsolidatedPdf {
         style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
       ),
       pw.Text(
-        'Held ${formatExamDate(header.heldAt)} · ${header.studentCount} '
+        '${header.heldAt == null ? '' : 'Exam date ${formatExamDate(header.heldAt)} · '}'
+        '${header.studentCount} '
         'students · ${header.totalQuestions} questions · top score '
         '${formatMarks(header.maxTotal)}',
         style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
@@ -127,6 +128,6 @@ class ConsolidatedPdf {
     row.wrong.toString(),
     row.unattempted.toString(),
     ...header.subjects.map((s) => formatMarks(row.subjectTotals[s] ?? 0)),
-    row.status.name,
+    resultStatusLabel(row.status),
   ];
 }

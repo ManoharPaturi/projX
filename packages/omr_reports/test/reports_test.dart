@@ -110,6 +110,7 @@ void main() {
     );
     expect(r001[3], '3');
     expect(r001[10], '0');
+    expect(r001.last, 'OK', reason: 'status in words, not an enum name');
   });
 
   test(

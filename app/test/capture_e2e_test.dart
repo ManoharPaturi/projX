@@ -132,6 +132,12 @@ void main() {
       find.textContaining('A question has two marks', skipOffstage: false),
       findsOneWidget,
     );
+    // Marks are held back until the sheet is checked, so none are shown.
+    expect(
+      find.textContaining('Needs a quick check', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(find.text('Total', skipOffstage: false), findsNothing);
 
     // The scan persisted with its reads and the review routing.
     final db = state.db;

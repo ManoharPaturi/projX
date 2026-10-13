@@ -459,7 +459,7 @@ class _CapturedCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 12),
-            if (grade != null)
+            if (grade != null && !captured.needsReview)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
