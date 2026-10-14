@@ -3,7 +3,7 @@
 All notable changes to the OMR Evaluator app. Versions match `version:` in
 `app/pubspec.yaml`.
 
-## 1.0.0 — 2026-10-07
+## 1.0.0 — unreleased
 
 First production release.
 
@@ -35,3 +35,23 @@ First production release.
 - Answer-key set tabs now switch the question grid.
 - Institute-name dialog no longer crashes while closing.
 - Machine-specific JDK path removed from the Android build.
+- Exams with several sets (A–D) are marked against each student's own
+  set; previously every student was marked against one set's key.
+- A second sheet with the same roll number goes to review instead of
+  being silently ignored; a confirmed rescan replaces the earlier sheet.
+- Fixing one problem on a sheet no longer hides its other problems; set
+  bubbles can be corrected in review and the correction is used for marks.
+- "Retake photo" no longer leaves a sheet stuck as needing review; blurry
+  or curled sheets can be accepted with "Sheet looks right — mark it".
+- "Calculate marks" with nothing ready no longer marks the exam as done;
+  exams show "In progress" while being scanned.
+- Pasted rolls that cannot be bubbled are listed instead of silently
+  accepted; the data-retention setting accepts only 1–365 days.
+- A sheet waiting for a check no longer shows a score after scanning.
+- PDFs leave out the exam date line when there is no date.
+- Reports say OK / Check sheet / Re-marked instead of internal codes.
+- Shared files are named after the exam (e.g. `Mock 1 - Class results
+  (key 1).pdf`) instead of `csv-v1.csv`.
+
+### Dependencies
+- drift_dev 2.35.1; GitHub Actions checkout v7.
