@@ -155,8 +155,8 @@ bench).
 - **OpenCV trimmed to what is called.** `calib3d` was in the M0 module set,
   but nothing calls it: perspective transforms are `imgproc`. It also
   pulled in `features2d` and `flann`. The native library is now
-  `core + imgproc + imgcodecs`: 12.1 MB → 9.6 MB (−21 %, macOS host build;
-  the arm64 `.so` shrinks the same way). Every pipeline and smoke test
+  `core + imgproc + imgcodecs`: arm64 `libdartcv.so` 12.6 MB → 10.0 MB
+  (−21 %; the macOS host build drops 12.1 → 9.6 MB the same way). Every pipeline and smoke test
   passes on the trimmed build.
 - **R8 is already on.** Flutter's Gradle plugin enables `isMinifyEnabled`
   and `isShrinkResources` for release builds unless `--no-shrink` is passed.
