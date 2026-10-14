@@ -81,10 +81,20 @@ class SimulatedCaptureSource implements CaptureSource {
 /// swap is a Kotlin channel behind this same interface — the scanner widget
 /// and the gates never know (plan §3).
 class CameraCaptureSource implements CaptureSource {
-  CameraCaptureSource({this.analysisWidth = 640, this.analysisHeight = 480});
+  CameraCaptureSource({
+    this.analysisWidth = 640,
+    this.analysisHeight = 480,
+    this.minFrameInterval = const Duration(milliseconds: 66),
+  });
 
   final int analysisWidth;
   final int analysisHeight;
+
+  /// Analysis frame-rate cap (~15 fps). The camera streams at 30 fps or
+  /// more; the dwell and gates need far fewer, and every skipped frame is a
+  /// Y-plane copy the UI isolate does not make.
+  final Duration minFrameInterval;
+  final Stopwatch _sinceFrame = Stopwatch();
 
   CameraController? _controller;
   final StreamController<LiveFrame> _frames = StreamController.broadcast();
@@ -145,6 +155,12 @@ class CameraCaptureSource implements CaptureSource {
 
   void _onCameraImage(CameraImage image) {
     if (!_streaming || _frames.isClosed) return;
+    if (_sinceFrame.isRunning && _sinceFrame.elapsed < minFrameInterval) {
+      return;
+    }
+    _sinceFrame
+      ..reset()
+      ..start();
     // Y plane only: luminance IS the grayscale the analyzer wants. Strided
     // rows subsampled to the analysis dims — a preview, never a measurement
     // of record (bubbles are read from the still).

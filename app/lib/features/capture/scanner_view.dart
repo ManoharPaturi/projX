@@ -8,10 +8,11 @@ import 'package:omr_detect/omr_detect.dart'
 import 'capture_source.dart';
 
 /// Turns one analysis frame into one scanner state — the injectable live
-/// loop. On device this closes over a [LiveFrameAnalyzer]; widget tests
-/// close over a script, keeping the widget dumb and the loop's logic in
-/// omr_detect where it is unit-tested.
-typedef FrameAnalyzerFn = ScannerTick Function(LiveFrame frame);
+/// loop. On device this is a `LiveAnalyzerWorker` on its own isolate
+/// (asynchronous); widget tests close over a synchronous script, keeping
+/// the widget dumb and the loop's logic in omr_detect where it is
+/// unit-tested.
+typedef FrameAnalyzerFn = FutureOr<ScannerTick> Function(LiveFrame frame);
 
 /// The scanner surface (plan §6 screen 6): A4 finder frame, live quad
 /// overlay — green ONLY while every gate passes — coach hint in gate
@@ -54,6 +55,11 @@ class _ScannerViewState extends State<ScannerView> {
   ScannerTick? _tick;
   bool _shutterFired = false;
 
+  /// An asynchronous analysis is in flight: frames arriving meanwhile are
+  /// dropped, so the overlay always shows the newest answer, never a queue
+  /// of stale ones.
+  bool _analyzing = false;
+
   @override
   void initState() {
     super.initState();
@@ -81,8 +87,23 @@ class _ScannerViewState extends State<ScannerView> {
   }
 
   void _onFrame(LiveFrame frame) {
-    if (!widget.enabled || _shutterFired) return;
-    final tick = widget.analyze(frame);
+    if (!widget.enabled || _shutterFired || _analyzing) return;
+    final result = widget.analyze(frame);
+    if (result is ScannerTick) {
+      _apply(result);
+      return;
+    }
+    _analyzing = true;
+    result
+        .then((tick) {
+          if (widget.enabled && !_shutterFired) _apply(tick);
+        })
+        // A failed frame is just a skipped frame; the next one retries.
+        .catchError((Object _) {})
+        .whenComplete(() => _analyzing = false);
+  }
+
+  void _apply(ScannerTick tick) {
     if (!mounted) return;
     setState(() => _tick = tick);
     if (tick.autoShutter) {

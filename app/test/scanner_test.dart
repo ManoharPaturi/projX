@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -133,6 +134,40 @@ void main() {
       ),
       findsNothing,
     );
+  });
+
+  testWidgets('async analyzer: frames arriving mid-analysis are dropped', (
+    tester,
+  ) async {
+    final source = SimulatedCaptureSource();
+    final pending = <Completer<ScannerTick>>[];
+    await tester.pumpWidget(
+      host(source, (frame) {
+        final c = Completer<ScannerTick>();
+        pending.add(c);
+        return c.future;
+      }),
+    );
+    await mounted(tester);
+
+    source.push(blankFrame());
+    await tester.pump();
+    source.push(blankFrame());
+    source.push(blankFrame());
+    await tester.pump();
+    expect(pending, hasLength(1), reason: 'one analysis in flight at a time');
+
+    pending.single.complete(tick(failHint: 'hold the phone flat'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('hold the phone flat'), findsOneWidget);
+
+    // Answer is back: the next frame is analysed again.
+    source.push(blankFrame());
+    await tester.pump();
+    expect(pending, hasLength(2));
+    pending.last.complete(tick());
+    await tester.pumpAndSettle();
   });
 
   testWidgets('dwell completes → auto-shutter → post-capture card', (
