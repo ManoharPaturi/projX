@@ -105,4 +105,17 @@ void main() {
     )..where((r) => r.outcome.equals('open'))).get();
     expect(open, isEmpty);
   });
+
+  test('sheets awaiting review counts sheets, not review items', () async {
+    final first = await flaggedScan();
+    await enqueue(first, 'ROLL_NOT_ON_ROSTER');
+    await enqueue(first, 'MULTI_BUBBLE_WARN');
+    await enqueue(first, 'CURL_WARN');
+    final second = await flaggedScan();
+    await enqueue(second, 'SET_BLANK');
+
+    expect(await db.scansDao.pendingReview(examId: examId), hasLength(4));
+    expect(await db.scansDao.sheetsAwaitingReview(examId: examId), 2);
+    expect(await db.scansDao.sheetsAwaitingReview(), 2);
+  });
 }

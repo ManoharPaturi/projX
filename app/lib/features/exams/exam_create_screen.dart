@@ -140,7 +140,8 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.now(),
+                  // Reopen on the chosen day, not today.
+                  initialDate: _heldAt ?? DateTime.now(),
                   firstDate: DateTime(2024),
                   lastDate: DateTime(2100),
                 );

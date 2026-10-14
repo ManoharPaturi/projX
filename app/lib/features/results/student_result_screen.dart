@@ -14,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../src/app_state.dart';
 import '../../src/report_fonts_loader.dart';
+import '../reports/reports_screen.dart' show marksheetFileName;
 
 /// Plan §6 screen 8's student detail: summary, per-question outcomes rebuilt
 /// from the stored substrate, and the marksheet PDF (print or share).
@@ -170,34 +171,50 @@ class StudentResultScreen extends StatelessWidget {
     );
   }
 
+  Future<String> _fileName(AppDb db) async => marksheetFileName(
+    examName: (await db.examsDao.byId(examId))?.name ?? '',
+    rollNo: row.rollNo,
+  );
+
   Future<void> _print(BuildContext context, AppDb db) async {
-    await Printing.layoutPdf(
-      name: 'marksheet-${row.rollNo}',
-      onLayout: (PdfPageFormat format) async => Uint8List.fromList(
-        await MarksheetPdf(
-          pageFormat: format,
-          fonts: await loadReportFonts(),
-        ).build(_query(db), row),
-      ),
-    );
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final name = await _fileName(db);
+      await Printing.layoutPdf(
+        name: p.basenameWithoutExtension(name),
+        onLayout: (PdfPageFormat format) async => Uint8List.fromList(
+          await MarksheetPdf(
+            pageFormat: format,
+            fonts: await loadReportFonts(),
+          ).build(_query(db), row),
+        ),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not print the marksheet: $error')),
+      );
+    }
   }
 
   Future<void> _share(BuildContext context, AppDb db) async {
     final messenger = ScaffoldMessenger.of(context);
-    final bytes = await MarksheetPdf(
-      fonts: await loadReportFonts(),
-    ).build(_query(db), row);
-    final docs = await getApplicationDocumentsDirectory();
-    final file = File(
-      p.joinAll([docs.path, 'reports', examId, 'marksheet-${row.rollNo}.pdf']),
-    );
-    await file.parent.create(recursive: true);
-    await file.writeAsBytes(bytes, flush: true);
-    await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path)], text: 'Marksheet ${row.rollNo}'),
-    );
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Marksheet ready to share')),
-    );
+    try {
+      final bytes = await MarksheetPdf(
+        fonts: await loadReportFonts(),
+      ).build(_query(db), row);
+      final docs = await getApplicationDocumentsDirectory();
+      final file = File(
+        p.joinAll([docs.path, 'reports', examId, await _fileName(db)]),
+      );
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)], text: 'Marksheet ${row.rollNo}'),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not make the marksheet: $error')),
+      );
+    }
   }
 }

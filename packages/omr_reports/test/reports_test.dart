@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:csv/csv.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:excel_plus/excel_plus.dart';
 import 'package:omr_core/omr_core.dart' as core;
 import 'package:omr_data/omr_data.dart';
@@ -209,6 +210,32 @@ void main() {
       snapshot.rows.length + 1,
       reason: 'header + one row per student',
     );
+  });
+
+  test('the exam date prints as the calendar day it was set to', () async {
+    // The picker hands back LOCAL midnight; stored as UTC that is the
+    // previous evening anywhere east of Greenwich (India: 18:30 the day
+    // before), and the PDFs used to print that previous day.
+    final day = DateTime(2026, 10, 14);
+    await (db.update(db.exams)..where((e) => e.id.equals(fx.examId))).write(
+      ExamsCompanion(heldAt: Value(day)),
+    );
+    final header = await fx.query().header();
+    expect(formatExamDate(header.heldAt), '14 Oct 2026');
+  });
+
+  test('top score is the real top when every total is negative', () async {
+    await (db.update(db.results)..where((r) => r.examId.equals(fx.examId)))
+        .write(const ResultsCompanion(total: Value(-5)));
+    final header = await fx.query().header();
+    expect(header.maxTotal, -5, reason: 'was 0: the fold started from 0');
+  });
+
+  test('averages print with at most one decimal', () {
+    expect(formatAverage(10 / 3), '3.3');
+    expect(formatAverage(-7.25), '-7.3');
+    expect(formatAverage(4), '4');
+    expect(formatAverage(22.200000000000003), '22.2');
   });
 
   test('marksheet PDF is a real single-page document', () async {

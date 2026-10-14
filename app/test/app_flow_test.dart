@@ -406,6 +406,65 @@ void main() {
     expect(find.textContaining('Finish or clear set B'), findsOneWidget);
   });
 
+  testWidgets('saving a key after an interrupted save: prefilled from the '
+      'key in use, numbered above every version, finalized', (tester) async {
+    final seeded = await seedExamWithRoster(state, students: 1);
+    // A key saved in the app is finalized (the seed's is not).
+    await state.db.keysDao.finalizeVersion(seeded.keyVersionId);
+    // What an app killed mid-save used to leave: a provisional, empty v2.
+    final before = await state.db.keysDao.versionsFor(seeded.examId);
+    await state.db.keysDao.createVersion(
+      tenantId: state.tenantId,
+      examId: seeded.examId,
+      version: before.first.version + 1,
+      createdBy: 'crashed',
+    );
+    await tester.pumpWidget(
+      wrapForTest(
+        ExamDetailScreen(
+          examId: seeded.examId,
+          initialTab: ExamDetailScreen.answerKeyTab,
+        ),
+        state,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('In use: answer key ${before.first.version}'),
+      findsOneWidget,
+    );
+    expect(find.text('Set A ✓'), findsOneWidget, reason: 'prefilled');
+
+    await tester.tap(find.text('Save answer key'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save key'));
+    await tester.pumpAndSettle();
+
+    final after = await state.db.keysDao.versionsFor(seeded.examId);
+    expect(after, hasLength(before.length + 2));
+    expect(after.first.version, before.first.version + 2);
+    expect(after.first.status, KeyVersionStatus.finalized);
+    final active = await state.db.keysDao.activeVersion(seeded.examId);
+    expect(active!.id, after.first.id);
+    expect(
+      await state.db.keysDao.entriesFor(active.id),
+      hasLength(90),
+      reason: 'set A carried over in full',
+    );
+  });
+
+  testWidgets('the paste box opens empty — no sample student to import', (
+    tester,
+  ) async {
+    await tester.pumpWidget(wrapForTest(const RosterScreen(), state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Paste a list'));
+    await tester.pumpAndSettle();
+    final field = tester.widget<TextField>(find.byType(TextField).last);
+    expect(field.controller!.text, isEmpty);
+  });
+
   testWidgets('calculate marks with nothing scanned says so, stays unmarked', (
     tester,
   ) async {

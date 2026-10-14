@@ -142,7 +142,7 @@ class _Overview {
       firstExamWithoutKey: withoutKey,
       anyKey: anyKey,
       anyScans: anyScans,
-      pendingReview: (await db.scansDao.pendingReview()).length,
+      pendingReview: await db.scansDao.sheetsAwaitingReview(),
     );
   }
 }

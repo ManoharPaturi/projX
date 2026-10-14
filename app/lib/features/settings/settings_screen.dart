@@ -238,8 +238,8 @@ class _StorageTile extends StatelessWidget {
     return FutureBuilder<Map<ScanStatus, int>>(
       key: ValueKey('storage-$version'),
       future: () async {
-        final rows = await state.db.scansDao.pendingReview();
-        return <ScanStatus, int>{ScanStatus.needsReview: rows.length};
+        final sheets = await state.db.scansDao.sheetsAwaitingReview();
+        return <ScanStatus, int>{ScanStatus.needsReview: sheets};
       }(),
       builder: (context, snapshot) {
         final waiting = snapshot.data?[ScanStatus.needsReview] ?? 0;

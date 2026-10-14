@@ -45,6 +45,10 @@ jobs:
     name: Test ${{ matrix.package }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # The users' zone. Runners default to UTC, where a local-vs-UTC date
+      # mix-up is invisible (exam dates once printed a day early in India).
+      TZ: Asia/Kolkata
     strategy:
       fail-fast: false
       matrix:
