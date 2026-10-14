@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:omr_core/omr_core.dart' as core;
 import 'package:omr_data/omr_data.dart';
@@ -150,8 +150,11 @@ class _CaptureScreenState extends State<CaptureScreen> {
     final state = context.read<AppState>();
     try {
       final Uint8List still;
+      final captureWatch = Stopwatch()..start();
+      var captureMicros = 0;
       try {
         still = await source.captureStill();
+        captureMicros = captureWatch.elapsedMicroseconds;
       } catch (error) {
         _snack('capture failed: $error');
         return;
@@ -162,6 +165,10 @@ class _CaptureScreenState extends State<CaptureScreen> {
         state.db,
         evaluator: widget.evaluator,
       ).process(tenantId: state.tenantId, examId: exam.id, stillBytes: still);
+      if (!kReleaseMode) {
+        final timings = captured.timings?.withCapture(captureMicros);
+        debugPrint('[scan-timing] $timings');
+      }
       state.refresh();
       if (!mounted) {
         return;

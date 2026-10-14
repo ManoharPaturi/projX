@@ -16,6 +16,30 @@ before and after, on the same phone.
   images, so CI can catch slowdowns without a phone.
 - Write the baseline numbers into this file.
 
+### Baseline (O1, 2026-10-14)
+
+`omr_cli bench --runs 3`, Standard-90, noise ±6, Apple-silicon Mac (JIT).
+Phones will be several times slower; compare runs on one machine only.
+
+| Photo | MP | decode | pipeline | of which registration | accuracy |
+|---|---|---|---|---|---|
+| 1080×1440 | 1.6 | 4 ms | 796 ms | ~790 ms | 100% |
+| 1200×1600 | 1.9 | 5 ms | 1024 ms | ~1015 ms | 100% |
+| 1536×2048 | 3.1 | 8 ms | 1749 ms | ~1735 ms | 100% |
+| 2250×3000 | 6.8 | 17 ms | 4019 ms | ~3990 ms | 100% |
+| 3000×4000 | 12.0 | 30 ms | 7419 ms | ~7400 ms | 100% |
+
+Finding: **fiducial registration is >98 % of the time** and grows with
+pixel count (10 template scales × 2 peak searches × 4 quadrants at full
+resolution). Threshold, read and curvature together take under 5 ms.
+Decode is cheap. So O3 should search for anchors on a downscaled copy and
+refine at full resolution, rather than only lowering the camera
+resolution.
+
+On a phone, every scan logs a line like
+`[scan-timing] total=… capture=… evaluate=… persist=… grade=… | registration=…`
+in debug and profile builds.
+
 ## Phase O2 — Keep the screen responsive while scanning (biggest win)
 
 Today `OmrStillEvaluator.evaluate` decodes the photo and runs `OmrPipeline`

@@ -42,7 +42,9 @@ class SheetIntake {
       // The first scanned sheet is what starts an exam.
       await db.examsDao.setStatus(examId, ExamStatus.active);
     }
+    final watch = Stopwatch()..start();
     final evaluation = await evaluator.evaluate(examId, stillBytes);
+    final evaluateMicros = watch.elapsedMicroseconds;
     final read = evaluation.read;
     final layoutVersion = (await GradingService(
       db,
@@ -116,6 +118,8 @@ class SheetIntake {
       );
     }
 
+    final persistMicros = watch.elapsedMicroseconds - evaluateMicros;
+
     // The persisted, ranked pass — exactly what the fixture path and the
     // key editor trigger, so the results tab reflects this sheet at once.
     // Review-routed scans are excluded by gradeExam itself.
@@ -137,6 +141,9 @@ class SheetIntake {
       }
     }
 
+    final gradeMicros =
+        watch.elapsedMicroseconds - evaluateMicros - persistMicros;
+
     return CapturedSheet(
       scanId: scanId,
       rollNoRead: roll,
@@ -144,6 +151,12 @@ class SheetIntake {
       result: result,
       needsReview: needsReview,
       reasons: [for (final r in reasons) r.code],
+      timings: ScanTimings(
+        evaluateMicros: evaluateMicros,
+        persistMicros: persistMicros,
+        gradeMicros: gradeMicros,
+        stages: {for (final t in evaluation.trace) t.stage: t.elapsedMicros},
+      ),
     );
   }
 
@@ -270,6 +283,7 @@ class CapturedSheet {
     required this.result,
     required this.needsReview,
     required this.reasons,
+    this.timings,
   });
 
   final String scanId;
@@ -278,4 +292,61 @@ class CapturedSheet {
   final core.ExamResult? result;
   final bool needsReview;
   final List<String> reasons;
+
+  /// Where this sheet's time went; null for paths that do not measure.
+  final ScanTimings? timings;
+}
+
+/// Per-sheet timing, logged in debug and profile builds so a slow phone's
+/// numbers can be read off `flutter run --profile` (docs/optimization-plan.md
+/// phase O1). [stages] are the pipeline trace's own stage timings.
+class ScanTimings {
+  const ScanTimings({
+    required this.evaluateMicros,
+    required this.persistMicros,
+    required this.gradeMicros,
+    this.stages = const {},
+    this.captureMicros,
+  });
+
+  /// Decode + detection pipeline (includes loading the template and roster).
+  final int evaluateMicros;
+
+  /// Writing the scan, its bubble reads and review items.
+  final int persistMicros;
+
+  /// Re-ranking the exam and scoring this sheet.
+  final int gradeMicros;
+
+  final Map<String, int> stages;
+
+  /// Shutter to still bytes; filled in by the capture screen.
+  final int? captureMicros;
+
+  ScanTimings withCapture(int micros) => ScanTimings(
+    evaluateMicros: evaluateMicros,
+    persistMicros: persistMicros,
+    gradeMicros: gradeMicros,
+    stages: stages,
+    captureMicros: micros,
+  );
+
+  int get totalMicros =>
+      (captureMicros ?? 0) + evaluateMicros + persistMicros + gradeMicros;
+
+  @override
+  String toString() {
+    String ms(int us) => '${(us / 1000).round()}ms';
+    final stageText = [
+      for (final e in stages.entries) '${e.key}=${ms(e.value)}',
+    ].join(' ');
+    return [
+      'total=${ms(totalMicros)}',
+      if (captureMicros != null) 'capture=${ms(captureMicros!)}',
+      'evaluate=${ms(evaluateMicros)}',
+      'persist=${ms(persistMicros)}',
+      'grade=${ms(gradeMicros)}',
+      if (stageText.isNotEmpty) '| $stageText',
+    ].join(' ');
+  }
 }
