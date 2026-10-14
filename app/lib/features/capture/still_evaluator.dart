@@ -78,6 +78,5 @@ class OmrStillEvaluator implements StillEvaluator {
 /// JPEG bytes → decoded gray → [OmrPipeline]: the whole CPU-bound part of
 /// a capture, runnable on any isolate.
 StillEvaluation decodeAndRead(OmrPipeline pipeline, Uint8List stillBytes) {
-  final decoded = pipeline.cv.decodeStill(stillBytes);
-  return pipeline.evaluateGray(decoded.width, decoded.height, decoded.gray);
+  return pipeline.evaluateStill(stillBytes);
 }

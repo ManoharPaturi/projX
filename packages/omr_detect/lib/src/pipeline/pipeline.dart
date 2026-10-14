@@ -4,6 +4,7 @@ import 'package:omr_core/omr_core.dart'
     show MarkedResponse, QuestionId, SheetRead;
 import 'package:omr_spec/omr_spec.dart' show DetectionTemplate;
 
+import '../cv/jpeg_size.dart' show jpegSize;
 import '../cv/opencv_service.dart'
     show CvExclude, CvMat, CvPointI, CvRectI, CvSizeI, OpencvService;
 import '../decode/field_decoder.dart' show FieldDecoder;
@@ -135,6 +136,7 @@ class OmrPipeline {
     this.registrar = const FiducialRegistrar(),
     this.roster,
     this.pageQuadConfidenceCap = 0.75,
+    this.registrationWidth = 640,
   });
 
   final OpencvService cv;
@@ -152,12 +154,62 @@ class OmrPipeline {
   /// 0.90 review floor so a page-quad read ALWAYS routes to review.
   final double pageQuadConfidenceCap;
 
+  /// Registration searches a copy downscaled to this width (when the still
+  /// is wider), then refines each accepted anchor at full resolution.
+  ///
+  /// The anchor search is a 10-scale template sweep over four quadrants —
+  /// >98 % of a still's time, growing with pixel count (docs/
+  /// optimization-plan.md, O1 baseline). A 9 mm anchor is ~27 px at 640 px
+  /// wide — ~10 px even for the smallest sheet the sweep promises (35 % of
+  /// the frame) — so the coarse pass loses nothing it needs; the full-res
+  /// refinement restores sub-pixel-scale centres for the warp, and bubbles
+  /// are always read from the full-resolution still.
+  final int registrationWidth;
+
   /// Evaluates one decoded grayscale still.
   ///
   /// [grayBytes] is row-major, one byte per pixel, [imageWidth] ×
   /// [imageHeight]. Decoding the camera's JPEG/YUV to this buffer belongs to
   /// the caller (the capture isolate) — the pipeline starts at plan §3
   /// stage 2, registration.
+  /// Evaluates one captured still straight from its JPEG bytes — decode
+  /// (stage 1) included, with no intermediate host copy of the pixels.
+  ///
+  /// A still at least twice [maxShortSide] on its short side (48–108 MP
+  /// sensors) is decoded at 1/2, 1/4 or 1/8 size by the codec itself: every
+  /// layout's px/mm floor is met well below 3000 px, and a full 50 MP decode
+  /// costs ~50 MB and most of the decode time for detail nothing reads.
+  StillEvaluation evaluateStill(Uint8List jpeg, {int maxShortSide = 3000}) {
+    final trace = <StageTraceEntry>[];
+    final watch = Stopwatch()..start();
+    final size = jpegSize(jpeg);
+    var reduction = 1;
+    if (size != null) {
+      final short = size.width < size.height ? size.width : size.height;
+      while (reduction < 8 && short ~/ (reduction * 2) >= maxShortSide) {
+        reduction *= 2;
+      }
+    }
+    final gray = cv.decodeGray(jpeg, reduction: reduction);
+    try {
+      final dims = cv.sizeOf(gray);
+      watch.stop();
+      trace.add(
+        StageTraceEntry(
+          stage: 'decode',
+          status: StageStatus.ok,
+          detail:
+              '${dims.width}x${dims.height}'
+              '${reduction > 1 ? ' (1/$reduction of ${size!.width}x${size.height})' : ''}',
+          elapsedMicros: watch.elapsedMicroseconds,
+        ),
+      );
+      return _evaluate(gray, dims.width, dims.height, trace);
+    } finally {
+      cv.dispose(gray);
+    }
+  }
+
   StillEvaluation evaluateGray(
     int imageWidth,
     int imageHeight,
@@ -178,14 +230,61 @@ class OmrPipeline {
     int imageHeight,
     List<StageTraceEntry> trace,
   ) {
-    // ------------------------------------------------------ registration
-    final plan = fiducialSearchPlan(template, imageWidth, imageHeight);
     final regWatch = Stopwatch()..start();
+    final k = imageWidth > registrationWidth
+        ? registrationWidth / imageWidth
+        : 1.0;
+    if (k == 1.0) {
+      return _evaluateAt(
+        gray,
+        gray,
+        1.0,
+        imageWidth,
+        imageHeight,
+        trace,
+        regWatch,
+      );
+    }
+    final small = cv.resize(
+      gray,
+      CvSizeI((imageWidth * k).round(), (imageHeight * k).round()),
+    );
+    try {
+      return _evaluateAt(
+        gray,
+        small,
+        k,
+        imageWidth,
+        imageHeight,
+        trace,
+        regWatch,
+      );
+    } finally {
+      cv.dispose(small);
+    }
+  }
+
+  /// The ladder over [regGray] — [gray] downscaled by [k] (or [gray]
+  /// itself when k is 1) — with the warp and the read always taken from
+  /// full-resolution [gray].
+  StillEvaluation _evaluateAt(
+    CvMat gray,
+    CvMat regGray,
+    double k,
+    int imageWidth,
+    int imageHeight,
+    List<StageTraceEntry> trace,
+    Stopwatch regWatch,
+  ) {
+    // ------------------------------------------------------ registration
+    final regWidth = k == 1.0 ? imageWidth : (imageWidth * k).round();
+    final regHeight = k == 1.0 ? imageHeight : (imageHeight * k).round();
+    final plan = fiducialSearchPlan(template, regWidth, regHeight);
     var registration = registrar.register(
       cv,
-      gray,
+      regGray,
       plan,
-      imageWidth: imageWidth,
+      imageWidth: regWidth,
     );
     var path = RegistrationPath.fiducialQuadrant;
     double? confidenceCap;
@@ -215,10 +314,10 @@ class OmrPipeline {
         if (registration.accepted.contains(i)) continue;
         final match = registrar.reSearch(
           cv,
-          gray,
+          regGray,
           plan[i],
-          imageWidth: imageWidth,
-          imageHeight: imageHeight,
+          imageWidth: regWidth,
+          imageHeight: regHeight,
           exclude: exclude,
         );
         if (match != null && match.score >= registrar.acceptScore) {
@@ -249,6 +348,19 @@ class OmrPipeline {
 
     final CvMat warped;
     if (registration.ok) {
+      final fullPlan = k == 1.0
+          ? plan
+          : fiducialSearchPlan(template, imageWidth, imageHeight);
+      if (k != 1.0) {
+        registration = _refineAtFullRes(
+          gray,
+          registration,
+          fullPlan,
+          k,
+          imageWidth,
+          imageHeight,
+        );
+      }
       regWatch.stop();
       trace.add(
         StageTraceEntry(
@@ -262,7 +374,13 @@ class OmrPipeline {
           elapsedMicros: regWatch.elapsedMicroseconds,
         ),
       );
-      warped = HomographyWarper().warp(cv, gray, registration, plan, template);
+      warped = HomographyWarper().warp(
+        cv,
+        gray,
+        registration,
+        fullPlan,
+        template,
+      );
     } else {
       regWatch.stop();
       trace.add(
@@ -280,7 +398,13 @@ class OmrPipeline {
       // Rung 3: the page outline, with a 180° guard the quad alone cannot
       // provide (three of the four anchors are identical squares).
       final quadWatch = Stopwatch()..start();
-      final quad = cv.detectQuad(gray);
+      final regQuad = cv.detectQuad(regGray);
+      final quad = regQuad == null
+          ? null
+          : [
+              for (final p in regQuad)
+                CvPointI((p.x / k).round(), (p.y / k).round()),
+            ];
       if (quad == null) {
         quadWatch.stop();
         trace.add(
@@ -318,6 +442,57 @@ class OmrPipeline {
   }
 
   // ------------------------------------------------------------ registration
+
+  /// Maps each match found on the downscaled copy back to full resolution
+  /// and re-centres it there with a small single-scale match (see
+  /// [FiducialRegistrar.refine]). Accept/reject decisions and scores are
+  /// the coarse pass's — they are what the ladder was calibrated on; only
+  /// the centres the warp consumes get sharper.
+  RegistrationReport _refineAtFullRes(
+    CvMat gray,
+    RegistrationReport coarse,
+    List<FiducialSearch> fullPlan,
+    double k,
+    int imageWidth,
+    int imageHeight,
+  ) {
+    // One coarse px is 1/k full px; allow for that plus template rounding.
+    final margin = (3 / k).ceil() + 2;
+    final matches = <FiducialMatch?>[
+      for (var i = 0; i < coarse.matches.length; i++)
+        switch (coarse.matches[i]) {
+          null => null,
+          final m => () {
+            final near = CvPointI(
+              (m.center.x / k).round(),
+              (m.center.y / k).round(),
+            );
+            final refined = coarse.accepted.contains(i)
+                ? registrar.refine(
+                    cv,
+                    gray,
+                    fullPlan[i],
+                    near: near,
+                    scale: m.scale,
+                    margin: margin,
+                    imageWidth: imageWidth,
+                    imageHeight: imageHeight,
+                  )
+                : null;
+            return FiducialMatch(
+              center: refined?.center ?? near,
+              score: m.score,
+              scale: m.scale,
+            );
+          }(),
+        },
+    ];
+    return RegistrationReport(
+      matches: matches,
+      globalBest: coarse.globalBest,
+      accepted: coarse.accepted,
+    );
+  }
 
   /// Index into the search plan of the alternate (L-shaped) anchor, or null
   /// when every anchor is a square (a spec deviation; presets print one L).

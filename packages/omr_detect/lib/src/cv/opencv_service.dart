@@ -126,6 +126,15 @@ abstract class OpencvService {
   /// operator-visible failure, not a zero-fill.
   DecodedStill decodeStill(Uint8List bytes);
 
+  /// [decodeStill] straight into a mat (no host copy), optionally at
+  /// 1/[reduction] size (1, 2, 4 or 8) — the codec's own DCT downscale,
+  /// far cheaper than decoding full size and resizing. Throws like
+  /// [decodeStill] on undecodable bytes.
+  CvMat decodeGray(Uint8List bytes, {int reduction = 1});
+
+  /// Width × height of [m].
+  CvSizeI sizeOf(CvMat m);
+
   /// Encodes a grayscale buffer as JPEG — the inverse of [decodeStill], so
   /// tests and the golden harness can feed the still pipeline synthetic
   /// captures through the same bytes the camera produces.
@@ -136,6 +145,10 @@ abstract class OpencvService {
 
   /// Sub-image copy (a quadrant to search, a fiducial template to extract).
   CvMat crop(CvMat src, CvRectI roi);
+
+  /// Area-averaged resize — the downscaled copy registration searches
+  /// before refining at full resolution.
+  CvMat resize(CvMat src, CvSizeI size);
 
   /// Row-major copy of a single-channel 8-bit mat's pixels — the inverse of
   /// [grayFromBytes]. The copy outlives [dispose] (persisting the warped
@@ -150,6 +163,22 @@ abstract class OpencvService {
   /// Stage 2 — best [CvRectI]-restricted match of [templ] inside [roi] of
   /// [image], normalised cross-correlation. Matches centred inside an
   /// [CvExclude] disk are suppressed (fallback-ladder re-search only).
+  /// The full normalised-cross-correlation score map of [templ] over
+  /// [roi] — for callers that query one map more than once (best peak,
+  /// then a second peak away from it) without re-running the match.
+  /// Dispose it when done.
+  CvMat matchScores(CvMat image, CvRectI roi, CvMat templ);
+
+  /// Best peak of a [matchScores] map, in IMAGE coordinates of the
+  /// template's top-left, skipping matches centred inside [exclude].
+  /// Suppression writes into [scores].
+  CvMatch bestScore(
+    CvMat scores,
+    CvRectI roi,
+    CvSizeI templSize, {
+    List<CvExclude>? exclude,
+  });
+
   CvMatch matchTemplate(
     CvMat image,
     CvRectI roi,
