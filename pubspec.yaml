@@ -33,7 +33,10 @@ dev_dependencies:
 hooks:
   user_defines:
     dartcv4:
-      include_modules: [imgcodecs, imgproc, calib3d]
+      # Only what the pipeline calls (core is implicit). calib3d was in the
+      # original M0 set but nothing uses it — perspective transforms are
+      # imgproc — and it pulled features2d + flann into the native library.
+      include_modules: [imgcodecs, imgproc]
       # android_home is only honoured inside the android sub-map (the parser
       # ignores it elsewhere), but it gates the SDK-cmake lookup for every
       # target OS via the resolver's install-location paths.

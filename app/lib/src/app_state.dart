@@ -40,15 +40,19 @@ class AppState extends ChangeNotifier {
       db.institutes,
     )..where((Institutes i) => i.tenantId.equals(kTenantId))).get();
     final row = rows.single;
-    // Sweep now: originals past the grace window (a previous session's
-    // captures) go before the operator touches anything. A failure must not
-    // block boot — the next launch sweeps again.
-    await runRetentionSweep(db).catchError((Object error) {
-      debugPrint('retention sweep skipped: $error');
-      return RetentionReport(purged: const [], missing: const []);
-    });
     return AppState(db: db, instituteId: row.id, instituteName: row.name);
   }
+
+  /// Retention sweep: originals past the grace window (a previous session's
+  /// captures) are deleted. Run once per launch, just after the first frame
+  /// (see `main`) — it walks files, and before `runApp` it held the splash
+  /// screen for nothing the operator needs to see. A failure is logged and
+  /// retried on the next launch, never surfaced.
+  Future<RetentionReport> sweepRetention() =>
+      runRetentionSweep(db).catchError((Object error) {
+        debugPrint('retention sweep skipped: $error');
+        return RetentionReport(purged: const [], missing: const []);
+      });
 
   /// Renames the institute (reports and the app bar pick it up at once).
   Future<void> renameInstitute(String name) async {

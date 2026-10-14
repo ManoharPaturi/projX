@@ -15,6 +15,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final state = await AppState.boot();
   runApp(OmrApp(state: state));
+  // Housekeeping waits for the first frame: start-up shows the dashboard,
+  // not a splash held open by file deletes.
+  WidgetsBinding.instance.addPostFrameCallback((_) => state.sweepRetention());
 }
 
 /// Material shell. Kept constructible with an injected [AppState] so widget
