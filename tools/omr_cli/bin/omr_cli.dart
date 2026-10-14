@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:omr_cli/src/commands/bench_command.dart';
 import 'package:omr_cli/src/commands/pdf_command.dart';
 import 'package:omr_cli/src/commands/spec_command.dart';
 import 'package:omr_cli/src/commands/template_command.dart';
@@ -11,6 +12,7 @@ import 'package:omr_cli/src/commands/template_command.dart';
 ///   omr_cli spec     --preset A                     # spec JSON + hash
 ///   omr_cli pdf      --preset A --out sheet.pdf
 ///   omr_cli template --preset A --out std90.template.json
+///   omr_cli bench    --sizes 1200x1600,3000x4000   # speed + accuracy
 /// ```
 Future<void> main(List<String> arguments) async {
   final runner =
@@ -20,7 +22,8 @@ Future<void> main(List<String> arguments) async {
         )
         ..addCommand(SpecCommand())
         ..addCommand(PdfCommand())
-        ..addCommand(TemplateCommand());
+        ..addCommand(TemplateCommand())
+        ..addCommand(BenchCommand());
 
   try {
     final code = await runner.run(arguments) ?? 0;

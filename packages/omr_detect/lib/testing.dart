@@ -7,4 +7,6 @@ library;
 
 export 'src/testing/exif_orientation.dart'
     show exifOrientationOf, withExifOrientation;
+export 'src/testing/pipeline_bench.dart'
+    show PipelineBenchResult, percentile, runPipelineBench;
 export 'src/testing/synthetic_sheet.dart' show InkMark, inkAt, renderSheetPhoto;
