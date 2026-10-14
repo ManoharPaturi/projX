@@ -62,8 +62,20 @@ jobs:
           OMR_KEY_ALIAS: ${{ secrets.OMR_KEY_ALIAS }}
           OMR_KEY_PASSWORD: ${{ secrets.OMR_KEY_PASSWORD }}
         run: |
-          flutter build appbundle --release --target-platform android-arm64
-          flutter build apk --release --target-platform android-arm64
+          # Dart debug symbols ship separately (smaller libapp.so); keep them
+          # with the release to symbolize crash stack traces.
+          flutter build appbundle --release --target-platform android-arm64 \
+            --split-debug-info=build/symbols
+          flutter build apk --release --target-platform android-arm64 \
+            --split-debug-info=build/symbols
+      - name: Release size report
+        run: |
+          APK=app/build/app/outputs/flutter-apk/app-release.apk
+          AAB=app/build/app/outputs/bundle/release/app-release.aab
+          echo "APK: $(du -h "$APK" | cut -f1)  AAB: $(du -h "$AAB" | cut -f1)"
+          unzip -lv "$APK" | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $3, $1, $8}' \
+            | sort -rn | head -10 \
+            | awk '{printf "%8.1f MB packed  %8.1f MB raw  %s\n", $1/1048576, $2/1048576, $3}'
       - name: zipalign -c -P 16
         run: |
           ZIPALIGN=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)zipalign
@@ -75,3 +87,8 @@ jobs:
           files: |
             app/build/app/outputs/bundle/release/app-release.aab
             app/build/app/outputs/flutter-apk/app-release.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: debug-symbols
+          path: app/build/symbols
+          retention-days: 90

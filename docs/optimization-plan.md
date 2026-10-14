@@ -151,6 +151,27 @@ bench).
 - Delay non-essential start-up work (fonts for PDFs, analytics) until it is
   first used. Target a cold start under 2 s on the reference phone.
 
+**Done (O5):**
+- **OpenCV trimmed to what is called.** `calib3d` was in the M0 module set,
+  but nothing calls it: perspective transforms are `imgproc`. It also
+  pulled in `features2d` and `flann`. The native library is now
+  `core + imgproc + imgcodecs`: 12.1 MB → 9.6 MB (−21 %, macOS host build;
+  the arm64 `.so` shrinks the same way). Every pipeline and smoke test
+  passes on the trimmed build.
+- **R8 is already on.** Flutter's Gradle plugin enables `isMinifyEnabled`
+  and `isShrinkResources` for release builds unless `--no-shrink` is passed.
+  No app-side config is needed.
+- **Release builds** use `--split-debug-info`: Dart symbols move out of
+  `libapp.so` into a 90-day `debug-symbols` artifact, for
+  `flutter symbolize`. (`--analyze-size` cannot be combined with it.)
+- **Size is visible on every PR.** The CI Android job prints the APK size
+  and its ten largest entries. The release job does the same for the
+  signed APK/AAB.
+- **Start-up.** The retention sweep (file deletes) ran before `runApp` and
+  held the splash screen. It now runs once after the first frame
+  (`AppState.sweepRetention`). Report fonts were already loaded lazily, once
+  per session.
+
 ## Phase O6 — Reports
 
 - Build the class PDF and Excel files in an isolate. Large classes

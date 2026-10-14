@@ -7,7 +7,7 @@ Status: **host side PASSED; device side pending** (needs a physical arm64 Androi
 | Check | Result |
 |---|---|
 | `flutter test` in `packages/omr_detect` | **49/49 pass**, incl. the 6-test cv smoke (`test/cv_smoke_test.dart`) |
-| Trimmed module set | `core + imgproc + imgcodecs + calib3d` — every pipeline call the smoke pins resolves |
+| Trimmed module set | `core + imgproc + imgcodecs + calib3d` — every pipeline call the smoke pins resolves (calib3d dropped 2026-10-14, O5: nothing calls it) |
 | Quad-detect frame time, 640×480, host | **~490 µs/frame (≈2000 fps)** vs the ≤32 ms low-end device budget (≈65× headroom on host) |
 | Full workspace suites | omr_spec 65 · omr_core 110 · omr_detect 49 · omr_data 37 · omr_reports 8 · app 5 |
 
@@ -69,7 +69,7 @@ machine reproduces in one pass instead of seven:
    hooks:
      user_defines:
        dartcv4:
-         include_modules: [imgcodecs, imgproc, calib3d]
+         include_modules: [imgcodecs, imgproc]   # calib3d dropped in O5
          android:
            android_home: /opt/homebrew/share/android-commandlinetools
          macos:

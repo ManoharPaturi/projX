@@ -144,6 +144,14 @@ jobs:
         run: |
           ZIPALIGN=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)zipalign
           "$ZIPALIGN" -c -P 16 -v 4 app/build/app/outputs/flutter-apk/app-debug.apk | tail -5
+      - name: APK size report
+        run: |
+          APK=app/build/app/outputs/flutter-apk/app-debug.apk
+          echo "APK: $(du -h "$APK" | cut -f1)"
+          # Largest entries, compressed size first.
+          unzip -lv "$APK" | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $3, $1, $8}' \
+            | sort -rn | head -10 \
+            | awk '{printf "%8.1f MB packed  %8.1f MB raw  %s\n", $1/1048576, $2/1048576, $3}'
       - uses: actions/upload-artifact@v7
         with:
           name: app-debug-arm64
