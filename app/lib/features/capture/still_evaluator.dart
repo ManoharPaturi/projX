@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:omr_data/omr_data.dart';
@@ -26,11 +27,19 @@ Strictness strictnessFromSettings(String name) => switch (name) {
 /// must see imports that happened since the last sheet, the operator's
 /// strictness choice must apply from the next sheet, and [OmrPipeline]
 /// is a const value object — there is no warm state to lose.
+///
+/// Decode and detection run on a short-lived background isolate
+/// ([inBackground], on by default): they take hundreds of milliseconds on a
+/// phone, and on the UI isolate the busy spinner and the preview would
+/// freeze for all of it. The DB reads stay here; drift already runs them on
+/// its own isolate.
 class OmrStillEvaluator implements StillEvaluator {
-  OmrStillEvaluator(this.db, {OpencvService? cv}) : cv = cv ?? OpencvDartImpl();
+  OmrStillEvaluator(this.db, {OpencvService? cv, this.inBackground = true})
+    : cv = cv ?? OpencvDartImpl();
 
   final AppDb db;
   final OpencvService cv;
+  final bool inBackground;
 
   @override
   Future<StillEvaluation> evaluate(String examId, Uint8List stillBytes) async {
@@ -42,14 +51,33 @@ class OmrStillEvaluator implements StillEvaluator {
     final roster = await db.studentsDao.rosterFor(exam!.instituteId);
 
     final settings = await SettingsDao(db).settingsFor(exam.tenantId);
-    final decoded = cv.decodeStill(stillBytes);
-    return OmrPipeline(
+    final pipeline = OmrPipeline(
       cv: cv,
       template: template,
       thresholdConfig: ThresholdConfig(
         strictness: strictnessFromSettings(settings.strictness),
       ),
       roster: {for (final s in roster) s.rollNo},
-    ).evaluateGray(decoded.width, decoded.height, decoded.gray);
+    );
+    return inBackground
+        ? _inIsolate(pipeline, stillBytes)
+        : decodeAndRead(pipeline, stillBytes);
   }
+
+  /// Kept static so the isolate closure captures only the pipeline (plain
+  /// data: template, config, roster) and the bytes — never the DB.
+  static Future<StillEvaluation> _inIsolate(
+    OmrPipeline pipeline,
+    Uint8List stillBytes,
+  ) => Isolate.run(
+    () => decodeAndRead(pipeline, stillBytes),
+    debugName: 'still-evaluate',
+  );
+}
+
+/// JPEG bytes → decoded gray → [OmrPipeline]: the whole CPU-bound part of
+/// a capture, runnable on any isolate.
+StillEvaluation decodeAndRead(OmrPipeline pipeline, Uint8List stillBytes) {
+  final decoded = pipeline.cv.decodeStill(stillBytes);
+  return pipeline.evaluateGray(decoded.width, decoded.height, decoded.gray);
 }

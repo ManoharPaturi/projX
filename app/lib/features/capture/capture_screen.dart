@@ -4,8 +4,6 @@ import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:omr_core/omr_core.dart' as core;
 import 'package:omr_data/omr_data.dart';
-import 'package:omr_detect/omr_detect.dart'
-    show LiveFrameAnalyzer, OpencvDartImpl;
 import 'package:omr_spec/omr_spec.dart' show pxPerMm;
 import 'package:provider/provider.dart';
 
@@ -14,6 +12,7 @@ import '../../src/labels.dart';
 import '../exams/exam_create_screen.dart';
 import '../../src/demo_scans.dart';
 import 'capture_source.dart';
+import 'live_analyzer_worker.dart';
 import 'scanner_view.dart';
 import 'sheet_intake.dart';
 import 'still_evaluator.dart';
@@ -57,6 +56,9 @@ class _CaptureScreenState extends State<CaptureScreen> {
   /// Owned by this screen when it booted the camera itself.
   CameraCaptureSource? _ownedSource;
   FrameAnalyzerFn? _analyze;
+
+  /// The live loop's isolate, re-spawned when the exam changes.
+  LiveAnalyzerWorker? _worker;
 
   @override
   void initState() {
@@ -122,17 +124,22 @@ class _CaptureScreenState extends State<CaptureScreen> {
     if (!mounted || _exam != exam) {
       return; // the dropdown moved on while the spec loaded
     }
-    setState(() {
-      _analyze = LiveFrameAnalyzer(
-        cv: OpencvDartImpl(),
-        requiredSheetPxOnStill:
-            template.canvasWidth / pxPerMm * template.minPxPerMmOnCapture,
-      ).update;
-    });
+    final worker = await LiveAnalyzerWorker.spawn(
+      requiredSheetPxOnStill:
+          template.canvasWidth / pxPerMm * template.minPxPerMmOnCapture,
+    );
+    if (!mounted || _exam != exam) {
+      worker.dispose();
+      return;
+    }
+    _worker?.dispose();
+    _worker = worker;
+    setState(() => _analyze = worker.analyze);
   }
 
   @override
   void dispose() {
+    _worker?.dispose();
     _ownedSource?.dispose();
     super.dispose();
   }

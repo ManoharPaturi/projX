@@ -54,6 +54,13 @@ The spinner freezes for the whole time detection takes.
   paid once per session rather than once per sheet.
 - Acceptance: no frame over 32 ms on the capture screen during a scan.
 
+**Done (O2):** `OmrStillEvaluator` decodes and reads on `Isolate.run` (the
+DB reads stay on drift's isolate). The live preview loop runs in a
+long-lived `LiveAnalyzerWorker` isolate that owns the per-session blur
+history and dwell. The scanner keeps one frame in flight and drops the
+rest. The camera source caps analysis at ~15 fps before it copies the Y
+plane. The UI isolate now only draws.
+
 ## Phase O3 — Smaller images, less work per sheet
 
 - The camera uses `ResolutionPreset.max` (12–50 MP on modern phones). The
