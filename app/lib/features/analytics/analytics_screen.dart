@@ -6,6 +6,7 @@ import 'package:omr_reports/omr_reports.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 import '../../src/labels.dart';
 
 /// Plan §6 screen 9 — how the class did, said for a teacher: the headline
@@ -23,8 +24,9 @@ class AnalyticsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return FutureBuilder<_Analysis?>(
-      key: ValueKey('analytics-$examId-${state.version}'),
+      key: ValueKey('analytics-$examId-$dataVersion'),
       future: _Analysis.load(state.db, examId),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {

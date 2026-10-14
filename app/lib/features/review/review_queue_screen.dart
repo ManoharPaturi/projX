@@ -3,6 +3,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 import '../../src/labels.dart';
 import 'review_detail_screen.dart';
 
@@ -16,10 +17,11 @@ class ReviewQueueScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return Scaffold(
       appBar: AppBar(title: const Text('Sheets to check')),
       body: FutureBuilder<List<PendingReviewRow>>(
-        key: ValueKey('pending-${state.version}'),
+        key: ValueKey('pending-$dataVersion'),
         future: state.db.scansDao.pendingReview(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {

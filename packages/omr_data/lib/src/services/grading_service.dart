@@ -62,10 +62,14 @@ class GradingService {
 
   /// Resolves an exam's layout into the [LayoutContext] shared by request
   /// building and read reconstruction.
-  Future<LayoutContext> layoutContextFor(String examId) async {
-    final (layoutRow, sheetSpec) = await _specFor(examId);
-    final template = spec.compileDetectionTemplate(sheetSpec);
+  Future<LayoutContext> layoutContextFor(String examId) async =>
+      (await _compiledFor(examId)).context;
 
+  LayoutContext _buildContext(
+    SheetLayout layoutRow,
+    spec.SheetSpec sheetSpec,
+    spec.DetectionTemplate template,
+  ) {
     // fieldKey → dense option list. Bubble rects already carry the compiled
     // option value ('A'..'E', '0'..'9'), so this is a group-by, not a rederive.
     final byField = <String, List<core.OptionId>>{};
@@ -108,10 +112,39 @@ class GradingService {
   /// The compiled detection geometry for an exam's layout — the SAME
   /// template the capture path feeds `OmrPipeline`, so what registers a
   /// still and what grades its reads derive from one spec load.
-  Future<spec.DetectionTemplate> templateFor(String examId) async {
-    final (_, sheetSpec) = await _specFor(examId);
-    return spec.compileDetectionTemplate(sheetSpec);
+  Future<spec.DetectionTemplate> templateFor(String examId) async =>
+      (await _compiledFor(examId)).template;
+
+  /// Parsed spec + compiled template + grading context for an exam's
+  /// layout, memoised per layout row and spec hash.
+  ///
+  /// A scan asks for these four or five times (detection template, layout
+  /// version, the exam-wide pass, the card's single-scan grade); parsing
+  /// the spec JSON and compiling the template each time is pure waste —
+  /// the result is a function of the row's content, which [specHash] pins.
+  /// An out-of-band edit changes the hash and misses the cache.
+  Future<_CompiledLayout> _compiledFor(String examId) async {
+    final layoutRow = await _layoutRowFor(examId);
+    final cacheKey = '${layoutRow.id}:${layoutRow.specHash}';
+    final cached = _compiledLayouts[cacheKey];
+    if (cached != null) return cached;
+    final sheetSpec = spec.SheetSpec.fromJson(
+      decodeJsonObject(layoutRow.specJson),
+    );
+    final template = spec.compileDetectionTemplate(sheetSpec);
+    final compiled = _CompiledLayout(
+      template: template,
+      context: _buildContext(layoutRow, sheetSpec, template),
+    );
+    if (_compiledLayouts.length >= 16) {
+      _compiledLayouts.remove(_compiledLayouts.keys.first);
+    }
+    return _compiledLayouts[cacheKey] = compiled;
   }
+
+  /// Process-wide: layouts are content-addressed by their hash, so sharing
+  /// across [GradingService] instances (one per call site) is safe.
+  static final Map<String, _CompiledLayout> _compiledLayouts = {};
 
   /// The exam's sheet spec for PRINTING, hash-verified against its stored
   /// layout row: a sheet must never print from a layout that was edited
@@ -126,17 +159,21 @@ class GradingService {
   }
 
   Future<(SheetLayout, spec.SheetSpec)> _specFor(String examId) async {
-    final exam = await db.examsDao.byId(examId);
-    if (exam == null) {
-      throw StateError('unknown exam $examId');
-    }
-    final layoutRow = await (db.select(
-      db.sheetLayouts,
-    )..where((l) => l.id.equals(exam.sheetLayoutId))).getSingle();
+    final layoutRow = await _layoutRowFor(examId);
     final sheetSpec = spec.SheetSpec.fromJson(
       decodeJsonObject(layoutRow.specJson),
     );
     return (layoutRow, sheetSpec);
+  }
+
+  Future<SheetLayout> _layoutRowFor(String examId) async {
+    final exam = await db.examsDao.byId(examId);
+    if (exam == null) {
+      throw StateError('unknown exam $examId');
+    }
+    return (db.select(
+      db.sheetLayouts,
+    )..where((l) => l.id.equals(exam.sheetLayoutId))).getSingle();
   }
 
   /// Grades every review-cleared scan of (exam, key version) and writes the
@@ -145,11 +182,20 @@ class GradingService {
   ///
   /// Scans still routed `needsReview` (or `rejected`) are excluded — their
   /// marks must not publish while a human hasn't confirmed the read.
+  ///
+  /// [onlyScans] makes the pass incremental: only students whose chosen
+  /// (newest cleared) sheet is one of these are graded and upserted, then
+  /// ranks are recomputed over the whole exam as always. Intake uses it
+  /// after each captured sheet — one new sheet cannot change any other
+  /// student's marks, and re-reading the whole class per sheet made a
+  /// scanning session quadratic. The report then covers just those
+  /// students, and its per-question summary is empty.
   Future<core.GradingReport> gradeExam({
     required String tenantId,
     required String examId,
     required String keyVersionId,
     bool regrade = false,
+    Set<String>? onlyScans,
   }) async {
     final exam = await db.examsDao.byId(examId);
     if (exam == null) {
@@ -176,16 +222,30 @@ class GradingService {
               ..orderBy([(s) => OrderingTerm.desc(s.capturedAt)]))
             .get();
 
-    final reads = <String, core.SheetRead>{};
+    final chosen = <Scan>[];
     final scanIdByStudent = <String, String>{};
     for (final scan in scans) {
       final studentId = scan.studentId;
       if (studentId == null || scanIdByStudent.containsKey(studentId)) {
         continue; // one result per student: the newest cleared sheet
       }
-      reads[studentId] = await readForScan(scan.id, layout);
       scanIdByStudent[studentId] = scan.id;
+      if (onlyScans == null || onlyScans.contains(scan.id)) chosen.add(scan);
     }
+    if (onlyScans != null) {
+      scanIdByStudent.removeWhere((_, scanId) => !onlyScans.contains(scanId));
+    }
+    // Every chosen sheet's bubbles in a few batched queries instead of one
+    // round trip per student — this pass reruns after every captured sheet.
+    final rowsByScan = await _bubbleRowsFor([for (final s in chosen) s.id]);
+    final reads = <String, core.SheetRead>{
+      for (final scan in chosen)
+        scan.studentId!: _readFrom(
+          scan,
+          rowsByScan[scan.id] ?? const <BubbleRead>[],
+          layout,
+        ),
+    };
 
     // Each student is marked against THEIR set's key (effectiveSetFor);
     // a sheet whose set has no key is left unmarked rather than guessed.
@@ -212,7 +272,9 @@ class GradingService {
       resultsByStudent.addAll(part.resultsByStudent);
       // Per-question cohort stats only make sense within one key; with
       // several sets, AnalyticsDao is the cross-set source.
-      summary = readsBySet.length == 1 ? part.summary : null;
+      summary = readsBySet.length == 1 && onlyScans == null
+          ? part.summary
+          : null;
     }
     final report = core.GradingReport(
       examId: examId,
@@ -282,6 +344,7 @@ class GradingService {
         'examId': examId,
         'keyVersionId': keyVersionId,
         'results': rows.length,
+        if (onlyScans != null) 'incremental': true,
       },
     );
     return report;
@@ -336,16 +399,39 @@ class GradingService {
     final scan = await (db.select(
       db.scans,
     )..where((s) => s.id.equals(scanId))).getSingle();
+    final rows = (await _bubbleRowsFor([scanId]))[scanId] ?? const [];
+    return _readFrom(scan, rows, layout);
+  }
 
-    final rows =
-        await (db.select(db.bubbleReads)
-              ..where((b) => b.scanId.equals(scanId))
-              ..orderBy([
-                (b) => OrderingTerm.asc(b.fieldKey),
-                (b) => OrderingTerm.asc(b.optionIndex),
-              ]))
-            .get();
+  /// Bubble rows for [scanIds], grouped by scan, each scan's rows in
+  /// (field, option) order. Chunked under SQLite's bound-variable limit.
+  Future<Map<String, List<BubbleRead>>> _bubbleRowsFor(
+    List<String> scanIds,
+  ) async {
+    final byScan = <String, List<BubbleRead>>{};
+    for (var i = 0; i < scanIds.length; i += 500) {
+      final chunk = scanIds.sublist(i, math.min(i + 500, scanIds.length));
+      final rows =
+          await (db.select(db.bubbleReads)
+                ..where((b) => b.scanId.isIn(chunk))
+                ..orderBy([
+                  (b) => OrderingTerm.asc(b.scanId),
+                  (b) => OrderingTerm.asc(b.fieldKey),
+                  (b) => OrderingTerm.asc(b.optionIndex),
+                ]))
+              .get();
+      for (final row in rows) {
+        byScan.putIfAbsent(row.scanId, () => <BubbleRead>[]).add(row);
+      }
+    }
+    return byScan;
+  }
 
+  core.SheetRead _readFrom(
+    Scan scan,
+    List<BubbleRead> rows,
+    LayoutContext layout,
+  ) {
     final byField = <String, List<BubbleRead>>{};
     for (final row in rows) {
       byField.putIfAbsent(row.fieldKey, () => <BubbleRead>[]).add(row);
@@ -485,4 +571,11 @@ String? effectiveSetFor(String? setRead, Set<String> keyedSets) {
   if (setRead != null && keyedSets.contains(setRead)) return setRead;
   if (keyedSets.length == 1) return keyedSets.single;
   return null;
+}
+
+class _CompiledLayout {
+  const _CompiledLayout({required this.template, required this.context});
+
+  final spec.DetectionTemplate template;
+  final LayoutContext context;
 }

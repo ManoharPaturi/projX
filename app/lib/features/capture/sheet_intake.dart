@@ -87,36 +87,43 @@ class SheetIntake {
         ),
     ];
     final needsReview = reasons.isNotEmpty;
-    final scanId = await db.scansDao.insertScanWithReads(
-      ScansCompanion.insert(
-        tenantId: tenantId,
-        examId: examId,
-        studentId: Value(studentId),
-        rollNoRead: Value(roll),
-        rollConfidence: Value(read.rollConfidence),
-        setCodeRead: Value(read.setCodeRead),
-        layoutVersion: layoutVersion,
-        // Derived-image persistence is the M4 retention piece; the
-        // sentinels keep NOT NULL honest until then.
-        warpedImagePath: 'capture://pending',
-        thumbPath: 'capture://pending',
-        annotatedPath: 'capture://pending',
-        sheetConfidence: Value(read.sheetConfidence),
-        curlFlag: Value(read.flags.contains(core.SheetReadFlag.curlDetected)),
-        status: Value(needsReview ? ScanStatus.needsReview : ScanStatus.graded),
-      ),
-      [for (final field in evaluation.fields) ..._bubbleInputs(field)],
-    );
-
-    for (final reason in reasons) {
-      await db.reviewDao.enqueue(
-        tenantId: tenantId,
-        scanId: scanId,
-        reasonCode: reason.code,
-        severity: reason.severity,
-        fieldRefs: reason.fieldRefs,
+    // One transaction for the sheet's rows and its review items: one commit
+    // (one fsync under WAL) instead of one per review item, and no window
+    // where a scan routed to review has no reason row yet.
+    final scanId = await db.transaction(() async {
+      final id = await db.scansDao.insertScanWithReads(
+        ScansCompanion.insert(
+          tenantId: tenantId,
+          examId: examId,
+          studentId: Value(studentId),
+          rollNoRead: Value(roll),
+          rollConfidence: Value(read.rollConfidence),
+          setCodeRead: Value(read.setCodeRead),
+          layoutVersion: layoutVersion,
+          // Derived-image persistence is the M4 retention piece; the
+          // sentinels keep NOT NULL honest until then.
+          warpedImagePath: 'capture://pending',
+          thumbPath: 'capture://pending',
+          annotatedPath: 'capture://pending',
+          sheetConfidence: Value(read.sheetConfidence),
+          curlFlag: Value(read.flags.contains(core.SheetReadFlag.curlDetected)),
+          status: Value(
+            needsReview ? ScanStatus.needsReview : ScanStatus.graded,
+          ),
+        ),
+        [for (final field in evaluation.fields) ..._bubbleInputs(field)],
       );
-    }
+      for (final reason in reasons) {
+        await db.reviewDao.enqueue(
+          tenantId: tenantId,
+          scanId: id,
+          reasonCode: reason.code,
+          severity: reason.severity,
+          fieldRefs: reason.fieldRefs,
+        );
+      }
+      return id;
+    });
 
     final persistMicros = watch.elapsedMicroseconds - evaluateMicros;
 
@@ -126,10 +133,13 @@ class SheetIntake {
     final keyVersion = await db.keysDao.activeVersion(examId);
     core.ExamResult? result;
     if (keyVersion != null) {
+      // Incremental: only this sheet's student can have changed; ranks are
+      // still recomputed exam-wide.
       await GradingService(db).gradeExam(
         tenantId: tenantId,
         examId: examId,
         keyVersionId: keyVersion.id,
+        onlyScans: {scanId},
       );
       // No card score for a sheet whose set has no key: it is in review.
       if (!setUnmarkable) {

@@ -6,6 +6,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 
 /// Plan §6 screen 4 — roster with duplicate-detecting CSV import.
 ///
@@ -34,6 +35,7 @@ class _RosterScreenState extends State<RosterScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Students'),
@@ -65,7 +67,7 @@ class _RosterScreenState extends State<RosterScreen> {
           ),
           Expanded(
             child: FutureBuilder<List<Student>>(
-              key: ValueKey('roster-${state.version}-$_query'),
+              key: ValueKey('roster-$dataVersion-$_query'),
               future: state.db.studentsDao.rosterFor(
                 state.instituteId,
                 query: _query.isEmpty ? null : _query,

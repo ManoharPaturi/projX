@@ -3,6 +3,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 import '../../src/labels.dart';
 import '../analytics/analytics_screen.dart';
 import 'print_sheets.dart';
@@ -54,8 +55,9 @@ class _ExamDetailScreenState extends State<ExamDetailScreen>
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return FutureBuilder<Exam?>(
-      key: ValueKey('exam-${widget.examId}-${state.version}'),
+      key: ValueKey('exam-${widget.examId}-$dataVersion'),
       future: state.db.examsDao.byId(widget.examId),
       builder: (context, snapshot) {
         final exam = snapshot.data;
@@ -103,7 +105,7 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -132,7 +134,7 @@ class _OverviewTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        _ScanCountsCard(examId: exam.id, version: state.version),
+        _ScanCountsCard(examId: exam.id, version: dataVersion),
         const SizedBox(height: 8),
         _ActionsCard(exam: exam),
       ],

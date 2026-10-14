@@ -3,6 +3,7 @@ import 'package:omr_data/omr_data.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 import '../../src/version.dart';
 
 /// Plan §6 screen 12: identity, capture strictness preset, image retention
@@ -16,6 +17,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
@@ -33,15 +35,15 @@ class SettingsScreen extends StatelessWidget {
           Card(
             child: Column(
               children: [
-                _StrictnessTile(version: state.version),
-                _RetentionTile(version: state.version),
+                _StrictnessTile(version: dataVersion),
+                _RetentionTile(version: dataVersion),
               ],
             ),
           ),
           Card(
             child: Column(
               children: [
-                _StorageTile(version: state.version),
+                _StorageTile(version: dataVersion),
                 const ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('About OMR Evaluator'),
