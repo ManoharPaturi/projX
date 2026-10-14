@@ -202,7 +202,7 @@ class MarksheetPdf {
       border: pw.Border(top: pw.BorderSide(color: PdfColors.grey400)),
     ),
     child: pw.Text(
-      'Generated ${formatExamDate(header.generatedAt)} UTC · '
+      'Generated ${formatExamDate(header.generatedAt)} · '
       'key v${header.keyVersionNumber} · cohort top score '
       '${formatMarks(header.maxTotal)}',
       style: pw.TextStyle(fontSize: 8, color: PdfColors.grey700),

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:omr_core/omr_core.dart'
@@ -136,8 +138,9 @@ class _RosterScreenState extends State<RosterScreen> {
   }
 
   Future<void> _showImportDialog() async {
-    // A tiny starter so the format is discoverable on first use.
-    _pasteController.text = 'roll,name,batch\n1001,Aarav,Batch-A';
+    // Start empty: a pre-filled sample row was imported as a real student
+    // whenever a teacher pasted below it. The hint shows the format.
+    _pasteController.clear();
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -171,7 +174,14 @@ class _RosterScreenState extends State<RosterScreen> {
           FilledButton(
             onPressed: () async {
               final state = context.read<AppState>();
-              final result = await _import(state, _pasteController.text);
+              final entries = parseRosterPaste(_pasteController.text);
+              final result = entries.isEmpty
+                  ? null
+                  : await state.db.studentsDao.importRoster(
+                      state.tenantId,
+                      state.instituteId,
+                      entries,
+                    );
               if (!mounted || !dialogContext.mounted) {
                 return;
               }
@@ -180,7 +190,10 @@ class _RosterScreenState extends State<RosterScreen> {
                 state.refresh();
                 await _showResult(
                   result,
-                  unscannable: _unscannableIn(_pasteController.text),
+                  unscannable: [
+                    for (final e in entries)
+                      if (!isScannableRoll(e.rollNo)) e.rollNo,
+                  ],
                 );
               }
             },
@@ -189,54 +202,6 @@ class _RosterScreenState extends State<RosterScreen> {
         ],
       ),
     );
-  }
-
-  Future<RosterImportResult?> _import(AppState state, String text) async {
-    // Spreadsheet copies arrive tab-separated; treat tabs as commas.
-    final rows = Csv().decoder.convert(text.replaceAll('\t', ','));
-    final entries = <RosterEntry>[];
-    for (final row in rows) {
-      if (row.isEmpty) {
-        continue;
-      }
-      final cells = [for (final cell in row) '$cell'.trim()];
-      // Skip a header row: anything whose first cell is not roll-like.
-      if (entries.isEmpty &&
-          cells.isNotEmpty &&
-          cells.first.toLowerCase() == 'roll') {
-        continue;
-      }
-      if (cells.every((cell) => cell.isEmpty)) {
-        continue;
-      }
-      entries.add(
-        RosterEntry(
-          rollNo: cells.isNotEmpty ? cells[0] : '',
-          name: cells.length > 1 && cells[1].isNotEmpty ? cells[1] : null,
-          batch: cells.length > 2 && cells[2].isNotEmpty ? cells[2] : null,
-        ),
-      );
-    }
-    if (entries.isEmpty) {
-      return null;
-    }
-    return state.db.studentsDao.importRoster(
-      state.tenantId,
-      state.instituteId,
-      entries,
-    );
-  }
-
-  /// Rolls in a pasted list that can never be bubbled on the sheet
-  /// (letters, more than 7 digits): imported, but worth saying so.
-  List<String> _unscannableIn(String text) {
-    final rolls = <String>[];
-    for (final line in text.replaceAll('\t', ',').split('\n')) {
-      final roll = line.split(',').first.trim();
-      if (roll.isEmpty || roll.toLowerCase() == 'roll') continue;
-      if (!isScannableRoll(roll)) rolls.add(roll);
-    }
-    return rolls;
   }
 
   Future<void> _showResult(
@@ -445,4 +410,41 @@ class _AddStudentDialogState extends State<_AddStudentDialog> {
       ],
     );
   }
+}
+
+/// Students from a pasted list, one per line: roll, name, batch.
+///
+/// Lines copied from Excel or Google Sheets are tab-separated, so a name
+/// with a comma in it ("Sharma, Aarav") stays one cell; anything else is
+/// read as CSV (quotes respected). A first line whose roll cell has no
+/// digit at all is a header ("Roll No", "Roll Number", "roll") and is
+/// skipped — it used to be imported as a student. Blank lines are ignored.
+List<RosterEntry> parseRosterPaste(String text) {
+  final List<List<String>> rows;
+  if (text.contains('\t')) {
+    rows = [
+      for (final line in const LineSplitter().convert(text)) line.split('\t'),
+    ];
+  } else {
+    rows = [
+      for (final row in Csv().decoder.convert(text))
+        [for (final cell in row) '$cell'],
+    ];
+  }
+  final entries = <RosterEntry>[];
+  var first = true;
+  for (final row in rows) {
+    final cells = [for (final cell in row) cell.trim()];
+    if (cells.every((cell) => cell.isEmpty)) continue;
+    if (first) {
+      first = false;
+      if (!cells.first.contains(RegExp(r'[0-9]'))) continue;
+    }
+    String? optional(int i) =>
+        cells.length > i && cells[i].isNotEmpty ? cells[i] : null;
+    entries.add(
+      RosterEntry(rollNo: cells.first, name: optional(1), batch: optional(2)),
+    );
+  }
+  return entries;
 }

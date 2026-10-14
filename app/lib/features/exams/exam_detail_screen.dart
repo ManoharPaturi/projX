@@ -346,9 +346,9 @@ class _ActionsCard extends StatelessWidget {
       await state.db.examsDao.setStatus(exam.id, ExamStatus.graded);
     }
     state.refresh();
-    final pending = (await state.db.scansDao.pendingReview(
+    final pending = await state.db.scansDao.sheetsAwaitingReview(
       examId: exam.id,
-    )).length;
+    );
     messenger.showSnackBar(
       SnackBar(
         content: Text(

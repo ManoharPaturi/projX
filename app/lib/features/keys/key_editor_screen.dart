@@ -30,6 +30,10 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
   late final TabController _setTabs;
   bool _loading = true;
 
+  /// A save (and the re-marking it triggers) is running: the button is
+  /// disabled so a second tap cannot create a duplicate key version.
+  bool _saving = false;
+
   /// setCode → questionId → selected option index (the in-progress grid).
   final Map<String, Map<String, int>> _draft = {
     for (final set in _sets) set: <String, int>{},
@@ -39,6 +43,7 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
   Map<String, List<core.OptionId>> _optionsByField = const {};
   List<core.SectionSpec> _sections = const [];
   List<AnswerKeyVersion> _versions = const [];
+  AnswerKeyVersion? _active;
 
   @override
   void initState() {
@@ -61,10 +66,13 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
     final db = context.read<AppState>().db;
     final layout = await GradingService(db).layoutContextFor(widget.examId);
     final versions = await db.keysDao.versionsFor(widget.examId);
+    final active = await db.keysDao.activeVersion(widget.examId);
 
-    // Prefill from the newest version so a correction starts from reality.
-    if (versions.isNotEmpty) {
-      final entries = await db.keysDao.entriesFor(versions.first.id);
+    // Prefill from the key in use — the one grading uses — so a correction
+    // starts from reality. (The newest row could be a provisional version
+    // left by an interrupted save in an older build.)
+    if (active != null) {
+      final entries = await db.keysDao.entriesFor(active.id);
       for (final entry in entries) {
         final options = decodeJsonList(
           entry.correctOptionsJson,
@@ -83,6 +91,7 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
       _optionsByField = layout.optionValuesByField;
       _sections = layout.sections;
       _versions = versions;
+      _active = active;
       _loading = false;
     });
   }
@@ -159,12 +168,41 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
   }
 
   Future<void> _publish() async {
-    if (!await _confirmPublish()) return;
+    if (_saving || !await _confirmPublish()) return;
     if (!mounted) return;
+    setState(() => _saving = true);
     final state = context.read<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final nextVersion = await _saveKey(state);
+      if (mounted) await _load();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            nextVersion == 1
+                ? 'Answer key saved'
+                : 'Answer key $nextVersion saved — marks updated',
+          ),
+        ),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not save the answer key: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// Writes the draft as a new finalized key version and re-marks the exam.
+  /// Returns the new version number.
+  ///
+  /// Version row, entries and finalization commit as ONE transaction: an
+  /// app killed mid-save must not leave a half-written provisional version
+  /// behind — for an exam's first key, `activeVersion` would hand that
+  /// partial key to grading and every scan would fail to mark.
+  Future<int> _saveKey(AppState state) async {
     final db = state.db;
-    final active = await db.keysDao.activeVersion(widget.examId);
-    final nextVersion = (active?.version ?? 0) + 1;
 
     final entries = <KeyEntryInput>[
       for (final set in _sets)
@@ -176,34 +214,31 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
           ),
     ];
 
-    final keyVersionId = await db.keysDao.createVersion(
-      tenantId: state.tenantId,
-      examId: widget.examId,
-      version: nextVersion,
-      createdBy: 'app',
-      supersedesId: active?.id,
-    );
-    await db.keysDao.addEntries(
-      keyVersionId,
-      tenantId: state.tenantId,
-      entries: entries,
-    );
-    await db.keysDao.finalizeVersion(keyVersionId);
+    final (keyVersionId, nextVersion) = await db.transaction(() async {
+      final active = await db.keysDao.activeVersion(widget.examId);
+      // Above every version on record, provisional ones included, so a
+      // number is never reused.
+      final versions = await db.keysDao.versionsFor(widget.examId);
+      final next = (versions.firstOrNull?.version ?? 0) + 1;
+      final id = await db.keysDao.createVersion(
+        tenantId: state.tenantId,
+        examId: widget.examId,
+        version: next,
+        createdBy: 'app',
+        supersedesId: active?.id,
+      );
+      await db.keysDao.addEntries(
+        id,
+        tenantId: state.tenantId,
+        entries: entries,
+      );
+      await db.keysDao.finalizeVersion(id);
+      return (id, next);
+    });
     // Re-grade from stored reads against the new key (plan §5): an insert,
     // never a rescan. Harmless when nothing has been scanned yet.
     await state.grade(widget.examId, keyVersionId);
-    await _load();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            nextVersion == 1
-                ? 'Answer key saved'
-                : 'Answer key $nextVersion saved — marks updated',
-          ),
-        ),
-      );
-    }
+    return nextVersion;
   }
 
   @override
@@ -213,14 +248,14 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
     }
     final body = Column(
       children: [
-        if (_versions.isNotEmpty)
+        if (_active != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    'In use: answer key ${_versions.first.version}'
+                    'In use: answer key ${_active!.version}'
                     '${_versions.length > 1 ? ' (${_versions.length} saved over time)' : ''}. '
                     'Changes below are saved as a new key.',
                     style: Theme.of(context).textTheme.bodyMedium,
@@ -269,8 +304,14 @@ class _KeyEditorScreenState extends State<KeyEditorScreen>
                   ],
                 ),
                 FilledButton(
-                  onPressed: _canPublish ? _publish : null,
-                  child: const Text('Save answer key'),
+                  onPressed: _canPublish && !_saving ? _publish : null,
+                  child: _saving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save answer key'),
                 ),
               ],
             ),

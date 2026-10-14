@@ -161,7 +161,7 @@ class _SummaryCard extends StatelessWidget {
       child: Row(
         children: [
           stat('students', '${analysis.rows.length}'),
-          stat('average', formatMarks(analysis.average)),
+          stat('average', formatAverage(analysis.average)),
           stat('highest', formatMarks(analysis.highest)),
           stat('lowest', formatMarks(analysis.lowest)),
         ],
@@ -196,8 +196,8 @@ class _DistributionCard extends StatelessWidget {
           for (var i = bands - 1; i >= 0; i--)
             _BarRow(
               label:
-                  '${formatMarks(low + width * i)}–'
-                  '${formatMarks(low + width * (i + 1))}',
+                  '${formatAverage(low + width * i)}–'
+                  '${formatAverage(low + width * (i + 1))}',
               fraction: most == 0 ? 0 : counts[i] / most,
               trailing: '${counts[i]}',
             ),
@@ -222,10 +222,10 @@ class _SubjectsCard extends StatelessWidget {
         children: [
           for (final s in subjects)
             _BarRow(
-              label: s.subject,
+              label: subjectColumnLabel(s.subject, suffix: ''),
               fraction: top <= 0 ? 0 : (s.avgTotal / top).clamp(0, 1),
               trailing:
-                  '${formatMarks(s.avgTotal)}  '
+                  '${formatAverage(s.avgTotal)}  '
                   '(${formatMarks(s.minTotal)} to ${formatMarks(s.maxTotal)})',
             ),
         ],

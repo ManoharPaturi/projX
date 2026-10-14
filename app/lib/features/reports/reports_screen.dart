@@ -202,13 +202,25 @@ String reportFileName({
     ReportJobType.csv => 'Marks',
     _ => reportTypeLabel(type),
   };
-  final exam = examName
-      .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1F]'), '')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+  final exam = _fileSafe(examName);
   final base = exam.isEmpty ? what : '$exam - $what';
   return '$base (key $keyVersion).$format';
 }
+
+/// One student's marksheet, named like the class reports:
+/// `Mock 1 - Marksheet 1234.pdf` (it was `marksheet-1234.pdf`, which says
+/// nothing about the exam once it lands in a parent's WhatsApp).
+String marksheetFileName({required String examName, required String rollNo}) {
+  final exam = _fileSafe(examName);
+  final what = 'Marksheet ${_fileSafe(rollNo)}';
+  return exam.isEmpty ? '$what.pdf' : '$exam - $what.pdf';
+}
+
+/// Drops characters that file systems or share targets reject.
+String _fileSafe(String text) => text
+    .replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1F]'), '')
+    .replaceAll(RegExp(r'\s+'), ' ')
+    .trim();
 
 class _ReportCard extends StatelessWidget {
   const _ReportCard({

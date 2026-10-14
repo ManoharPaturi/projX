@@ -64,11 +64,7 @@ class _Body extends StatelessWidget {
     final query = ResultsQuery(db, examId: examId, keyVersionId: keyVersionId);
     return FutureBuilder<(ExamHeader, List<ReportRow>)>(
       key: ValueKey('results-$examId-$keyVersionId-$refreshKey'),
-      future: () async {
-        final header = await query.header();
-        final rows = await query.rows();
-        return (header, rows);
-      }(),
+      future: query.snapshot().then((s) => (s.header, s.rows)),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -120,9 +116,12 @@ class _Body extends StatelessWidget {
                     title: Text(
                       '${row.rollNo}${row.name == null ? '' : ' · ${row.name}'}',
                     ),
+                    // A low-confidence read nobody has checked still shows
+                    // its marks — say so, as the printed reports do.
                     subtitle: Text(
                       '${row.correct} right · ${row.wrong} wrong · '
-                      '${row.unattempted} blank',
+                      '${row.unattempted} blank'
+                      '${row.status == ResultStatus.doubtful ? ' · ${resultStatusLabel(row.status)}' : ''}',
                     ),
                     trailing: Text(
                       formatMarks(row.total),

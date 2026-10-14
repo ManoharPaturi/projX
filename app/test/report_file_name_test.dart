@@ -33,4 +33,16 @@ void main() {
       'Marks (key 1).csv',
     );
   });
+
+  test('marksheets are named after the exam and the roll', () {
+    expect(
+      marksheetFileName(examName: 'Mock 1', rollNo: '1234'),
+      'Mock 1 - Marksheet 1234.pdf',
+    );
+    expect(
+      marksheetFileName(examName: 'JEE: 12/10', rollNo: '0042'),
+      'JEE 1210 - Marksheet 0042.pdf',
+    );
+    expect(marksheetFileName(examName: '', rollNo: '7'), 'Marksheet 7.pdf');
+  });
 }

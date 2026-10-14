@@ -56,6 +56,21 @@ First production release.
 - The Excel workbook now includes the Per Question sheet (every student's
   marks on every question) that its description promised.
 
+- PDFs printed the exam date one day early in India (a UTC date was
+  formatted as local).
+- Saving an answer key is all-or-nothing, and the button can't be tapped
+  twice; a half-saved key could stop every sheet from being marked.
+- "Paste a list" opens empty (a sample row used to be imported as a
+  student); header rows like "Roll No" are skipped; names with commas
+  survive spreadsheet pastes.
+- "Sheets waiting" counts sheets, not problems (one sheet with three
+  problems used to count as three).
+- Analysis shows averages to one decimal (was 3.3333333333333335).
+- "Top score" is right when every score is negative.
+- Results list marks unchecked low-confidence results "Check sheet".
+- Marksheets are shared as `Mock 1 - Marksheet 1234.pdf`.
+- The printer check no longer freezes the screen while it analyses.
+
 ### Performance
 - Reading a sheet: 12 MP photo from ~7.5 s to ~0.2 s on the benchmark;
   detection and the live preview run off the UI thread, so the screen no

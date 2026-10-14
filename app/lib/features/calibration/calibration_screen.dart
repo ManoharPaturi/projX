@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -82,18 +83,8 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
 
   /// The production analysis: decode the still, register the calibration
   /// sheet's own fiducials, measure the reference bubbles.
-  Future<CalibrationReport> _deviceAnalyze(Uint8List stillBytes) async {
-    final cv = OpencvDartImpl();
-    final template = compileDetectionTemplate(buildCalibrationSpec());
-    final decoded = cv.decodeStill(stillBytes);
-    return CalibrationAnalyzer().analyze(
-      cv: cv,
-      template: template,
-      imageWidth: decoded.width,
-      imageHeight: decoded.height,
-      grayBytes: decoded.gray,
-    );
-  }
+  Future<CalibrationReport> _deviceAnalyze(Uint8List stillBytes) =>
+      analyzeCalibrationStill(stillBytes);
 
   Future<void> _printSheet() async {
     setState(() => _busy = true);
@@ -341,3 +332,21 @@ class _VerdictCard extends StatelessWidget {
     );
   }
 }
+
+/// Decode + analysis of a printer-check photo on a background isolate: a
+/// full-resolution still takes seconds on a phone, and on the UI isolate
+/// the progress indicator froze for all of it. Top-level so the isolate
+/// closure captures only the bytes.
+Future<CalibrationReport> analyzeCalibrationStill(Uint8List stillBytes) =>
+    Isolate.run(() {
+      final cv = OpencvDartImpl();
+      final template = compileDetectionTemplate(buildCalibrationSpec());
+      final decoded = cv.decodeStill(stillBytes);
+      return CalibrationAnalyzer().analyze(
+        cv: cv,
+        template: template,
+        imageWidth: decoded.width,
+        imageHeight: decoded.height,
+        grayBytes: decoded.gray,
+      );
+    }, debugName: 'calibration');

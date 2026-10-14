@@ -228,6 +228,12 @@ class ScansDao extends DatabaseAccessor<AppDb> with _$ScansDaoMixin {
     };
   }
 
+  /// How many SHEETS wait for a check — not review items: one sheet with
+  /// three problems (roll not on roster, a double mark, a curl) is three
+  /// items in [pendingReview] but one sheet for the teacher to pick up.
+  Future<int> sheetsAwaitingReview({String? examId}) async =>
+      (await pendingReview(examId: examId)).map((r) => r.scanId).toSet().length;
+
   /// The review worklist: open items whose scan is still routed to review,
   /// most severe first, then oldest capture (FIFO within a severity band —
   /// the operator always sees the sheet that has been waiting longest).

@@ -106,7 +106,10 @@ class ResultsQuery {
       examId: examId,
       examName: exam.name,
       instituteName: institute.name,
-      heldAt: exam.heldAt,
+      // Stored as UTC; the exam is a calendar day where the teacher is.
+      // Formatting the UTC value printed every Indian exam a day early
+      // (local midnight 14 Oct is 13 Oct 18:30 UTC).
+      heldAt: exam.heldAt?.toLocal(),
       totalQuestions: exam.totalQuestions,
       keyVersionId: keyVersionId,
       keyVersionNumber: keyVersion.version,
@@ -114,8 +117,12 @@ class ResultsQuery {
         for (final s in layout.sections) s.subjectKey,
       }.toList(growable: false),
       studentCount: rows.length,
-      maxTotal: rows.fold<double>(0, (m, r) => r.total > m ? r.total : m),
-      generatedAt: DateTime.now().toUtc(),
+      // The real top score — a fold from 0 reported 0 when every total
+      // was negative (possible with −1 per wrong answer).
+      maxTotal: rows.isEmpty
+          ? 0
+          : rows.map((r) => r.total).reduce((a, b) => a > b ? a : b),
+      generatedAt: DateTime.now(),
     );
   }
 

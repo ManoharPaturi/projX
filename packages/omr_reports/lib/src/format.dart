@@ -26,7 +26,13 @@ String subjectColumnLabel(String subject, {String suffix = ' Marks'}) {
   return '$label$suffix';
 }
 
-/// '12 Aug 2026' — the date format Indian results pages use.
+/// An average or other derived figure: at most one decimal place
+/// (3.3333… → 3.3), trailing '.0' dropped like [formatMarks].
+String formatAverage(double v) =>
+    formatMarks(double.parse(v.toStringAsFixed(1)));
+
+/// '12 Aug 2026' — the date format Indian results pages use. Pass a local
+/// time (see `ResultsQuery.header`).
 String formatExamDate(DateTime? dt) => dt == null
     ? ''
     : '${dt.day} ${const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][dt.month - 1]} ${dt.year}';
