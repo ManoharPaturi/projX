@@ -28,13 +28,8 @@ class OpencvDartImpl implements OpencvService {
     // verified by still_decode_test's dims assertions, which exist so a
     // codec bump that silently DROPS the tag fails a test instead of
     // feeding the registrar tipped-sideways sheets.
-    final mat = cv.imdecode(bytes, cv.IMREAD_GRAYSCALE);
+    final mat = _mat(decodeGray(bytes));
     try {
-      if (mat.isEmpty) {
-        throw StateError(
-          'still bytes are not a decodable image (${bytes.length} bytes)',
-        );
-      }
       return DecodedStill(
         width: mat.cols,
         height: mat.rows,
@@ -44,6 +39,28 @@ class OpencvDartImpl implements OpencvService {
       mat.dispose();
     }
   }
+
+  @override
+  CvMat decodeGray(Uint8List bytes, {int reduction = 1}) {
+    final flag = switch (reduction) {
+      1 => cv.IMREAD_GRAYSCALE,
+      2 => cv.IMREAD_REDUCED_GRAYSCALE_2,
+      4 => cv.IMREAD_REDUCED_GRAYSCALE_4,
+      8 => cv.IMREAD_REDUCED_GRAYSCALE_8,
+      _ => throw ArgumentError.value(reduction, 'reduction', '1, 2, 4 or 8'),
+    };
+    final mat = cv.imdecode(bytes, flag);
+    if (mat.isEmpty) {
+      mat.dispose();
+      throw StateError(
+        'still bytes are not a decodable image (${bytes.length} bytes)',
+      );
+    }
+    return CvMat(mat);
+  }
+
+  @override
+  CvSizeI sizeOf(CvMat m) => CvSizeI(_mat(m).cols, _mat(m).rows);
 
   @override
   Uint8List encodeGrayJpeg(int width, int height, Uint8List gray) {
@@ -75,6 +92,14 @@ class OpencvDartImpl implements OpencvService {
   }
 
   @override
+  CvMat resize(CvMat src, CvSizeI size) => CvMat(
+    cv.resize(_mat(src), (
+      size.width,
+      size.height,
+    ), interpolation: cv.INTER_AREA),
+  );
+
+  @override
   Uint8List grayBytes(CvMat m) {
     // Mat.data is a VIEW over native memory that dangles once the mat is
     // disposed — the caller keeps the copy, not the mat.
@@ -95,22 +120,42 @@ class OpencvDartImpl implements OpencvService {
     CvMat templ, {
     List<CvExclude>? exclude,
   }) {
+    final scores = matchScores(image, roi, templ);
+    try {
+      final t = _mat(templ);
+      return bestScore(scores, roi, CvSizeI(t.cols, t.rows), exclude: exclude);
+    } finally {
+      dispose(scores);
+    }
+  }
+
+  @override
+  CvMat matchScores(CvMat image, CvRectI roi, CvMat templ) {
     // Restrict the search to the quadrant first — a match must not be able
-    // to straddle a sheet midline (plan §3, stage 2).
-    final search = crop(image, roi);
-    final result = cv.matchTemplate(
-      _mat(search),
-      _mat(templ),
-      cv.TM_CCOEFF_NORMED,
+    // to straddle a sheet midline (plan §3, stage 2). A ROI header, not a
+    // copy: matchTemplate reads it in place.
+    final search = cv.Mat.fromMat(
+      _mat(image),
+      roi: cv.Rect(roi.x, roi.y, roi.width, roi.height),
     );
     try {
-      _suppress(result, roi, templ, exclude);
-      final (_, maxVal, _, maxLoc) = cv.minMaxLoc(result);
-      return CvMatch(maxVal, CvPointI(roi.x + maxLoc.x, roi.y + maxLoc.y));
+      return CvMat(cv.matchTemplate(search, _mat(templ), cv.TM_CCOEFF_NORMED));
     } finally {
-      result.dispose();
-      dispose(search);
+      search.dispose();
     }
+  }
+
+  @override
+  CvMatch bestScore(
+    CvMat scores,
+    CvRectI roi,
+    CvSizeI templSize, {
+    List<CvExclude>? exclude,
+  }) {
+    final result = _mat(scores);
+    _suppress(result, roi, templSize, exclude);
+    final (_, maxVal, _, maxLoc) = cv.minMaxLoc(result);
+    return CvMatch(maxVal, CvPointI(roi.x + maxLoc.x, roi.y + maxLoc.y));
   }
 
   /// Punches each [CvExclude] disk out of the score map so it can't win.
@@ -123,12 +168,11 @@ class OpencvDartImpl implements OpencvService {
   void _suppress(
     cv.Mat result,
     CvRectI roi,
-    CvMat templ,
+    CvSizeI templ,
     List<CvExclude>? exclude,
   ) {
     if (exclude == null || exclude.isEmpty) return;
-    final t = _mat(templ);
-    final halfW = t.cols / 2, halfH = t.rows / 2;
+    final halfW = templ.width / 2, halfH = templ.height / 2;
     for (final e in exclude) {
       final x0 = math.max(0, (e.x - e.r - roi.x - halfW).round());
       final x1 = math.min(result.cols, (e.x + e.r - roi.x - halfW).ceil());

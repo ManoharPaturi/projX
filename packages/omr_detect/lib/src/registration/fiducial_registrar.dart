@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:omr_spec/omr_spec.dart' show DetectionTemplate;
 
 import '../cv/opencv_service.dart'
-    show CvExclude, CvMat, CvPointI, CvRectI, OpencvService;
+    show CvExclude, CvMat, CvPointI, CvRectI, CvSizeI, OpencvService;
 
 /// Where to hunt for one anchor: the IMAGE-space search rect, the anchor's
 /// canonical position on the detection canvas, and which SHAPE it is — the
@@ -194,44 +194,117 @@ class FiducialRegistrar {
     // window; the size model itself lives on the search (template-derived).
     assert(imageWidth > 0);
     final fitLimit = math.min(search.quadrant.width, search.quadrant.height);
-    final best = _bestOfShapes(
-      cv,
-      gray,
-      search.quadrant,
-      search.baseBlackPx,
-      fitLimit,
-      altAnchor: search.altAnchor,
-      lArmPx: search.lArmPx,
-    );
-    if (best == null) return null;
-
-    // Second, separated peak. An off-centre capture can put TWO anchors of
-    // identical shape inside one window, and a plain max hands every search
-    // the scan-order-first one — both corners then "register" onto the same
-    // physical anchor and the warp silently folds. When a second peak scores
-    // comparably and sits nearer THIS quadrant's outer corner, it is the
-    // honest candidate: the true anchor for a corner lives toward the
-    // frame's edge, a foreign one only ever appears deep inside the window.
-    final second = _bestOfShapes(
-      cv,
-      gray,
-      search.quadrant,
-      search.baseBlackPx,
-      fitLimit,
-      altAnchor: search.altAnchor,
-      lArmPx: search.lArmPx,
-      exclude: [
-        CvExclude(
-          x: best.center.x.toDouble(),
-          y: best.center.y.toDouble(),
-          r: 1.5 * search.baseBlackPx * best.scale,
+    // Every (shape, scale) score map is computed ONCE and queried twice —
+    // best peak, then the second peak away from it. Re-running the sweep
+    // for the second query doubled the stage's dominant cost.
+    final maps = <_ScoreMap>[
+      ..._scoreMaps(cv, gray, search.quadrant, search.baseBlackPx, fitLimit),
+      if (search.altAnchor && search.lArmPx > 0)
+        ..._scoreMaps(
+          cv,
+          gray,
+          search.quadrant,
+          search.baseBlackPx,
+          fitLimit,
+          lArmPx: search.lArmPx,
         ),
-      ],
-    );
-    if (second == null) return best;
-    if (second.score >= best.score - comparablePeakBand &&
-        _outerDistance(search, second) < _outerDistance(search, best)) {
-      return second;
+    ];
+    try {
+      final best = _bestInMaps(cv, maps, search.quadrant);
+      if (best == null) return null;
+
+      // Second, separated peak. An off-centre capture can put TWO anchors
+      // of identical shape inside one window, and a plain max hands every
+      // search the scan-order-first one — both corners then "register"
+      // onto the same physical anchor and the warp silently folds. When a
+      // second peak scores comparably and sits nearer THIS quadrant's outer
+      // corner, it is the honest candidate: the true anchor for a corner
+      // lives toward the frame's edge, a foreign one only ever appears deep
+      // inside the window.
+      final second = _bestInMaps(
+        cv,
+        maps,
+        search.quadrant,
+        exclude: [
+          CvExclude(
+            x: best.center.x.toDouble(),
+            y: best.center.y.toDouble(),
+            r: 1.5 * search.baseBlackPx * best.scale,
+          ),
+        ],
+      );
+      if (second == null) return best;
+      if (second.score >= best.score - comparablePeakBand &&
+          _outerDistance(search, second) < _outerDistance(search, best)) {
+        return second;
+      }
+      return best;
+    } finally {
+      for (final m in maps) {
+        cv.dispose(m.scores);
+      }
+    }
+  }
+
+  /// One score map per swept scale of one patch shape (square, or the L
+  /// when [lArmPx] is given), skipping scales that cannot fit the window.
+  List<_ScoreMap> _scoreMaps(
+    OpencvService cv,
+    CvMat gray,
+    CvRectI window,
+    int baseBlackPx,
+    int fitLimit, {
+    double? lArmPx,
+  }) {
+    final maps = <_ScoreMap>[];
+    for (var step = 0; step < scaleSteps; step++) {
+      final scale = minScale + (1.0 - minScale) * step / (scaleSteps - 1);
+      final blackPx = (baseBlackPx * scale).round();
+      if (blackPx < 6 || blackPx / squareFraction >= fitLimit) continue;
+      final templ = lArmPx == null
+          ? _synthesizePatch(cv, blackPx)
+          : _synthesizeLPatch(cv, blackPx, lArmPx * scale);
+      try {
+        maps.add(
+          _ScoreMap(
+            scale: scale,
+            patch: (blackPx / squareFraction).round(),
+            scores: cv.matchScores(gray, window, templ),
+          ),
+        );
+      } finally {
+        cv.dispose(templ);
+      }
+    }
+    return maps;
+  }
+
+  /// Highest peak across [maps] (first map wins ties — square before L,
+  /// small scale before large, as the sequential sweep did).
+  FiducialMatch? _bestInMaps(
+    OpencvService cv,
+    List<_ScoreMap> maps,
+    CvRectI window, {
+    List<CvExclude>? exclude,
+  }) {
+    FiducialMatch? best;
+    for (final m in maps) {
+      final match = cv.bestScore(
+        m.scores,
+        window,
+        CvSizeI(m.patch, m.patch),
+        exclude: exclude,
+      );
+      if (best == null || match.score > best.score) {
+        best = FiducialMatch(
+          center: CvPointI(
+            match.at.x + m.patch ~/ 2,
+            match.at.y + m.patch ~/ 2,
+          ),
+          score: match.score,
+          scale: m.scale,
+        );
+      }
     }
     return best;
   }
@@ -278,6 +351,56 @@ class FiducialRegistrar {
       lArmPx: search.lArmPx,
       exclude: exclude,
     );
+  }
+
+  /// Coarse-to-fine step: re-locates an anchor already found on a
+  /// downscaled copy, at full resolution, inside a small window around
+  /// [near] (the coarse centre mapped back up) — at the coarse match's own
+  /// [scale], so this is one small template match per shape, not a sweep.
+  ///
+  /// [margin] is how far (full-res px) the true centre may sit from [near].
+  /// Null when the window cannot hold the patch (anchor at the frame edge):
+  /// the caller keeps the mapped coarse centre.
+  FiducialMatch? refine(
+    OpencvService cv,
+    CvMat gray,
+    FiducialSearch search, {
+    required CvPointI near,
+    required double scale,
+    required int margin,
+    required int imageWidth,
+    required int imageHeight,
+  }) {
+    final blackPx = (search.baseBlackPx * scale).round();
+    final patch = (blackPx / squareFraction).round();
+    final half = patch ~/ 2 + margin;
+    final x0 = math.max(0, near.x - half);
+    final y0 = math.max(0, near.y - half);
+    final x1 = math.min(imageWidth, near.x + half + 1);
+    final y1 = math.min(imageHeight, near.y + half + 1);
+    final window = CvRectI(x0, y0, x1 - x0, y1 - y0);
+    if (blackPx < 6 || window.width <= patch || window.height <= patch) {
+      return null;
+    }
+    FiducialMatch? best;
+    for (final arm in [
+      null,
+      if (search.altAnchor && search.lArmPx > 0) search.lArmPx * scale,
+    ]) {
+      final templ = arm == null
+          ? _synthesizePatch(cv, blackPx)
+          : _synthesizeLPatch(cv, blackPx, arm);
+      final match = cv.matchTemplate(gray, window, templ);
+      cv.dispose(templ);
+      if (best == null || match.score > best.score) {
+        best = FiducialMatch(
+          center: CvPointI(match.at.x + patch ~/ 2, match.at.y + patch ~/ 2),
+          score: match.score,
+          scale: scale,
+        );
+      }
+    }
+    return best;
   }
 
   /// Best match over one window trying every shape the anchor could print
@@ -444,4 +567,19 @@ List<FiducialSearch> fiducialSearchPlan(
             : 0,
       ),
   ];
+}
+
+/// One (shape, scale) template's score map over a search window.
+class _ScoreMap {
+  const _ScoreMap({
+    required this.scale,
+    required this.patch,
+    required this.scores,
+  });
+
+  final double scale;
+
+  /// Patch edge in px — the map's cell → centre offset is patch ~/ 2.
+  final int patch;
+  final CvMat scores;
 }

@@ -73,6 +73,32 @@ plane. The UI isolate now only draws.
   so the garbage collector doesn't stall and memory doesn't creep up over
   a 60-sheet session.
 
+**Done (O3):**
+- **Coarse-to-fine registration.** The anchor sweep runs on a copy
+  downscaled to 640 px wide. Each accepted anchor is then re-centred at
+  full resolution with one small single-scale match. Accept/reject
+  decisions and scores are unchanged.
+- **Score maps reused.** Each (shape, scale) score map is computed once and
+  queried twice (best peak, then the separated second peak), where the
+  sweep used to run twice.
+- **No copies before matching.** The quadrant is matched through an ROI
+  header instead of a copied crop.
+- **Decoding:** `OmrPipeline.evaluateStill` decodes straight into a mat
+  (no host copies). A still at least twice 3000 px on its short side
+  (48–108 MP sensors) is decoded at 1/2, 1/4 or 1/8 size by the codec.
+- **Camera resolution stays at `max`.** The layouts' capture floor is
+  11.4 px/mm (Standard-90) and 13.3 px/mm (NEET-180) on paper. That is
+  ~2400–2800 px across the sheet, which the 1080p/4K presets cannot
+  guarantee. Oversized stills are handled at decode instead.
+
+| Photo | before (O1) | after (O3) | accuracy |
+|---|---|---|---|
+| 1080×1440 | 800 ms | 159 ms | 100% |
+| 3000×4000 (12 MP) | 7452 ms | 191 ms | 100% (both presets) |
+
+Time per sheet no longer grows with camera resolution (Mac, JIT; same
+bench).
+
 ## Phase O4 — Database and grading at class scale
 
 - `gradeScan` / `gradeExam` reload the key, the template and the roster

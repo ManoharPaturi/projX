@@ -87,6 +87,7 @@ PipelineBenchResult runPipelineBench(
   int runs = 5,
   int noise = 6,
   int seed = 7,
+  int registrationWidth = 640,
 }) {
   final sheet = _BenchSheet.random(template, math.Random(seed));
   final gray = renderSheetPhoto(
@@ -98,31 +99,32 @@ PipelineBenchResult runPipelineBench(
   );
   _addNoise(gray, noise, math.Random(seed + width));
   final jpeg = cv.encodeGrayJpeg(width, height, gray);
-  final pipeline = OmrPipeline(cv: cv, template: template);
+  final pipeline = OmrPipeline(
+    cv: cv,
+    template: template,
+    registrationWidth: registrationWidth,
+  );
 
-  final warm = cv.decodeStill(jpeg);
-  pipeline.evaluateGray(warm.width, warm.height, warm.gray);
+  pipeline.evaluateStill(jpeg);
 
   final decodeMs = <double>[];
   final pipelineMs = <double>[];
   final stageMicros = <String, int>{};
   var wrong = 0, checked = 0;
   for (var i = 0; i < runs; i++) {
-    final dWatch = Stopwatch()..start();
-    final decoded = cv.decodeStill(jpeg);
-    dWatch.stop();
-    final pWatch = Stopwatch()..start();
-    final result = pipeline.evaluateGray(
-      decoded.width,
-      decoded.height,
-      decoded.gray,
-    );
-    pWatch.stop();
-    decodeMs.add(dWatch.elapsedMicroseconds / 1000);
-    pipelineMs.add(pWatch.elapsedMicroseconds / 1000);
+    final watch = Stopwatch()..start();
+    final result = pipeline.evaluateStill(jpeg);
+    watch.stop();
+    var decodeMicros = 0;
     for (final t in result.trace) {
-      stageMicros[t.stage] = (stageMicros[t.stage] ?? 0) + t.elapsedMicros;
+      if (t.stage == 'decode') {
+        decodeMicros += t.elapsedMicros;
+      } else {
+        stageMicros[t.stage] = (stageMicros[t.stage] ?? 0) + t.elapsedMicros;
+      }
     }
+    decodeMs.add(decodeMicros / 1000);
+    pipelineMs.add((watch.elapsedMicroseconds - decodeMicros) / 1000);
     final score = sheet.score(result);
     wrong += score.wrong;
     checked += score.checked;

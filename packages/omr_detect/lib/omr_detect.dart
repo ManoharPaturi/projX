@@ -13,6 +13,7 @@ export 'src/capture/live_analyzer.dart'
     show LiveFrame, LiveFrameAnalyzer, ScannerTick;
 export 'src/capture/quality_gates.dart'
     show CaptureQualityGates, GateInput, GateResult, GateType;
+export 'src/cv/jpeg_size.dart' show jpegSize;
 export 'src/cv/opencv_dart_impl.dart' show OpencvDartImpl;
 export 'src/cv/opencv_service.dart'
     show

@@ -42,6 +42,11 @@ final class BenchCommand extends Command<int> {
       )
       ..addOption('seed', defaultsTo: '7')
       ..addOption(
+        'reg-width',
+        defaultsTo: '640',
+        help: 'Width registration searches at (OmrPipeline.registrationWidth).',
+      )
+      ..addOption(
         'max-ms',
         help: "Fail when a size's median decode+pipeline exceeds this.",
       )
@@ -64,6 +69,7 @@ final class BenchCommand extends Command<int> {
     final runs = int.parse(args['runs'] as String);
     final noise = int.parse(args['noise'] as String);
     final seed = int.parse(args['seed'] as String);
+    final regWidth = int.parse(args['reg-width'] as String);
     final maxMs = switch (args['max-ms'] as String?) {
       null => null,
       final s => double.parse(s),
@@ -97,6 +103,7 @@ final class BenchCommand extends Command<int> {
         runs: runs,
         noise: noise,
         seed: seed,
+        registrationWidth: regWidth,
       );
       final median = percentile(r.totalMs, 0.5);
       if (r.fieldsWrong > 0 || (maxMs != null && median > maxMs)) {
