@@ -17,8 +17,23 @@ class ExcelExporter {
     ResultsQuery query, {
     Map<String, List<core.QuestionOutcome>>? outcomesByRoll,
   }) async {
-    final header = await query.header();
-    final rows = await query.rows();
+    final snapshot = await query.snapshot();
+    return render(
+      ReportSnapshot(
+        header: snapshot.header,
+        rows: snapshot.rows,
+        outcomesByRoll: outcomesByRoll,
+      ),
+    );
+  }
+
+  /// Workbook bytes from already-read data — pure CPU, safe to run on a
+  /// background isolate. The Per Question sheet is written when the
+  /// snapshot carries outcomes.
+  List<int> render(ReportSnapshot snapshot) {
+    final header = snapshot.header;
+    final rows = snapshot.rows;
+    final outcomesByRoll = snapshot.outcomesByRoll;
 
     final excel = Excel.createExcel();
     excel.rename('Sheet1', 'Summary');

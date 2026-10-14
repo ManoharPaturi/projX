@@ -178,6 +178,27 @@ bench).
   currently block the UI while generating.
 - Load the Noto fonts once per session, not once per report.
 
+**Done (O6):**
+- **Read on the caller, render in the background.** `ResultsQuery.snapshot()`
+  reads the header, rows and (optionally) every student's per-question
+  outcomes into a plain-data `ReportSnapshot`. `ConsolidatedPdf.render` and
+  `ExcelExporter.render` are pure CPU. The app's `report_render.dart` runs
+  them, and the CSV, on `Isolate.run`. They are top-level functions so the
+  isolate closure cannot capture the database (a test pins that failure
+  mode).
+- **Fonts cross as bytes.** `ReportFontBytes` holds the TTF data and is
+  read from `/system/fonts` once per session. Each render isolate rebuilds
+  `pw.Font`s from it; a parsed font caches its last document and is not
+  copied. The loader now parses each candidate up front, so an OTF/CFF file
+  is skipped at load rather than failing mid-report.
+- **Bug fixed along the way:** the Excel card promised "every student's
+  answer to every question", but the app never passed the per-question
+  outcomes, so the workbook only ever had the Summary sheet. The Excel
+  report now requests `snapshot(withOutcomes: true)`. It is graded in one
+  batched pass (`GradingService.gradeScans`) rather than a handful of
+  queries per student. `gradeScan` delegates to it, so the card, the
+  marksheet and the workbook cannot disagree.
+
 ## Order and effort
 
 | Phase | Effort | Impact |

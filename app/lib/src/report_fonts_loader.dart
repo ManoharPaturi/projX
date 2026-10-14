@@ -38,7 +38,8 @@ List<String> _scriptCandidates(String script) => [
   '/system/fonts/NotoSans${script}UI-VF.ttf',
 ];
 
-Future<ReportFonts?>? _cached;
+Future<ReportFontBytes?>? _cachedBytes;
+Future<ReportFonts?>? _cachedFonts;
 
 /// The best offline [ReportFonts] this device offers, or null when no
 /// usable TTF exists (desktop tests, unusual ROMs) — renderers then fall
@@ -46,32 +47,44 @@ Future<ReportFonts?>? _cached;
 ///
 /// Loaded once per app run; failures are per-file and silent, because a
 /// missing font must never block a report.
-Future<ReportFonts?> loadReportFonts() => _cached ??= _load();
+Future<ReportFonts?> loadReportFonts() =>
+    _cachedFonts ??= loadReportFontBytes().then((bytes) => bytes?.toFonts());
+
+/// The same fonts as raw bytes — what a background rendering isolate
+/// receives (see `report_render.dart`). Read from disk once per app run.
+Future<ReportFontBytes?> loadReportFontBytes() => _cachedBytes ??= _load();
 
 @visibleForTesting
-void resetReportFontsCache() => _cached = null;
+void resetReportFontsCache() {
+  _cachedBytes = null;
+  _cachedFonts = null;
+}
 
-Future<ReportFonts?> _load() async {
+Future<ReportFontBytes?> _load() async {
   if (kIsWeb || !Platform.isAndroid) return null;
   final base = await _firstLoadable(_baseCandidates);
   if (base == null) return null;
   final bold = await _firstLoadable(_boldCandidates);
-  final fallback = <pw.Font>[
+  final fallback = <ByteData>[
     for (final script in _scripts)
       ?await _firstLoadable(_scriptCandidates(script)),
   ];
-  return ReportFonts(base: base, bold: bold, fallback: fallback);
+  return ReportFontBytes(base: base, bold: bold, fallback: fallback);
 }
 
-Future<pw.Font?> _firstLoadable(List<String> paths) async {
+Future<ByteData?> _firstLoadable(List<String> paths) async {
   for (final path in paths) {
     final file = File(path);
     try {
       if (!await file.exists()) continue;
-      final bytes = await file.readAsBytes();
-      return pw.Font.ttf(ByteData.sublistView(Uint8List.fromList(bytes)));
+      final data = ByteData.sublistView(
+        Uint8List.fromList(await file.readAsBytes()),
+      );
+      // Parse now so an OTF/CFF or malformed file is skipped here, not
+      // discovered mid-report.
+      pw.Font.ttf(data).fontName;
+      return data;
     } catch (error) {
-      // OTF/CFF or a malformed file: try the next candidate.
       debugPrint('report font skipped: $path ($error)');
     }
   }

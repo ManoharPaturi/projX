@@ -142,6 +142,33 @@ class ResultsQuery {
     ];
   }
 
+  /// Everything a whole-class export needs, read once on the caller's
+  /// isolate: [ReportSnapshot] is plain data, so rendering can then run on
+  /// a background isolate without a database handle.
+  ///
+  /// [withOutcomes] adds every student's per-question outcomes (the Excel
+  /// Per Question sheet), graded in one batched pass.
+  Future<ReportSnapshot> snapshot({bool withOutcomes = false}) async {
+    final head = await header();
+    final all = await rows();
+    if (!withOutcomes || all.isEmpty) {
+      return ReportSnapshot(header: head, rows: all);
+    }
+    final results = await _grading().gradeScans(
+      examId: examId,
+      keyVersionId: keyVersionId,
+      scanIds: [for (final r in all) r.scanId],
+    );
+    return ReportSnapshot(
+      header: head,
+      rows: all,
+      outcomesByRoll: {
+        for (final r in all)
+          if (results[r.scanId] != null) r.rollNo: results[r.scanId]!.outcomes,
+      },
+    );
+  }
+
   /// Rebuilds one student's per-question outcomes from the stored substrate —
   /// the lazy detail behind marksheet tables and analytics drill-downs.
   Future<List<core.QuestionOutcome>> outcomesFor(ReportRow row) async {
@@ -152,4 +179,20 @@ class ResultsQuery {
     );
     return result.outcomes;
   }
+}
+
+/// One exam's report data as plain values — safe to send to another
+/// isolate (no database handle, no futures).
+class ReportSnapshot {
+  const ReportSnapshot({
+    required this.header,
+    required this.rows,
+    this.outcomesByRoll,
+  });
+
+  final ExamHeader header;
+  final List<ReportRow> rows;
+
+  /// Per-question outcomes by roll number; null when not requested.
+  final Map<String, List<core.QuestionOutcome>>? outcomesByRoll;
 }

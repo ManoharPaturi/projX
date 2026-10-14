@@ -40,6 +40,8 @@ dependencies:
   cupertino_icons: ^2.0.0
 
 dev_dependencies:
+  # Reads back the workbooks report_render_test produces.
+  excel_plus: 2.16.0
   flutter_test:
     sdk: flutter
   integration_test:

@@ -53,5 +53,16 @@ First production release.
 - Shared files are named after the exam (e.g. `Mock 1 - Class results
   (key 1).pdf`) instead of `csv-v1.csv`.
 
+- The Excel workbook now includes the Per Question sheet (every student's
+  marks on every question) that its description promised.
+
+### Performance
+- Reading a sheet: 12 MP photo from ~7.5 s to ~0.2 s on the benchmark;
+  detection and the live preview run off the UI thread, so the screen no
+  longer freezes while a sheet is read.
+- Marking after each sheet takes the same time for a class of 10 or 500.
+- Smaller app (unused OpenCV modules removed); faster start-up.
+- Class PDF / Excel / CSV are built in the background.
+
 ### Dependencies
 - drift_dev 2.35.1; GitHub Actions checkout v7.

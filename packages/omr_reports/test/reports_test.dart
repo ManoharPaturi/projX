@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:csv/csv.dart';
 import 'package:excel_plus/excel_plus.dart';
@@ -175,6 +176,41 @@ void main() {
     expect(_int(pqGrid[1]![1]), 4, reason: 'R002 q1 correct = +4');
   });
 
+  test('snapshot(withOutcomes) carries the same outcomes as per-student '
+      'reads, so the workbook gets its Per Question sheet', () async {
+    final query = fx.query();
+    final snapshot = await query.snapshot(withOutcomes: true);
+    expect(snapshot.rows.map((r) => r.rollNo), ['R002', 'R001', 'R003']);
+    for (final row in snapshot.rows) {
+      final single = await query.outcomesFor(row);
+      expect(
+        snapshot.outcomesByRoll![row.rollNo]!.map((o) => o.marksAwarded),
+        single.map((o) => o.marksAwarded),
+        reason: 'batched grading must equal gradeScan for ${row.rollNo}',
+      );
+    }
+
+    final excel = Excel.decodeBytes(ExcelExporter().render(snapshot));
+    expect(excel.sheets.keys, containsAll(['Summary', 'Per Question']));
+    expect(await query.snapshot(), isA<ReportSnapshot>());
+    expect((await query.snapshot()).outcomesByRoll, isNull);
+  });
+
+  test('renderers run on a background isolate from a snapshot', () async {
+    await seedExtraCohort(db, fx, 120);
+    final snapshot = await fx.query().snapshot(withOutcomes: true);
+
+    final pdf = await _pdfOffIsolate(snapshot);
+    final xlsx = await _xlsxOffIsolate(snapshot);
+
+    expect(String.fromCharCodes(pdf.take(5)), '%PDF-');
+    expect(
+      Excel.decodeBytes(xlsx)['Per Question'].maxRows,
+      snapshot.rows.length + 1,
+      reason: 'header + one row per student',
+    );
+  });
+
   test('marksheet PDF is a real single-page document', () async {
     final rows = await fx.query().rows();
     final r001 = rows.singleWhere((r) => r.rollNo == 'R001');
@@ -262,3 +298,12 @@ void main() {
 String? _text(dynamic cell) => cell is TextCellValue ? cell.value.text : null;
 
 int? _int(dynamic cell) => cell is IntCellValue ? cell.value : null;
+
+// Top-level on purpose: a closure created inside main() shares its context
+// with the test's AppDb, and Isolate.run refuses to copy a database handle.
+// The app's renderers (report_render.dart) follow the same rule.
+Future<List<int>> _pdfOffIsolate(ReportSnapshot snapshot) =>
+    Isolate.run(() => ConsolidatedPdf().render(snapshot));
+
+Future<List<int>> _xlsxOffIsolate(ReportSnapshot snapshot) =>
+    Isolate.run(() => ExcelExporter().render(snapshot));
