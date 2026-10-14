@@ -361,29 +361,67 @@ class GradingService {
     required String keyVersionId,
     required String scanId,
   }) async {
+    final results = await gradeScans(
+      examId: examId,
+      keyVersionId: keyVersionId,
+      scanIds: [scanId],
+    );
+    final result = results[scanId];
+    if (result == null) {
+      final scan = await (db.select(
+        db.scans,
+      )..where((s) => s.id.equals(scanId))).getSingle();
+      throw StateError(
+        'scan $scanId: set "${scan.setCodeRead}" has no answer key',
+      );
+    }
+    return result;
+  }
+
+  /// [gradeScan] for many scans at once — the per-question detail behind
+  /// whole-class exports. Scans, bubbles and the key load in a few batched
+  /// queries instead of a handful per student. Keyed by scan id; a scan
+  /// whose set has no key is absent (it cannot be marked).
+  Future<Map<String, core.ExamResult>> gradeScans({
+    required String examId,
+    required String keyVersionId,
+    required List<String> scanIds,
+  }) async {
     final exam = await db.examsDao.byId(examId);
     if (exam == null) {
       throw StateError('unknown exam $examId');
     }
+    if (scanIds.isEmpty) return const {};
     final layout = await layoutContextFor(examId);
-    final read = await readForScan(scanId, layout);
-    final keys = await keysBySet(keyVersionId);
-    final set = effectiveSetFor(read.setCodeRead, keys.keys.toSet());
-    if (set == null) {
-      throw StateError(
-        'scan $scanId: set "${read.setCodeRead}" has no answer key',
+    final scans = <Scan>[];
+    for (var i = 0; i < scanIds.length; i += 500) {
+      final chunk = scanIds.sublist(i, math.min(i + 500, scanIds.length));
+      scans.addAll(
+        await (db.select(db.scans)..where((s) => s.id.isIn(chunk))).get(),
       );
     }
-    final request = await _buildRequest(
-      examId: examId,
-      keyVersionId: keyVersionId,
-      gradingConfigJson: exam.gradingConfigJson,
-      layout: layout,
-      reads: <String, core.SheetRead>{scanId: read},
-      key: keys[set]!,
-    );
-    final report = const core.ExamGrader().grade(request);
-    return report.resultsByStudent[scanId]!;
+    final rowsByScan = await _bubbleRowsFor([for (final s in scans) s.id]);
+    final keys = await keysBySet(keyVersionId);
+    final readsBySet = <String, Map<String, core.SheetRead>>{};
+    for (final scan in scans) {
+      final read = _readFrom(scan, rowsByScan[scan.id] ?? const [], layout);
+      final set = effectiveSetFor(read.setCodeRead, keys.keys.toSet());
+      if (set == null) continue;
+      readsBySet.putIfAbsent(set, () => {})[scan.id] = read;
+    }
+    final results = <String, core.ExamResult>{};
+    for (final group in readsBySet.entries) {
+      final request = await _buildRequest(
+        examId: examId,
+        keyVersionId: keyVersionId,
+        gradingConfigJson: exam.gradingConfigJson,
+        layout: layout,
+        reads: group.value,
+        key: keys[group.key]!,
+      );
+      results.addAll(const core.ExamGrader().grade(request).resultsByStudent);
+    }
+    return results;
   }
 
   /// Rebuilds ONE scan's [core.SheetRead] from `bubble_reads`.

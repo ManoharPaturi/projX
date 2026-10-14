@@ -155,8 +155,8 @@ bench).
 - **OpenCV trimmed to what is called.** `calib3d` was in the M0 module set,
   but nothing calls it: perspective transforms are `imgproc`. It also
   pulled in `features2d` and `flann`. The native library is now
-  `core + imgproc + imgcodecs`: 12.1 MB → 9.6 MB (−21 %, macOS host build;
-  the arm64 `.so` shrinks the same way). Every pipeline and smoke test
+  `core + imgproc + imgcodecs`: arm64 `libdartcv.so` 12.6 MB → 10.0 MB
+  (−21 %; the macOS host build drops 12.1 → 9.6 MB the same way). Every pipeline and smoke test
   passes on the trimmed build.
 - **R8 is already on.** Flutter's Gradle plugin enables `isMinifyEnabled`
   and `isShrinkResources` for release builds unless `--no-shrink` is passed.
@@ -177,6 +177,27 @@ bench).
 - Build the class PDF and Excel files in an isolate. Large classes
   currently block the UI while generating.
 - Load the Noto fonts once per session, not once per report.
+
+**Done (O6):**
+- **Read on the caller, render in the background.** `ResultsQuery.snapshot()`
+  reads the header, rows and (optionally) every student's per-question
+  outcomes into a plain-data `ReportSnapshot`. `ConsolidatedPdf.render` and
+  `ExcelExporter.render` are pure CPU. The app's `report_render.dart` runs
+  them, and the CSV, on `Isolate.run`. They are top-level functions so the
+  isolate closure cannot capture the database (a test pins that failure
+  mode).
+- **Fonts cross as bytes.** `ReportFontBytes` holds the TTF data and is
+  read from `/system/fonts` once per session. Each render isolate rebuilds
+  `pw.Font`s from it; a parsed font caches its last document and is not
+  copied. The loader now parses each candidate up front, so an OTF/CFF file
+  is skipped at load rather than failing mid-report.
+- **Bug fixed along the way:** the Excel card promised "every student's
+  answer to every question", but the app never passed the per-question
+  outcomes, so the workbook only ever had the Summary sheet. The Excel
+  report now requests `snapshot(withOutcomes: true)`. It is graded in one
+  batched pass (`GradingService.gradeScans`) rather than a handful of
+  queries per student. `gradeScan` delegates to it, so the card, the
+  marksheet and the workbook cannot disagree.
 
 ## Order and effort
 

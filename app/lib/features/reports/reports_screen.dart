@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:omr_data/omr_data.dart';
 import 'package:omr_reports/omr_reports.dart';
@@ -11,6 +9,7 @@ import '../../src/data_version.dart';
 import '../../src/labels.dart';
 import '../../src/db/open_db.dart' show reportsDirectory;
 import '../../src/report_fonts_loader.dart';
+import '../../src/report_render.dart';
 
 /// Plan §6 screen 10 + §7 — every output goes through [ReportRunner] so a
 /// `report_jobs` row records what was generated, from which key version, and
@@ -91,8 +90,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           onGenerate: () => _generate(
             type: ReportJobType.consolidated,
             format: 'pdf',
-            builder: (query) async =>
-                ConsolidatedPdf(fonts: await loadReportFonts()).build(query),
+            builder: (query) async => renderClassPdf(
+              await query.snapshot(),
+              await loadReportFontBytes(),
+            ),
           ),
         ),
         _ReportCard(
@@ -104,7 +105,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           onGenerate: () => _generate(
             type: ReportJobType.excel,
             format: 'xlsx',
-            builder: (query) => ExcelExporter().build(query),
+            builder: (query) async =>
+                renderWorkbook(await query.snapshot(withOutcomes: true)),
           ),
         ),
         _ReportCard(
@@ -116,12 +118,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           onGenerate: () => _generate(
             type: ReportJobType.csv,
             format: 'csv',
-            builder: (query) async {
-              final header = await query.header();
-              final rows = await query.rows();
-              // utf8, not codeUnits: Devanagari names must survive the file.
-              return utf8.encode(CsvExporter().convert(header, rows));
-            },
+            builder: (query) async => renderCsv(await query.snapshot()),
           ),
         ),
         const SizedBox(height: 8),

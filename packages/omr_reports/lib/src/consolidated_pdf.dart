@@ -24,9 +24,17 @@ class ConsolidatedPdf {
 
   /// The unsaved document — for callers that preview or append pages before
   /// serializing. Tests read its page count.
-  Future<pw.Document> document(ResultsQuery query) async {
-    final header = await query.header();
-    final rows = await query.rows();
+  Future<pw.Document> document(ResultsQuery query) async =>
+      documentFor(await query.snapshot());
+
+  /// PDF bytes from already-read data — pure CPU, no database: the app runs
+  /// this on a background isolate so a large class does not freeze the UI.
+  Future<List<int>> render(ReportSnapshot snapshot) =>
+      documentFor(snapshot).save();
+
+  pw.Document documentFor(ReportSnapshot snapshot) {
+    final header = snapshot.header;
+    final rows = snapshot.rows;
 
     final doc = pw.Document(theme: fonts?.theme(fontSize: 9));
     doc.addPage(
