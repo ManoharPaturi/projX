@@ -114,6 +114,31 @@ bench).
 - Seed 500 students and 2,000 scans, then time the dashboard, review queue,
   Results and Analysis screens.
 
+**Done (O4):** measured with a 120-student class (`class_scale_test`).
+- **Incremental grading per sheet.** Intake used to re-run the whole-exam
+  pass after every sheet, re-reading every student's ~440 bubble rows. One
+  sheet at 120 students cost 111 ms (in-memory, Mac), and the cost grew
+  with each sheet, so a session was quadratic. Intake now grades only the
+  new sheet's student (`gradeExam(onlyScans:)`) and still recomputes ranks
+  exam-wide. That is ~2 ms per sheet at any class size, and the end state
+  equals a full pass (asserted).
+- **Fewer queries in full passes.** The bubble rows for the whole pass load
+  in batched `IN (…)` queries instead of one round trip per student. Each
+  of these round trips crosses drift's isolate on a phone.
+- **Layout cache.** The parsed spec, compiled template and grading context
+  are memoised per layout row + spec hash. A sheet used to parse and
+  compile the spec 4–5 times.
+- **One transaction per sheet.** The scan, its bubble rows and its review
+  items commit together: one fsync, and no half-written review routing.
+- **v3 indexes.** `review_queue(scan_id, outcome)` and
+  `answer_key_versions(exam_id, version)` were full table scans in
+  `EXPLAIN QUERY PLAN`. Both now use an index (tested on fresh and
+  upgraded databases).
+- **Covered screens stop reloading.** `context.watchDataVersion()` freezes
+  the data version for screens covered by another route. The dashboard and
+  exam page under the camera no longer re-query after every sheet; they
+  catch up once when uncovered.
+
 ## Phase O5 — App size and start-up
 
 - The current arm64 debug APK is about 72 MB. Measure the release APK and

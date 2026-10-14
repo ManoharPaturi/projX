@@ -4,6 +4,7 @@ import 'package:omr_reports/omr_reports.dart';
 import 'package:provider/provider.dart';
 
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 import 'student_result_screen.dart';
 
 /// Plan §6 screen 8 — the ranked result list for one exam, fed by the ONE
@@ -16,8 +17,9 @@ class ResultsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return FutureBuilder<AnswerKeyVersion?>(
-      key: ValueKey('keyversion-$examId-${state.version}'),
+      key: ValueKey('keyversion-$examId-$dataVersion'),
       future: state.db.keysDao.activeVersion(examId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -38,7 +40,7 @@ class ResultsScreen extends StatelessWidget {
         return _Body(
           examId: examId,
           keyVersionId: keyVersion.id,
-          refreshKey: state.version,
+          refreshKey: dataVersion,
         );
       },
     );

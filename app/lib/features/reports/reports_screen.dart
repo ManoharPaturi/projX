@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 import '../../src/labels.dart';
 import '../../src/db/open_db.dart' show reportsDirectory;
 import '../../src/report_fonts_loader.dart';
@@ -50,7 +51,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     if (_versions == null) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -134,7 +135,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         Text('Made earlier', style: Theme.of(context).textTheme.titleMedium),
         _JobsList(
           examId: widget.examId,
-          refreshKey: state.version,
+          refreshKey: dataVersion,
           onShare: _share,
         ),
       ],

@@ -163,6 +163,24 @@ List<Index> v1Indexes() => <Index>[
   ),
 ];
 
+/// v3 indexes: lookups that every captured sheet makes and that no
+/// tenant-leading index could serve (they filter on the parent id alone).
+/// `EXPLAIN QUERY PLAN` showed both as full table scans before v3.
+List<Index> v3Indexes() => <Index>[
+  // Review items of one scan (intake enqueue, resolve, the review screen).
+  Index(
+    'ix_review_scan_outcome',
+    'CREATE INDEX IF NOT EXISTS ix_review_scan_outcome ON review_queue '
+        '(scan_id, outcome)',
+  ),
+  // The exam's key versions, newest first (activeVersion, twice per scan).
+  Index(
+    'ix_akv_exam_version',
+    'CREATE INDEX IF NOT EXISTS ix_akv_exam_version ON answer_key_versions '
+        '(exam_id, version DESC)',
+  ),
+];
+
 const String _answerKeyEntriesImmutable = '''
 CREATE TRIGGER IF NOT EXISTS answer_key_entries_immutable
 BEFORE UPDATE ON answer_key_entries
@@ -181,7 +199,7 @@ END;
 MigrationStrategy buildMigrations(GeneratedDatabase db) => MigrationStrategy(
   onCreate: (Migrator m) async {
     await m.createAll();
-    for (final index in v1Indexes()) {
+    for (final index in [...v1Indexes(), ...v3Indexes()]) {
       await m.createIndex(index);
     }
     await db.customStatement(_answerKeyEntriesImmutable);
@@ -210,6 +228,12 @@ MigrationStrategy buildMigrations(GeneratedDatabase db) => MigrationStrategy(
         'CREATE INDEX IF NOT EXISTS ix_app_settings_tenant ON app_settings '
         '(tenant_id)',
       );
+    }
+    if (from < 3) {
+      // v3: per-scan review and per-exam key-version indexes (O4).
+      for (final index in v3Indexes()) {
+        await m.createIndex(index);
+      }
     }
     assert(from >= 1 && to >= from, 'unsupported schema step $from -> $to');
   },

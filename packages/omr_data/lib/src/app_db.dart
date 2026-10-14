@@ -39,8 +39,8 @@ part 'app_db.g.dart';
 
 /// The local database of the OMR grading system (plan §4).
 ///
-/// - schemaVersion 2 (v2 added `app_settings`; history in
-///   `migrations/migrations.dart`);
+/// - schemaVersion 3 (v2 added `app_settings`, v3 two lookup indexes;
+///   history in `migrations/migrations.dart`);
 /// - `beforeOpen` enables FK enforcement and WAL journaling;
 /// - all timestamps are ISO-8601 UTC TEXT (see `converters.dart`);
 /// - client-generated UUID row ids double as the sync idempotency keys.
@@ -89,7 +89,7 @@ class AppDb extends _$AppDb {
   factory AppDb.memory() => AppDb(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => buildMigrations(this);

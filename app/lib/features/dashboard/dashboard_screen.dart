@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../src/app_drawer.dart';
 import '../../src/app_state.dart';
+import '../../src/data_version.dart';
 import '../../src/labels.dart';
 import '../capture/capture_screen.dart';
 import '../exams/exam_create_screen.dart';
@@ -24,6 +25,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final dataVersion = context.watchDataVersion();
     return Scaffold(
       appBar: AppBar(title: Text(state.instituteName)),
       drawer: const AppDrawer(),
@@ -34,7 +36,7 @@ class DashboardScreen extends StatelessWidget {
             Navigator.pushNamed(context, ExamCreateScreen.routeName),
       ),
       body: FutureBuilder<_Overview>(
-        key: ValueKey('overview-${state.version}'),
+        key: ValueKey('overview-$dataVersion'),
         future: _Overview.load(state),
         builder: (context, snapshot) {
           final overview = snapshot.data;
