@@ -12,7 +12,7 @@ resolution: workspace
 
 dependencies:
   # specHash = sha256(canonicalJson(spec)) — stored with every layout row.
-  crypto: 3.0.6
+  crypto: 3.0.8
   # Vector PDF generation in pure Dart; mm-unit geometry via PdfPageFormat.
   pdf: 3.13.0
   # QR (ECC M) printed on the sheet carrying layoutId + layoutVersion.
