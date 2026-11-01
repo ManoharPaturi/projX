@@ -15,7 +15,7 @@ dependencies:
   excel_plus: 2.16.0
   omr_core: 0.1.0
   omr_data: 0.1.0
-  pdf: 3.13.0
+  pdf: 3.13.1
 
 dev_dependencies:
   # Value()/companions in the test fixture's seed rows.
