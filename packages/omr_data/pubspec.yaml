@@ -11,7 +11,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  drift: 2.34.3
+  drift: 2.35.3
   meta: 1.19.0
   omr_core: 0.1.0
   omr_spec: 0.1.0
