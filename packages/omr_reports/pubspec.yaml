@@ -19,7 +19,7 @@ dependencies:
 
 dev_dependencies:
   # Value()/companions in the test fixture's seed rows.
-  drift: 2.34.3
+  drift: 2.35.3
   # Fixture sheets come from the validated Standard-90 preset, same as the
   # omr_data tests.
   omr_spec: 0.1.0

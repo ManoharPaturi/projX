@@ -21,7 +21,7 @@ dependencies:
 
   # State + DB.
   provider: ^6.1.2
-  drift: 2.34.3
+  drift: 2.35.3
   sqlite3_flutter_libs: ^0.5.28
 
   # Files + output delivery.
